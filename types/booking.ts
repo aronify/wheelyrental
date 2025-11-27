@@ -1,0 +1,91 @@
+/**
+ * Booking Types
+ * 
+ * TypeScript definitions for booking data structures.
+ * These will be replaced with Supabase-generated types when connecting to the database.
+ */
+
+export type BookingStatus = 'pending' | 'confirmed' | 'picked_up' | 'returned' | 'cancelled'
+
+export interface Booking {
+  id: string
+  carName: string
+  carPlate: string
+  carImageUrl: string
+  dealerName: string
+  customerName: string
+  customerPhone: string
+  pickupLocation: string
+  dropoffLocation: string
+  startDateTime: Date
+  endDateTime: Date
+  status: BookingStatus
+  totalPrice: number
+  createdAt: Date
+}
+
+/**
+ * Helper function to filter bookings by status
+ * TODO: Replace with Supabase query when connecting to database
+ */
+export function filterBookingsByStatus(
+  bookings: Booking[],
+  status: BookingStatus | 'all'
+): Booking[] {
+  if (status === 'all') {
+    return bookings
+  }
+  return bookings.filter((booking) => booking.status === status)
+}
+
+/**
+ * Helper function to filter bookings by date range
+ * TODO: Replace with Supabase query when connecting to database
+ */
+export function filterBookingsByDateRange(
+  bookings: Booking[],
+  fromDate: Date | null,
+  toDate: Date | null
+): Booking[] {
+  if (!fromDate && !toDate) {
+    return bookings
+  }
+
+  return bookings.filter((booking) => {
+    const bookingStart = new Date(booking.startDateTime)
+    const bookingEnd = new Date(booking.endDateTime)
+
+    if (fromDate && toDate) {
+      return bookingStart >= fromDate && bookingEnd <= toDate
+    }
+    if (fromDate) {
+      return bookingStart >= fromDate
+    }
+    if (toDate) {
+      return bookingEnd <= toDate
+    }
+    return true
+  })
+}
+
+/**
+ * Helper function to search bookings by customer name or car name
+ * TODO: Replace with Supabase query when connecting to database
+ */
+export function searchBookings(
+  bookings: Booking[],
+  searchTerm: string
+): Booking[] {
+  if (!searchTerm.trim()) {
+    return bookings
+  }
+
+  const term = searchTerm.toLowerCase()
+  return bookings.filter(
+    (booking) =>
+      booking.customerName.toLowerCase().includes(term) ||
+      booking.carName.toLowerCase().includes(term) ||
+      booking.carPlate.toLowerCase().includes(term)
+  )
+}
+
