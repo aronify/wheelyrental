@@ -66,7 +66,8 @@ export interface LanguageDictionary {
   back: string
   quickActions: string
   recentActivity: string
-  topPerformingCars: string
+  topPerformingCars: strin
+  
   upcomingBookings: string
   fleetStatus: string
   todaysSchedule: string

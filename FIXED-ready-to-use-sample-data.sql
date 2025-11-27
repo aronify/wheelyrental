@@ -94,7 +94,6 @@ INSERT INTO customers (
 -- STEP 2: GET CUSTOMER IDs (Run this after Step 1)
 -- =====================================================
 -- Copy this query and run it to see the customer IDs you just created
-
 SELECT 
   id,
   name,
@@ -103,6 +102,7 @@ SELECT
 FROM customers 
 WHERE user_id = '6a33bf27-3ae8-4584-9384-21843311beb7'
 ORDER BY created_at DESC;
+
 
 -- =====================================================
 -- STEP 3: ADD BOOKINGS (Run this after getting customer IDs)
