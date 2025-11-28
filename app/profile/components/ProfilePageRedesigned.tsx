@@ -146,12 +146,12 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
       <Breadcrumbs />
 
       {/* Header Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* Logo */}
             <div className="relative">
-              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-blue-100">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center overflow-hidden shadow-lg ring-2 sm:ring-4 ring-blue-100">
                 {logoPreview ? (
                   <img
                     src={logoPreview}
@@ -180,25 +180,25 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
             </div>
 
             {/* Agency Info */}
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 truncate">
                 {formData.agencyName}
               </h1>
-              <p className="text-sm text-gray-500 flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                {formData.email}
+              <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-2 truncate">
+                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">{formData.email}</span>
               </p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm hover:shadow-md"
+                className="w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-sm sm:text-base"
               >
-                <Edit className="w-4 h-4" />
+                <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {t.editProfile || 'Edit Profile'}
               </button>
             ) : (
@@ -206,25 +206,27 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
                 <button
                   onClick={handleCancel}
                   disabled={isSaving}
-                  className="px-5 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 sm:py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   {t.cancelEdit || 'Cancel'}
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50"
+                  className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 text-sm sm:text-base"
                 >
                   {isSaving ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Saving...
+                      <span className="hidden sm:inline">Saving...</span>
+                      <span className="sm:hidden">Save...</span>
                     </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4" />
-                      {t.saveProfile || 'Save Changes'}
+                      <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">{t.saveProfile || 'Save Changes'}</span>
+                      <span className="sm:hidden">Save</span>
                     </>
                   )}
                 </button>

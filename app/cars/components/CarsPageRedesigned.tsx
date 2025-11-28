@@ -87,7 +87,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
         // Refresh to sync with server
         router.refresh()
       } else {
-        showError(result.error || t.carDeleteFailed)
+        showError(result.error || t.carDeleted)
         setShowDeleteConfirm(false)
         setCarToDelete(null)
       }
@@ -107,7 +107,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           // Refresh to sync with server
           router.refresh()
         } else {
-          showError(result.error || t.carAddFailed || 'Failed to add car. Please try again.')
+          showError(result.error || t.carAdded || 'Failed to add car. Please try again.')
         }
       } else {
         if (!selectedCar) return
@@ -126,7 +126,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           // Refresh to sync with server
           router.refresh()
         } else {
-          showError(result.error || t.carUpdateFailed || 'Failed to update car. Please try again.')
+          showError(result.error || t.carUpdated || 'Failed to update car. Please try again.')
         }
       }
     } catch (error: any) {
@@ -155,8 +155,6 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
         return 'bg-orange-100 text-orange-700 border-orange-200'
       case 'inactive':
         return 'bg-gray-100 text-gray-700 border-gray-200'
-      case 'unavailable':
-        return 'bg-red-100 text-red-700 border-red-200'
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200'
     }
@@ -172,8 +170,6 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
         return t.statusMaintenance
       case 'inactive':
         return t.statusInactive
-      case 'unavailable':
-        return t.statusUnavailable
       default:
         return status
     }
@@ -212,38 +208,38 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           }} />
         </div>
 
-        <div className="relative px-6 py-8 sm:px-8 sm:py-10">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="relative px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
             {/* Title Section */}
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white">{t.cars}</h1>
-                  <p className="text-blue-200 text-sm">{t.manageCarsDescription || 'Manage your vehicle fleet'}</p>
+                <div className="min-w-0">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">{t.cars}</h1>
+                  <p className="text-blue-200 text-xs sm:text-sm">{t.carsSubtitle || 'Manage your vehicle fleet'}</p>
                 </div>
               </div>
 
               {/* Stats Pills - Minimalist */}
-              <div className="flex flex-wrap gap-3 mt-4">
-                <div className="flex items-center gap-2.5 px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
-                  <span className="text-3xl font-bold text-white">{stats.total}</span>
-                  <span className="text-white/90 text-sm font-medium">{t.totalCars || 'Total Cars'}</span>
+              <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4">
+                <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                  <span className="text-2xl sm:text-3xl font-bold text-white">{stats.total}</span>
+                  <span className="text-white/90 text-xs sm:text-sm font-medium">{t.totalCars || 'Total Cars'}</span>
                 </div>
                 {stats.available > 0 && (
-                  <div className="flex items-center gap-2.5 px-5 py-2.5 bg-green-500/30 backdrop-blur-sm rounded-full border border-green-400/30">
-                    <span className="text-2xl font-bold text-white">{stats.available}</span>
-                    <span className="text-white/90 text-sm font-medium">{t.available || 'Available'}</span>
+                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-green-500/30 backdrop-blur-sm rounded-full border border-green-400/30">
+                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.available}</span>
+                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusAvailable || 'Available'}</span>
                   </div>
                 )}
                 {stats.rented > 0 && (
-                  <div className="flex items-center gap-2.5 px-5 py-2.5 bg-orange-500/30 backdrop-blur-sm rounded-full border border-orange-400/30">
-                    <span className="text-2xl font-bold text-white">{stats.rented}</span>
-                    <span className="text-white/90 text-sm font-medium">{t.rented || 'Rented'}</span>
+                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-orange-500/30 backdrop-blur-sm rounded-full border border-orange-400/30">
+                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.rented}</span>
+                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusRented || 'Rented'}</span>
                   </div>
                 )}
               </div>
@@ -252,9 +248,9 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
             {/* Add Button */}
             <button
               onClick={handleAddCar}
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 bg-white text-blue-900 font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-white text-blue-900 font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all text-sm sm:text-base"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               <span>{t.addCar}</span>
@@ -264,32 +260,32 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
       </div>
 
       {/* Filters Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 md:p-6">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
           {/* Search */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="relative">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 type="text"
-                placeholder={t.searchCarsPlaceholder || 'Search by make, model, or plate...'}
+                placeholder={t.searchCars || 'Search by make, model, or plate...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base"
               />
             </div>
           </div>
 
           {/* Status Filter */}
-          <div className="lg:w-56">
+          <div className="w-full lg:w-56">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as CarStatus | 'all')}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-sm sm:text-base"
             >
-              <option value="all">{t.allStatuses}</option>
+              <option value="all">{t.all}</option>
               <option value="available">{t.statusAvailable}</option>
               <option value="rented">{t.statusRented}</option>
               <option value="maintenance">{t.statusMaintenance}</option>
@@ -350,14 +346,14 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           </button>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredCars.map((car) => (
             <div
               key={car.id}
-              className="group bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               {/* Image */}
-              <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+              <div className="relative h-40 sm:h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                 <Image
                   src={car.imageUrl}
                   alt={`${car.make} ${car.model}`}
@@ -375,14 +371,14 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
               </div>
 
               {/* Content */}
-              <div className="p-5">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">
+              <div className="p-4 sm:p-5">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
                   {car.make} {car.model}
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">{car.year} • {car.licensePlate}</p>
+                <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">{car.year} • {car.licensePlate}</p>
 
                 {/* Specs Grid */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                       <svg className="w-4 h-4 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -419,17 +415,18 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                 </div>
 
                 {/* Price */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 pt-3 sm:pt-4 border-t border-gray-100">
                   <div>
-                    <p className="text-2xl font-bold text-blue-900">€{car.dailyRate}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-900">€{car.dailyRate}</p>
                     <p className="text-xs text-gray-500">{t.perDay || 'per day'}</p>
                   </div>
                   <button
                     onClick={() => handleEditCar(car)}
-                    className="px-5 py-2.5 bg-blue-900 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
+                    className="w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-900 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                   >
-                    <Pencil className="w-4 h-4" />
-                    {t.edit || 'Edit Car'}
+                    <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">{t.edit || 'Edit Car'}</span>
+                    <span className="sm:hidden">Edit</span>
                   </button>
                 </div>
               </div>
@@ -438,15 +435,15 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
         </div>
       ) : (
         // List View
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredCars.map((car) => (
             <div
               key={car.id}
-              className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all"
+              className="group bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-lg transition-all"
             >
-              <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
                 {/* Image */}
-                <div className="relative w-full md:w-48 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="relative w-full md:w-48 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg sm:rounded-xl overflow-hidden flex-shrink-0">
                   <Image
                     src={car.imageUrl}
                     alt={`${car.make} ${car.model}`}
@@ -458,19 +455,19 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
 
                 {/* Details */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-2 sm:gap-0 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
                         {car.make} {car.model}
                       </h3>
-                      <p className="text-sm text-gray-500">{car.year} • {car.licensePlate}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">{car.year} • {car.licensePlate}</p>
                     </div>
-                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${getStatusColor(car.status)}`}>
+                    <span className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold border flex-shrink-0 ${getStatusColor(car.status)}`}>
                       {getStatusText(car.status)}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 mb-4">
+                  <div className="flex flex-wrap gap-2 sm:gap-4 mb-3 sm:mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -498,25 +495,26 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-blue-900">€{car.dailyRate}</span>
-                      <span className="text-sm text-gray-500">/ {t.day || 'day'}</span>
+                      <span className="text-xl sm:text-2xl font-bold text-blue-900">€{car.dailyRate}</span>
+                      <span className="text-xs sm:text-sm text-gray-500">/ {t.day || 'day'}</span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <button
                         onClick={() => handleEditCar(car)}
-                        className="flex-1 px-5 py-2.5 bg-blue-900 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                        className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-900 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         {t.edit || 'Edit'}
                       </button>
                       <button
                         onClick={() => handleDeleteCar(car)}
-                        className="px-5 py-2.5 bg-red-50 text-red-600 text-sm font-semibold rounded-xl hover:bg-red-100 transition-all flex items-center gap-2 shadow-md hover:shadow-lg border-2 border-red-200"
+                        className="px-4 sm:px-5 py-2 sm:py-2.5 bg-red-50 text-red-600 text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg border-2 border-red-200"
                       >
-                        <Trash2 className="w-4 h-4" />
-                        {t.delete || 'Delete'}
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">{t.delete || 'Delete'}</span>
+                        <span className="sm:hidden">Del</span>
                       </button>
                     </div>
                   </div>
@@ -554,8 +552,8 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" onClick={() => setShowDeleteConfirm(false)} />
             
-            <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-6 pt-6 pb-4">
+            <div className="inline-block align-bottom bg-white rounded-xl sm:rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full mx-4 sm:mx-0">
+              <div className="bg-white px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mx-auto flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-full bg-red-100 sm:mx-0">
                     <svg className="h-7 w-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -564,11 +562,11 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
                     <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      {t.deleteCarConfirmationTitle || 'Delete Car'}
+                      {t.confirmDelete || 'Delete Car'}
                     </h3>
                     <div className="mt-3">
                       <p className="text-gray-600 mb-3">
-                        {t.deleteCarConfirmationMessage || 'Are you sure you want to delete this car? This action cannot be undone.'}
+                        {t.confirmDeleteMessage || 'Are you sure you want to delete this car? This action cannot be undone.'}
                       </p>
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-sm font-semibold text-gray-900">
@@ -582,13 +580,13 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse gap-3">
+              <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:flex-row-reverse gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="w-full inline-flex justify-center items-center gap-2 rounded-xl border border-transparent shadow-sm px-6 py-3 bg-red-600 text-base font-semibold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto transition-colors"
+                  className="w-full inline-flex justify-center items-center gap-2 rounded-lg sm:rounded-xl border border-transparent shadow-sm px-4 sm:px-6 py-2.5 sm:py-3 bg-red-600 text-sm sm:text-base font-semibold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                   {t.delete}
@@ -596,7 +594,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-6 py-3 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto transition-colors"
+                  className="w-full inline-flex justify-center rounded-lg sm:rounded-xl border border-gray-300 shadow-sm px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto transition-colors"
                 >
                   {t.cancel}
                 </button>

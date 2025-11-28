@@ -248,61 +248,65 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
       <Breadcrumbs />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
             {t.calendar || 'Calendar'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             {t.calendarSubtitle || 'View and manage all pickups and dropoffs'}
           </p>
         </div>
 
         {/* View Mode Switcher */}
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+        <div className="flex items-center gap-1 sm:gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm overflow-x-auto">
           <button
             onClick={() => setViewMode('month')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
               viewMode === 'month'
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <Grid3x3 className="w-4 h-4" />
-            {t.monthView || 'Month'}
+            <Grid3x3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{t.monthView || 'Month'}</span>
+            <span className="sm:hidden">M</span>
           </button>
           <button
             onClick={() => setViewMode('week')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
               viewMode === 'week'
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <CalendarDays className="w-4 h-4" />
-            {t.weekView || 'Week'}
+            <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{t.weekView || 'Week'}</span>
+            <span className="sm:hidden">W</span>
           </button>
           <button
             onClick={() => setViewMode('day')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
               viewMode === 'day'
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <CalendarIcon className="w-4 h-4" />
-            {t.dayView || 'Day'}
+            <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{t.dayView || 'Day'}</span>
+            <span className="sm:hidden">D</span>
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${
               viewMode === 'list'
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <List className="w-4 h-4" />
-            {t.listView || 'List'}
+            <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{t.listView || 'List'}</span>
+            <span className="sm:hidden">L</span>
           </button>
         </div>
       </div>
@@ -334,23 +338,23 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Calendar View */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Month View */}
           {viewMode === 'month' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 md:p-6">
               {/* Week Day Headers */}
-              <div className="grid grid-cols-7 gap-2 mb-4">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-3 sm:mb-4">
                 {weekDays.map((day, index) => (
-                  <div key={index} className="text-center text-sm font-semibold text-gray-600 py-2">
+                  <div key={index} className="text-center text-xs sm:text-sm font-semibold text-gray-600 py-1 sm:py-2">
                     {day}
                   </div>
                 ))}
               </div>
 
               {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {calendarDays.map((date, index) => {
                   if (!date) {
                     return <div key={index} className="aspect-square" />
@@ -366,7 +370,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                     <div
                       key={index}
                       onClick={() => setSelectedDate(date)}
-                      className={`aspect-square p-2 rounded-lg border-2 transition-all cursor-pointer ${
+                      className={`aspect-square p-1 sm:p-2 rounded-md sm:rounded-lg border-2 transition-all cursor-pointer ${
                         isSelected
                           ? 'border-blue-600 bg-blue-50'
                           : isToday
@@ -374,22 +378,22 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      <div className={`text-sm font-medium mb-1 ${
+                      <div className={`text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 ${
                         isToday ? 'text-blue-600' : 'text-gray-900'
                       }`}>
                         {date.getDate()}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5 sm:space-y-1">
                         {pickups.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full" />
-                            <span className="text-xs text-green-700 font-medium">{pickups.length}</span>
+                          <div className="flex items-center gap-0.5 sm:gap-1">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full" />
+                            <span className="text-[10px] sm:text-xs text-green-700 font-medium">{pickups.length}</span>
                           </div>
                         )}
                         {dropoffs.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                            <span className="text-xs text-orange-700 font-medium">{dropoffs.length}</span>
+                          <div className="flex items-center gap-0.5 sm:gap-1">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-orange-500 rounded-full" />
+                            <span className="text-[10px] sm:text-xs text-orange-700 font-medium">{dropoffs.length}</span>
                           </div>
                         )}
                       </div>
@@ -610,26 +614,26 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
             onClick={() => setSelectedBooking(null)}
           />
           <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="flex min-h-screen items-start sm:items-center justify-center p-0 sm:p-4">
               <div 
-                className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+                className="relative bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-screen sm:max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-white">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                  <h3 className="text-lg sm:text-xl font-bold text-white">
                     {t.bookingDetails || 'Booking Details'}
                   </h3>
                   <button
                     onClick={() => setSelectedBooking(null)}
-                    className="text-white/80 hover:text-white transition-colors"
+                    className="text-white/80 hover:text-white transition-colors p-2 flex-shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="px-6 py-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-180px)]">
                   {/* Car Image */}
                   {selectedBooking.car?.image_url ? (
                     <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gray-100">
@@ -709,10 +713,10 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gray-50 border-t border-gray-200 px-6 py-4">
+                <div className="bg-gray-50 border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
                   <button
                     onClick={() => setSelectedBooking(null)}
-                    className="w-full px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                   >
                     {t.close || 'Close'}
                   </button>

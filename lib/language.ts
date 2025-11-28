@@ -32,6 +32,7 @@ export interface LanguageDictionary {
   searchByCustomerOrCar: string
   bookings: string
   bookingsSubtitle: string
+  manageBookingsDescription: string
   view: string
   all: string
   from: string
@@ -48,27 +49,45 @@ export interface LanguageDictionary {
   dashboard: string
   welcomeBack: string
   overview: string
-  totalBookings: string
   activeRentals: string
   totalRevenue: string
   pendingApprovals: string
   recentBookings: string
   viewAllBookings: string
   logout: string
+  loggingOut: string
+  signOutAccount: string
+  account: string
   profile: string
   settings: string
+  viewOverview: string
+  editProfileSettings: string
   carManagement: string
   analytics: string
+  revenueOverTime: string
+  last6Months: string
+  bookingsTrend: string
+  bookingsByStatus: string
+  noDataAvailable: string
   vsLastMonth: string
   currentlyActive: string
   awaitingConfirmation: string
   thisMonth: string
+  allTime: string
+  allTimeDistribution: string
+  todayBookings: string
+  monthlyBookings: string
+  monthlyRevenue: string
   back: string
   quickActions: string
+  goTo: string
   recentActivity: string
-  topPerformingCars: strin
+  topPerformingCars: string
   
   upcomingBookings: string
+  upcomingPickups: string
+  noUpcomingPickups: string
+  noBookingsYet: string
   fleetStatus: string
   todaysSchedule: string
   revenue: string
@@ -165,7 +184,6 @@ export interface LanguageDictionary {
   sortByLastBooking: string
   viewDetails: string
   bookingHistory: string
-  noBookingsYet: string
   topCustomers: string
   recentCustomers: string
   lifetimeValue: string
@@ -177,7 +195,6 @@ export interface LanguageDictionary {
   month: string
   week: string
   day: string
-  upcomingPickups: string
   upcomingDropoffs: string
   noEventsToday: string
   noEventsThisWeek: string
@@ -209,6 +226,7 @@ export interface LanguageDictionary {
 
   // Profile
   myProfile: string
+  ownerPortal: string
   profileSettings: string
   editProfile: string
   saveProfile: string
@@ -217,11 +235,6 @@ export interface LanguageDictionary {
   agencyDescription: string
   contactInformation: string
   businessInformation: string
-  phone: string
-  email: string
-  address: string
-  city: string
-  country: string
   postalCode: string
   website: string
   taxId: string
@@ -242,6 +255,74 @@ export interface LanguageDictionary {
   active: string
   found: string
   statusPickedup: string
+  customerInformation: string
+  carInformation: string
+  pickupDate: string
+  returnDate: string
+  fullName: string
+  contactPerson: string
+  subject: string
+  message: string
+  sendMessage: string
+  sending: string
+  messageSent: string
+  subjectPlaceholder: string
+  messagePlaceholder: string
+  make: string
+  licensePlate: string
+  fileClaim: string
+  fileDamageClaim: string
+  damageDescription: string
+  damageType: string
+  estimatedCost: string
+  notifyInsurance: string
+  uploadPhotos: string
+  clickToUploadPhotos: string
+  photoSelected: string
+  selectDamageType: string
+  scratch: string
+  dent: string
+  broken: string
+  stain: string
+  other: string
+  describeDamage: string
+  estimatedRepairCost: string
+  submitClaim: string
+  claimWarning: string
+  claimFiled: string
+  carImage: string
+  basicInfo: string
+  details: string
+  addNewCarToFleet: string
+  updateCarDetails: string
+  uploadCarImage: string
+  uploadCarImageDescription: string
+  addMorePhotos: string
+  addAnotherPhoto: string
+  clickToUpload: string
+  orDragAndDrop: string
+  autoCompressed: string
+  basicInformation: string
+  provideBasicCarDetails: string
+  additionalDetails: string
+  provideMoreDetails: string
+  add: string
+  next: string
+  vin: string
+  saving: string
+  saveChanges: string
+  addYourFirstCar: string
+  edit: string
+  image: string
+  specifications: string
+  pricing: string
+  surname: string
+  nationality: string
+  age: string
+  years: string
+  downloadLicense: string
+  addNotes: string
+  clickToAddNotes: string
 }
 
 export const translations: Record<Language, LanguageDictionary> = {
@@ -269,6 +350,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     searchByCustomerOrCar: 'Search by customer or car...',
     bookings: 'Bookings',
     bookingsSubtitle: 'Manage all your car rental reservations',
+    manageBookingsDescription: 'Manage all your rental bookings',
     view: 'View',
     all: 'All',
     from: 'From',
@@ -292,16 +374,32 @@ export const translations: Record<Language, LanguageDictionary> = {
     recentBookings: 'Recent Bookings',
     viewAllBookings: 'View All Bookings',
     logout: 'Logout',
+    loggingOut: 'Logging out...',
+    signOutAccount: 'Sign out of your account',
+    account: 'Account',
     profile: 'Profile',
     settings: 'Settings',
+    viewOverview: 'View overview',
+    editProfileSettings: 'Edit profile & settings',
     carManagement: 'Car Management',
     analytics: 'Analytics',
+    revenueOverTime: 'Revenue Over Time',
+    last6Months: 'Last 6 months',
+    bookingsTrend: 'Bookings Trend',
+    bookingsByStatus: 'Bookings by Status',
+    noDataAvailable: 'No data available',
     vsLastMonth: 'vs last month',
     currentlyActive: 'Currently active',
   awaitingConfirmation: 'Awaiting confirmation',
   thisMonth: 'This month',
+  allTime: 'All Time',
+  allTimeDistribution: 'All-time distribution',
+  todayBookings: "Today's Activity",
+  monthlyBookings: 'Monthly Bookings',
+  monthlyRevenue: 'Monthly Revenue',
   back: 'Back',
   quickActions: 'Quick Actions',
+  goTo: 'Go to',
     
     // Cars
     cars: 'Cars',
@@ -391,7 +489,6 @@ export const translations: Record<Language, LanguageDictionary> = {
     month: 'Month',
     week: 'Week',
     day: 'Day',
-    upcomingPickups: 'Upcoming Pickups',
     upcomingDropoffs: 'Upcoming Dropoffs',
     noEventsToday: 'No events scheduled for today',
     noEventsThisWeek: 'No events scheduled this week',
@@ -456,6 +553,56 @@ export const translations: Record<Language, LanguageDictionary> = {
     active: 'Active',
     found: 'found',
     statusPickedup: 'Picked Up',
+    customerInformation: 'Customer Information',
+    carInformation: 'Car Information',
+    pickupDate: 'Pickup Date',
+    returnDate: 'Return Date',
+    fullName: 'Full Name',
+    contactPerson: 'Contact Person',
+    subject: 'Subject',
+    message: 'Message',
+    sendMessage: 'Send Message',
+    sending: 'Sending...',
+    messageSent: 'Message sent successfully!',
+    subjectPlaceholder: 'Enter message subject...',
+    messagePlaceholder: 'Enter your message...',
+    make: 'Make',
+    licensePlate: 'License Plate',
+    fileClaim: 'File Damage Claim',
+    fileDamageClaim: 'File Damage Claim',
+    damageDescription: 'Damage Description',
+    damageType: 'Damage Type',
+    estimatedCost: 'Estimated Repair Cost',
+    notifyInsurance: 'Notify insurance company about this claim',
+    uploadPhotos: 'Upload Photos',
+    clickToUploadPhotos: 'Click to upload photos of the damage',
+    photoSelected: 'photo(s) selected',
+    selectDamageType: 'Select damage type',
+    scratch: 'Scratch',
+    dent: 'Dent',
+    broken: 'Broken Part',
+    stain: 'Stain',
+    other: 'Other',
+    describeDamage: 'Describe the damage in detail...',
+    estimatedRepairCost: 'Estimated Repair Cost',
+    submitClaim: 'Submit Claim',
+    claimWarning: 'Please provide detailed information about the damage to file a claim. This will be recorded and can be used for insurance purposes.',
+    claimFiled: 'Claim filed successfully!',
+    vin: 'VIN',
+    saving: 'Saving...',
+    saveChanges: 'Save Changes',
+    addYourFirstCar: 'Add your first car to get started',
+    edit: 'Edit',
+    image: 'Photo',
+    specifications: 'Specs',
+    pricing: 'Pricing',
+    surname: 'Surname',
+    nationality: 'Nationality',
+    age: 'Age',
+    years: 'years',
+    downloadLicense: 'Download License',
+    addNotes: 'Add Notes',
+    clickToAddNotes: 'Click to add notes about this customer...',
   },
   al: {
     allBookings: 'Të gjitha rezervimet',
@@ -481,6 +628,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     searchByCustomerOrCar: 'Kërko sipas klientit ose mjetit...',
     bookings: 'Rezervimet',
     bookingsSubtitle: 'Menaxho të gjitha rezervimet e makinave',
+    manageBookingsDescription: 'Menaxho të gjitha prenotimet e tua',
     view: 'Shiko',
     all: 'Të gjitha',
     from: 'Nga',
@@ -504,16 +652,32 @@ export const translations: Record<Language, LanguageDictionary> = {
     recentBookings: 'Rezervimet e fundit',
     viewAllBookings: 'Shiko të gjitha rezervimet',
     logout: 'Dil',
+    loggingOut: 'Duke dalur...',
+    signOutAccount: 'Dil nga llogaria jote',
+    account: 'Llogaria',
     profile: 'Profili',
     settings: 'Cilësimet',
+    viewOverview: 'Shiko përmbledhjen',
+    editProfileSettings: 'Ndrysho profilin dhe cilësimet',
     carManagement: 'Menaxhimi i mjeteve',
     analytics: 'Analizat',
+    revenueOverTime: 'Të ardhurat me kalimin e kohës',
+    last6Months: '6 muajt e fundit',
+    bookingsTrend: 'Tendenca e rezervimeve',
+    bookingsByStatus: 'Rezervimet sipas statusit',
+    noDataAvailable: 'Nuk ka të dhëna të disponueshme',
     vsLastMonth: 'krahasuar me muajin e kaluar',
     currentlyActive: 'Aktualisht aktive',
   awaitingConfirmation: 'Në pritje të konfirmimit',
   thisMonth: 'Këtë muaj',
+  allTime: 'Gjithë koha',
+  allTimeDistribution: 'Shpërndarja e gjithë kohës',
+  todayBookings: 'Aktiviteti i sotëm',
+  monthlyBookings: 'Rezervimet mujore',
+  monthlyRevenue: 'Të ardhurat mujore',
   back: 'Kthehu',
   quickActions: 'Veprime të shpejta',
+  goTo: 'Shko te',
     
     // Cars
     cars: 'Automjetet',
@@ -576,7 +740,6 @@ export const translations: Record<Language, LanguageDictionary> = {
     dateOfBirth: 'Data e lindjes',
     licenseNumber: 'Numri i patentës',
     licenseExpiryDate: 'Skadenca e patentës',
-    totalBookings: 'Rezervimet totale',
     totalSpent: 'Shpenzuar gjithsej',
     joinedAt: 'Anëtarësuar',
     lastBookingAt: 'Rezervimi i fundit',
@@ -603,7 +766,6 @@ export const translations: Record<Language, LanguageDictionary> = {
     month: 'Muaji',
     week: 'Java',
     day: 'Dita',
-    upcomingPickups: 'Marrjet e ardhshme',
     upcomingDropoffs: 'Dorëzimet e ardhshme',
     noEventsToday: 'Nuk ka ngjarje të planifikuara për sot',
     noEventsThisWeek: 'Nuk ka ngjarje të planifikuara këtë javë',
@@ -668,6 +830,74 @@ export const translations: Record<Language, LanguageDictionary> = {
     active: 'Aktiv',
     found: 'u gjetën',
     statusPickedup: 'Marrë',
+    customerInformation: 'Informacioni i Klientit',
+    carInformation: 'Informacioni i Mjetit',
+    pickupDate: 'Data e Marrjes',
+    returnDate: 'Data e Kthimit',
+    fullName: 'Emri i Plotë',
+    contactPerson: 'Kontakto Personin',
+    subject: 'Subjekti',
+    message: 'Mesazhi',
+    sendMessage: 'Dërgo Mesazhin',
+    sending: 'Duke dërguar...',
+    messageSent: 'Mesazhi u dërgua me sukses!',
+    subjectPlaceholder: 'Shkruani subjektin e mesazhit...',
+    messagePlaceholder: 'Shkruani mesazhin tuaj...',
+    make: 'Marka',
+    licensePlate: 'Targat',
+    fileClaim: 'Paraqit Kërkesë për Dëmtim',
+    fileDamageClaim: 'Paraqit Kërkesë për Dëmtim',
+    damageDescription: 'Përshkrimi i Dëmtimit',
+    damageType: 'Lloji i Dëmtimit',
+    estimatedCost: 'Kostoja e Vlerësuar e Riparimit',
+    notifyInsurance: 'Njofto kompaninë e sigurimit për këtë kërkesë',
+    uploadPhotos: 'Ngarko Foto',
+    clickToUploadPhotos: 'Kliko për të ngarkuar foto të dëmtimit',
+    photoSelected: 'foto të zgjedhura',
+    selectDamageType: 'Zgjidh llojin e dëmtimit',
+    scratch: 'Gërvishtje',
+    dent: 'Gropë',
+    broken: 'Pjesë e Thyer',
+    stain: 'Njollë',
+    other: 'Tjetër',
+    describeDamage: 'Përshkruani dëmtimin në detaje...',
+    estimatedRepairCost: 'Kostoja e Vlerësuar e Riparimit',
+    submitClaim: 'Paraqit Kërkesën',
+    claimWarning: 'Ju lutemi jepni informacion të detajuar për dëmtimin për të paraqitur një kërkesë. Kjo do të regjistrohet dhe mund të përdoret për qëllime sigurimi.',
+    claimFiled: 'Kërkesa u paraqit me sukses!',
+    carImage: 'Imazhi i Mjetit',
+    basicInfo: 'Info Bazë',
+    details: 'Detajet',
+    addNewCarToFleet: 'Shto një mjet të ri në flotën tuaj',
+    updateCarDetails: 'Përditëso detajet e mjetit',
+    uploadCarImage: 'Ngarko Imazhin e Mjetit',
+    uploadCarImageDescription: 'Një imazh i qartë ndihmon për të tërhequr më shumë klientë',
+    addMorePhotos: 'Shto Më Shumë Foto',
+    addAnotherPhoto: 'Shto Një Foto Tjetër',
+    clickToUpload: 'Kliko për të ngarkuar',
+    orDragAndDrop: 'ose tërhiq dhe lësho',
+    autoCompressed: 'Ngarko foto të shumta - e para do të jetë kryesore',
+    basicInformation: 'Informacioni Bazë',
+    provideBasicCarDetails: 'Jepni detaje thelbësore për mjetin',
+    additionalDetails: 'Detaje Shtesë',
+    provideMoreDetails: 'Specifikimet dhe karakteristikat',
+    add: 'Shto',
+    next: 'Tjetra',
+    vin: 'VIN',
+    saving: 'Duke ruajtur...',
+    saveChanges: 'Ruaj Ndryshimet',
+    addYourFirstCar: 'Shto mjetin tënd të parë për të filluar',
+    edit: 'Redakto',
+    image: 'Foto',
+    specifications: 'Specifikimet',
+    pricing: 'Çmimi',
+    surname: 'Mbiemri',
+    nationality: 'Shtetësia',
+    age: 'Mosha',
+    years: 'vjeç',
+    downloadLicense: 'Shkarko Patentën',
+    addNotes: 'Shto Shënime',
+    clickToAddNotes: 'Kliko për të shtuar shënime për këtë klient...',
   },
 }
 

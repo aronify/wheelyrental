@@ -7,21 +7,33 @@
 
 export type BookingStatus = 'pending' | 'confirmed' | 'picked_up' | 'returned' | 'cancelled'
 
+import { Car } from './car'
+import { Customer } from './customer'
+
 export interface Booking {
   id: string
-  carName: string
-  carPlate: string
-  carImageUrl: string
-  dealerName: string
-  customerName: string
-  customerPhone: string
-  pickupLocation: string
-  dropoffLocation: string
-  startDateTime: Date
-  endDateTime: Date
+  carId?: string
+  customerId?: string
+  pickupDate?: Date
+  dropoffDate?: Date
+  startDate?: Date
+  endDate?: Date
+  startDateTime?: Date
+  endDateTime?: Date
+  carName?: string
+  carPlate?: string
+  carImageUrl?: string
+  dealerName?: string
+  customerName?: string
+  customerPhone?: string
+  pickupLocation?: string
+  dropoffLocation?: string
   status: BookingStatus
   totalPrice: number
   createdAt: Date
+  updatedAt?: Date
+  car?: Car
+  customer?: Customer
 }
 
 /**

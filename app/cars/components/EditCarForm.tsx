@@ -120,12 +120,12 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
 
   const handleImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      setImageError(t.invalidImageType || 'Please upload an image file')
+      setImageError(t.required || 'Please upload an image file')
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setImageError(t.imageTooLarge || 'Image is too large. Max 10MB')
+      setImageError(t.required || 'Image is too large. Max 10MB')
       return
     }
 
@@ -174,7 +174,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     e.preventDefault()
     
     if (!imagePreviews.length || !imagePreviews[0]) {
-      setImageError(t.imageRequired || 'Image is required')
+      setImageError(t.required || 'Image is required')
       setActiveTab('image')
       return
     }
@@ -356,7 +356,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                 >
                   <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-700 font-medium mb-1 text-sm">
-                    {t.dragDropImage || 'Drop your image here'}
+                    {t.dragDropLogo || 'Drop your image here'}
                   </p>
                   <p className="text-xs text-gray-500">
                     {t.autoCompressed || 'Auto-compressed'}
@@ -610,9 +610,9 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                           formData.status === 'rented' ? 'text-blue-600' :
                           'text-orange-600'
                         }`}>
-                          {formData.status === 'available' ? (t.available || 'Available') :
-                           formData.status === 'rented' ? (t.rented || 'Rented') :
-                           (t.maintenance || 'Maintenance')}
+                          {formData.status === 'available' ? (t.statusAvailable || 'Available') :
+                           formData.status === 'rented' ? (t.statusRented || 'Rented') :
+                           (t.statusMaintenance || 'Maintenance')}
                         </span>
                         <svg className={`w-4 h-4 transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -642,7 +642,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                             className="w-full px-3 py-2 text-left hover:bg-green-50 flex items-center gap-2 text-sm border-b"
                           >
                             <span className="w-2 h-2 bg-green-500 rounded-full" />
-                            <span className="text-green-600 font-medium">{t.available || 'Available'}</span>
+                            <span className="text-green-600 font-medium">{t.statusAvailable || 'Available'}</span>
                           </button>
                           <button
                             type="button"
@@ -653,7 +653,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                             className="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center gap-2 text-sm border-b"
                           >
                             <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                            <span className="text-blue-600 font-medium">{t.rented || 'Rented'}</span>
+                            <span className="text-blue-600 font-medium">{t.statusRented || 'Rented'}</span>
                           </button>
                           <button
                             type="button"
@@ -664,7 +664,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                             className="w-full px-3 py-2 text-left hover:bg-orange-50 flex items-center gap-2 text-sm"
                           >
                             <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                            <span className="text-orange-600 font-medium">{t.maintenance || 'Maintenance'}</span>
+                            <span className="text-orange-600 font-medium">{t.statusMaintenance || 'Maintenance'}</span>
                           </button>
                         </div>
                       </>
@@ -755,7 +755,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
               {hasChanges && (
                 <span className="flex items-center gap-2 text-orange-600 text-sm font-semibold">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                  {t.unsavedChanges || 'Unsaved changes'}
+                  {t.saveChanges || 'Unsaved changes'}
                 </span>
               )}
             </div>

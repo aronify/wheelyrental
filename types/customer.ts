@@ -7,7 +7,9 @@
 
 export interface Customer {
   id: string
-  name: string
+  name?: string
+  firstName?: string
+  lastName?: string
   email: string
   phone: string
   address?: string
@@ -16,11 +18,13 @@ export interface Customer {
   dateOfBirth?: Date
   licenseNumber?: string
   licenseExpiryDate?: Date
-  totalBookings: number
-  totalSpent: number
-  joinedAt: Date
+  totalBookings?: number
+  totalSpent?: number
+  joinedAt?: Date
   lastBookingAt?: Date
   notes?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 /**
@@ -34,7 +38,9 @@ export function searchCustomers(customers: Customer[], searchTerm: string): Cust
   const term = searchTerm.toLowerCase()
   return customers.filter(
     (customer) =>
-      customer.name.toLowerCase().includes(term) ||
+      (customer.name?.toLowerCase().includes(term)) ||
+      (customer.firstName?.toLowerCase().includes(term)) ||
+      (customer.lastName?.toLowerCase().includes(term)) ||
       customer.email.toLowerCase().includes(term) ||
       customer.phone.toLowerCase().includes(term) ||
       customer.licenseNumber?.toLowerCase().includes(term)
@@ -55,20 +61,20 @@ export function sortCustomers(
 
     switch (sortBy) {
       case 'name':
-        aValue = a.name.toLowerCase()
-        bValue = b.name.toLowerCase()
+        aValue = (a.name || `${a.firstName || ''} ${a.lastName || ''}`).trim().toLowerCase()
+        bValue = (b.name || `${b.firstName || ''} ${b.lastName || ''}`).trim().toLowerCase()
         break
       case 'totalBookings':
-        aValue = a.totalBookings
-        bValue = b.totalBookings
+        aValue = a.totalBookings || 0
+        bValue = b.totalBookings || 0
         break
       case 'totalSpent':
-        aValue = a.totalSpent
-        bValue = b.totalSpent
+        aValue = a.totalSpent || 0
+        bValue = b.totalSpent || 0
         break
       case 'joinedAt':
-        aValue = new Date(a.joinedAt).getTime()
-        bValue = new Date(b.joinedAt).getTime()
+        aValue = a.joinedAt ? new Date(a.joinedAt).getTime() : 0
+        bValue = b.joinedAt ? new Date(b.joinedAt).getTime() : 0
         break
       case 'lastBookingAt':
         aValue = a.lastBookingAt ? new Date(a.lastBookingAt).getTime() : 0

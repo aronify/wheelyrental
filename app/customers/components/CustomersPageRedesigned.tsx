@@ -211,12 +211,13 @@ export default function CustomersPageRedesigned({ initialCustomers }: CustomersP
 
   // Handle download license
   const handleDownloadLicense = (customer: Customer) => {
+    const customerName = customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer'
     // Create a simple text file with license information
     const licenseData = `
 DRIVER'S LICENSE INFORMATION
 ============================
 
-Customer Name: ${customer.name}
+Customer Name: ${customerName}
 License Number: ${customer.licenseNumber}
 Expiry Date: ${formatDate(customer.licenseExpiryDate)}
 Date of Birth: ${customer.dateOfBirth ? formatDate(customer.dateOfBirth) : 'N/A'}
@@ -236,7 +237,7 @@ Downloaded on: ${new Date().toLocaleString()}
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `license-${customer.name.replace(/\s+/g, '-')}-${customer.licenseNumber}.txt`
+    link.download = `license-${customerName.replace(/\s+/g, '-')}-${customer.licenseNumber}.txt`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -266,28 +267,28 @@ Downloaded on: ${new Date().toLocaleString()}
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"></div>
         
-        <div className="relative px-8 py-10">
-          <div className="flex items-center gap-3 mb-2">
-            <Users className="w-10 h-10 text-white/90" />
-            <h1 className="text-4xl font-bold text-white">{t.customers}</h1>
+        <div className="relative px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+            <Users className="w-8 h-8 sm:w-10 sm:h-10 text-white/90 flex-shrink-0" />
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{t.customers}</h1>
           </div>
-          <p className="text-blue-100 text-lg mb-6">{t.customersSubtitle || 'Manage your customer database'}</p>
+          <p className="text-blue-100 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">{t.customersSubtitle || 'Manage your customer database'}</p>
           
           {/* Stats Pills */}
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
-              <span className="text-3xl font-bold text-white/90">{totalCustomers}</span>
-              <span className="text-blue-100 text-sm">{t.customers}</span>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+              <span className="text-2xl sm:text-3xl font-bold text-white/90">{totalCustomers}</span>
+              <span className="text-blue-100 text-xs sm:text-sm">{t.customers}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
           {/* Search */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -301,7 +302,7 @@ Downloaded on: ${new Date().toLocaleString()}
           </div>
 
           {/* Sort */}
-          <div className="lg:w-56">
+          <div className="w-full lg:w-56">
             <div className="relative">
               <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <select
@@ -328,7 +329,7 @@ Downloaded on: ${new Date().toLocaleString()}
             <Users className="w-10 h-10 text-gray-400" />
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.noCustomersFound || 'No customers found'}</h3>
-          <p className="text-gray-500">{t.noCustomersMessage || 'Try adjusting your search'}</p>
+          <p className="text-gray-500">{t.noCustomersFound || 'Try adjusting your search'}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -338,37 +339,37 @@ Downloaded on: ${new Date().toLocaleString()}
               className="group bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 hover:border-blue-400 cursor-pointer overflow-hidden"
               onClick={() => handleCustomerClick(customer)}
             >
-              <div className="flex items-center gap-6 p-5">
+              <div className="flex items-center gap-3 sm:gap-6 p-4 sm:p-5">
                 {/* Avatar */}
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:scale-105 transition-transform">
-                    {customer.name.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-md group-hover:scale-105 transition-transform">
+                    {(customer.name || customer.firstName || customer.email || 'C').charAt(0).toUpperCase()}
                   </div>
                 </div>
 
                 {/* Customer Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold text-gray-900">{customer.name}</h3>
-                    <div className="flex items-center gap-1.5 text-gray-500 text-sm">
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>{customer.city}, {customer.country}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-2">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email}</h3>
+                    <div className="flex items-center gap-1.5 text-gray-500 text-xs sm:text-sm">
+                      <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                      <span className="truncate">{customer.city}, {customer.country}</span>
                     </div>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1.5">
-                      <Mail className="w-4 h-4 text-blue-500" />
-                      <span className="truncate max-w-[200px]">{customer.email}</span>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+                      <span className="truncate max-w-[150px] sm:max-w-[200px]">{customer.email}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Phone className="w-4 h-4 text-green-500" />
-                      <span>{customer.phone}</span>
+                      <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                      <span className="truncate">{customer.phone}</span>
                     </div>
                     {customer.lastBookingAt && (
-                      <div className="flex items-center gap-1.5 text-gray-500">
-                        <Calendar className="w-4 h-4" />
-                        <span className="text-xs">{t.lastBooking || 'Last'}: {formatDate(customer.lastBookingAt)}</span>
+                      <div className="flex items-center gap-1.5 text-gray-500 w-full sm:w-auto">
+                        <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span className="text-xs">{t.lastBookingAt || 'Last'}: {customer.lastBookingAt ? formatDate(customer.lastBookingAt) : 'N/A'}</span>
                       </div>
                     )}
                   </div>
@@ -381,10 +382,11 @@ Downloaded on: ${new Date().toLocaleString()}
                       e.stopPropagation()
                       handleCustomerClick(customer)
                     }}
-                    className="px-5 py-2.5 bg-blue-900 text-white text-sm font-semibold rounded-lg hover:bg-blue-800 transition-all flex items-center gap-2"
+                    className="px-3 sm:px-5 py-2 sm:py-2.5 bg-blue-900 text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-blue-800 transition-all flex items-center gap-2"
                   >
-                    <User className="w-4 h-4" />
-                    {t.viewDetails || 'View'}
+                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">{t.viewDetails || 'View'}</span>
+                    <span className="sm:hidden">View</span>
                   </button>
                 </div>
               </div>
@@ -404,44 +406,45 @@ Downloaded on: ${new Date().toLocaleString()}
 
           {/* Modal */}
           <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-screen items-center justify-center p-4">
-              <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex min-h-screen items-start sm:items-center justify-center p-0 sm:p-4">
+              <div className="relative bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-3xl w-full max-h-screen sm:max-h-[90vh] overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white font-bold text-xl">
-                      {selectedCustomer.name.charAt(0).toUpperCase()}
+                <div className="bg-gradient-to-r from-blue-900 to-blue-800 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl flex-shrink-0">
+                      {(selectedCustomer.name || selectedCustomer.firstName || selectedCustomer.email || 'C').charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{t.customerDetails || 'Customer Details'}</h3>
-                      <p className="text-blue-100 text-sm">{selectedCustomer.name}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-white truncate">{t.customerDetails || 'Customer Details'}</h3>
+                      <p className="text-blue-100 text-xs sm:text-sm truncate">{selectedCustomer.name || `${selectedCustomer.firstName || ''} ${selectedCustomer.lastName || ''}`.trim() || selectedCustomer.email}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedCustomer(null)}
-                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg flex-shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="px-6 py-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-180px)]">
                   {/* Personal Information */}
                   <div>
                     <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                       <User className="w-5 h-5 text-indigo-600" />
-                      {t.personalInformation || 'Personal Information'}
+                      {t.contactInformation || 'Personal Information'}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {(() => {
-                        const nameParts = selectedCustomer.name.trim().split(/\s+/)
-                        const firstName = nameParts[0] || ''
-                        const surname = nameParts.slice(1).join(' ') || ''
+                        const fullName = selectedCustomer.name || `${selectedCustomer.firstName || ''} ${selectedCustomer.lastName || ''}`.trim()
+                        const nameParts = fullName ? fullName.trim().split(/\s+/) : []
+                        const firstName = selectedCustomer.firstName || nameParts[0] || ''
+                        const surname = selectedCustomer.lastName || nameParts.slice(1).join(' ') || ''
                         return (
                           <>
                             <div className="bg-gray-50 rounded-lg p-4">
-                              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.firstName || 'First Name'}</p>
+                              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.fullName || 'First Name'}</p>
                               <p className="text-gray-900 font-medium">{firstName || '-'}</p>
                             </div>
                             <div className="bg-gray-50 rounded-lg p-4">
@@ -528,7 +531,7 @@ Downloaded on: ${new Date().toLocaleString()}
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         <BadgeCheck className="w-5 h-5 text-orange-600" />
-                        {t.licenseInformation || 'License Information'}
+                        {t.licenseNumber || 'License Information'}
                       </h4>
                       <button
                         onClick={() => handleDownloadLicense(selectedCustomer)}
@@ -560,11 +563,11 @@ Downloaded on: ${new Date().toLocaleString()}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-lg p-4">
                         <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.joinedAt || 'Joined'}</p>
-                        <p className="text-gray-900 font-medium">{formatDate(selectedCustomer.joinedAt)}</p>
+                        <p className="text-gray-900 font-medium">{selectedCustomer.joinedAt ? formatDate(selectedCustomer.joinedAt) : 'N/A'}</p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.lastBookingAt || 'Last Booking'}</p>
-                        <p className="text-gray-900 font-medium">{formatDate(selectedCustomer.lastBookingAt)}</p>
+                        <p className="text-gray-900 font-medium">{selectedCustomer.lastBookingAt ? formatDate(selectedCustomer.lastBookingAt) : 'N/A'}</p>
                       </div>
                     </div>
                   </div>
@@ -646,10 +649,10 @@ Downloaded on: ${new Date().toLocaleString()}
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gray-50 border-t-2 border-gray-200 px-6 py-4">
+                <div className="bg-gray-50 border-t-2 border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
                   <button
                     onClick={() => setSelectedCustomer(null)}
-                    className="w-full px-6 py-3 bg-blue-900 text-white font-semibold rounded-xl hover:bg-blue-800 transition-colors"
+                    className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-900 text-white font-semibold rounded-xl hover:bg-blue-800 transition-colors text-sm sm:text-base"
                   >
                     {t.close || 'Close'}
                   </button>

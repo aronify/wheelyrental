@@ -71,7 +71,9 @@ export default async function CustomersRoute() {
     
     return {
       id: customer.id,
-      name: customer.name,
+      name: customer.name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || customer.email,
+      firstName: customer.first_name,
+      lastName: customer.last_name,
       email: customer.email,
       phone: customer.phone,
       address: customer.address,

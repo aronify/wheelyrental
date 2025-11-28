@@ -26,6 +26,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   const [isTransmissionDropdownOpen, setIsTransmissionDropdownOpen] = useState(false)
   const [isFuelTypeDropdownOpen, setIsFuelTypeDropdownOpen] = useState(false)
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
 
   // Popular car colors with hex values
   const carColors = [
@@ -62,8 +63,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     imageUrl: '',
     status: 'available',
     vin: '',
-    insuranceExpiry: undefined,
-    description: '',
     features: [],
   })
 
@@ -87,8 +86,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           imageUrl: car.imageUrl || '',
           status: car.status || 'available',
           vin: car.vin || '',
-          insuranceExpiry: car.insuranceExpiry,
-          description: car.description || '',
           features: car.features || [],
         })
         setImagePreviews(car.imageUrl ? [car.imageUrl] : [])
@@ -107,8 +104,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           imageUrl: '',
           status: 'available',
           vin: '',
-          insuranceExpiry: undefined,
-          description: '',
           features: [],
         })
         setImagePreviews([])
@@ -138,7 +133,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     
     // Check image
     if (!imagePreviews.length || !imagePreviews[0]) {
-      errors.image = t.imageRequired || 'Please upload a car image'
+      errors.image = t.required || 'Please upload a car image'
     }
     
     // Check required fields
@@ -226,7 +221,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   const handleImageFile = (file: File) => {
     setImageError(null)
     if (!file.type.startsWith('image/')) {
-      setImageError(t.uploadImageFile || 'Please upload an image file')
+      setImageError(t.required || 'Please upload an image file')
       return
     }
 
@@ -908,19 +903,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                       />
                     </div>
 
-                    {/* Description */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        {t.description || 'DESCRIPTION'}
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 resize-none"
-                        placeholder="Brief description of the car..."
-                      />
-                    </div>
 
                     {/* Features */}
                     <div className="md:col-span-2">

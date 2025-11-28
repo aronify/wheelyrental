@@ -192,12 +192,12 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
       result = result.filter((booking) => booking.status === 'pending')
     } else if (viewFilter === 'today') {
       result = result.filter((booking) => {
-        const startDate = new Date(booking.startDate)
+        const startDate = new Date((booking as any).pickup_date || (booking as any).startDate || (booking as any).startDateTime)
         return startDate >= today && startDate < tomorrow
       })
     } else if (viewFilter === 'upcoming') {
       result = result.filter((booking) => {
-        const startDate = new Date(booking.startDate)
+        const startDate = new Date((booking as any).pickup_date || (booking as any).startDate || (booking as any).startDateTime)
         return startDate > now
       })
     }
@@ -215,11 +215,14 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
     return {
       total: bookings.length,
       pending: bookings.filter((b) => b.status === 'pending').length,
-      today: bookings.filter((b) => {
-        const startDate = new Date(b.startDate)
+      today: bookings.filter((b: any) => {
+        const startDate = new Date(b.pickup_date || b.pickupDate || b.startDate || b.startDateTime)
         return startDate >= today && startDate < tomorrow
       }).length,
-      upcoming: bookings.filter((b) => new Date(b.startDate) > now).length,
+      upcoming: bookings.filter((b: any) => {
+        const startDate = new Date(b.pickup_date || b.pickupDate || b.startDate || b.startDateTime)
+        return startDate > now
+      }).length,
       revenue: bookings.reduce((sum, b) => sum + b.totalPrice, 0),
     }
   }, [bookings])
@@ -316,52 +319,52 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
           }} />
         </div>
 
-        <div className="relative px-6 py-8 sm:px-8 sm:py-10">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="relative px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
             {/* Title Section */}
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Calendar className="w-7 h-7 text-white" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white">{t.bookings || 'Bookings'}</h1>
-                  <p className="text-blue-200 text-sm">{t.manageBookingsDescription || 'Manage all your rental bookings'}</p>
+                <div className="min-w-0">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">{t.bookings || 'Bookings'}</h1>
+                  <p className="text-blue-200 text-xs sm:text-sm">{t.bookingsSubtitle || 'Manage all your rental bookings'}</p>
                 </div>
               </div>
 
               {/* Stats Pills - Minimalist */}
-              <div className="flex flex-wrap gap-3 mt-4">
-                <div className="flex items-center gap-2.5 px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
-                  <span className="text-3xl font-bold text-white">{stats.total}</span>
-                  <span className="text-white/90 text-sm font-medium">{t.totalBookings || 'Total'}</span>
+              <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4">
+                <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                  <span className="text-2xl sm:text-3xl font-bold text-white">{stats.total}</span>
+                  <span className="text-white/90 text-xs sm:text-sm font-medium">{t.totalBookings || 'Total'}</span>
                 </div>
                 {stats.pending > 0 && (
-                  <div className="flex items-center gap-2.5 px-5 py-2.5 bg-yellow-500/30 backdrop-blur-sm rounded-full border border-yellow-400/30">
-                    <span className="text-2xl font-bold text-white">{stats.pending}</span>
-                    <span className="text-white/90 text-sm font-medium">{t.pending || 'Pending'}</span>
+                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-yellow-500/30 backdrop-blur-sm rounded-full border border-yellow-400/30">
+                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.pending}</span>
+                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusPending || 'Pending'}</span>
                   </div>
                 )}
                 {stats.today > 0 && (
-                  <div className="flex items-center gap-2.5 px-5 py-2.5 bg-green-500/30 backdrop-blur-sm rounded-full border border-green-400/30">
-                    <span className="text-2xl font-bold text-white">{stats.today}</span>
-                    <span className="text-white/90 text-sm font-medium">{t.today || 'Today'}</span>
+                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-green-500/30 backdrop-blur-sm rounded-full border border-green-400/30">
+                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.today}</span>
+                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.today || 'Today'}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Revenue Card */}
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div>
-                  <p className="text-white/70 text-sm font-medium">{t.totalRevenue || 'Total Revenue'}</p>
-                  <p className="text-3xl font-bold text-white">€{stats.revenue.toFixed(0)}</p>
+                <div className="min-w-0">
+                  <p className="text-white/70 text-xs sm:text-sm font-medium">{t.totalRevenue || 'Total Revenue'}</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-white">€{stats.revenue.toFixed(0)}</p>
                 </div>
               </div>
             </div>
@@ -370,13 +373,13 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setViewFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-xs sm:text-sm ${
                 viewFilter === 'all'
                   ? 'bg-blue-900 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -386,52 +389,54 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             </button>
             <button
               onClick={() => setViewFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-xs sm:text-sm ${
                 viewFilter === 'pending'
                   ? 'bg-yellow-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <span className="flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {t.pending || 'Pending'}
+              <span className="flex items-center gap-1 sm:gap-1.5">
+                <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden xs:inline">{t.statusPending || 'Pending'}</span>
+                <span className="xs:hidden">P</span>
               </span>
             </button>
             <button
               onClick={() => setViewFilter('today')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-xs sm:text-sm ${
                 viewFilter === 'today'
                   ? 'bg-green-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
+              <span className="flex items-center gap-1 sm:gap-1.5">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 {t.today || 'Today'}
               </span>
             </button>
             <button
               onClick={() => setViewFilter('upcoming')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-xs sm:text-sm ${
                 viewFilter === 'upcoming'
                   ? 'bg-purple-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" />
-                {t.upcoming || 'Upcoming'}
+              <span className="flex items-center gap-1 sm:gap-1.5">
+                <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">{t.upcomingBookings || 'Upcoming'}</span>
+                <span className="sm:hidden">Up</span>
               </span>
             </button>
           </div>
 
           {/* Search */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder={t.searchBookingsPlaceholder || 'Search by customer or car...'}
+                placeholder={t.searchByCustomerOrCar || 'Search by customer or car...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
@@ -440,7 +445,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
           </div>
 
           {/* Status Filter */}
-          <div className="lg:w-48">
+          <div className="w-full lg:w-48">
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <select
@@ -448,7 +453,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 onChange={(e) => setStatusFilter(e.target.value as BookingStatus | 'all')}
                 className="w-full pl-10 pr-8 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white appearance-none text-sm"
               >
-                <option value="all">{t.allStatuses || 'All Statuses'}</option>
+                <option value="all">{t.all || 'All'}</option>
                 <option value="pending">{t.statusPending || 'Pending'}</option>
                 <option value="confirmed">{t.statusConfirmed || 'Confirmed'}</option>
                 <option value="picked_up">{t.statusPickedUp || 'Picked Up'}</option>
@@ -469,24 +474,24 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-10 h-10 text-gray-400" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.noBookingsFound || 'No bookings found'}</h3>
-          <p className="text-gray-500">{t.noBookingsMessage || 'Try adjusting your filters'}</p>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.noResults || 'No bookings found'}</h3>
+          <p className="text-gray-500">{t.noResults || 'Try adjusting your filters'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filteredBookings.map((booking) => (
             <div
               key={booking.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300 relative"
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300 relative"
             >
 
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
                 {/* Left: Customer & Car Info */}
-                <div className="flex-1">
-                  <div className="flex items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     {/* Car Image */}
                     {booking.car?.imageUrl && (
-                      <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                         <img
                           src={booking.car.imageUrl}
                           alt={`${booking.car.make} ${booking.car.model}`}
@@ -495,38 +500,38 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                       </div>
                     )}
 
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       {/* Customer */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span className="font-semibold text-gray-900">
+                      <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                        <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                        <span className="font-semibold text-sm sm:text-base text-gray-900 truncate">
                           {booking.customer?.firstName} {booking.customer?.lastName}
                         </span>
                       </div>
 
                       {/* Car */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <CarIcon className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-700">
+                      <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                        <CarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm text-gray-700 truncate">
                           {booking.car?.make} {booking.car?.model} {booking.car?.year}
                         </span>
                       </div>
 
                       {/* Dates */}
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-blue-500" />
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
                           <span>{new Date(booking.startDate).toLocaleDateString()}</span>
                         </div>
-                        <span>→</span>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-blue-500" />
+                        <span className="hidden sm:inline">→</span>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
                           <span>{new Date(booking.endDate).toLocaleDateString()}</span>
                         </div>
                         {booking.pickupLocation && (
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-green-500" />
-                            <span className="text-xs">{booking.pickupLocation}</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                            <span className="text-xs truncate">{booking.pickupLocation}</span>
                           </div>
                         )}
                       </div>
@@ -535,52 +540,54 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 </div>
 
                 {/* Right: Status & Actions */}
-                <div className="flex flex-col items-end gap-3">
+                <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 sm:gap-3 lg:flex-col lg:items-end">
                   {/* Status Badge */}
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(booking.status)}`}>
+                  <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border ${getStatusColor(booking.status)}`}>
                     {getStatusIcon(booking.status)}
-                    {getStatusText(booking.status)}
+                    <span className="hidden sm:inline">{getStatusText(booking.status)}</span>
+                    <span className="sm:hidden">{getStatusText(booking.status).charAt(0)}</span>
                   </div>
 
                   {/* Price */}
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-900">€{booking.totalPrice.toFixed(0)}</p>
+                  <div className="text-left sm:text-right ml-auto sm:ml-0">
+                    <p className="text-xl sm:text-2xl font-bold text-blue-900">€{booking.totalPrice.toFixed(0)}</p>
                     <p className="text-xs text-gray-500">{t.totalPrice || 'Total'}</p>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col gap-2 w-full lg:w-auto">
+                  <div className="flex flex-col gap-2 w-full sm:w-auto lg:w-auto">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedBooking(booking)
                         setIsDetailOpen(true)
                       }}
-                      className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                      className="px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                     >
-                      <FileText className="w-4 h-4" />
-                      {t.viewDetails || 'View Details'}
+                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">{t.viewDetails || 'View Details'}</span>
+                      <span className="sm:hidden">View</span>
                     </button>
                   </div>
 
                   {/* Quick Actions */}
                   {booking.status === 'pending' && (
-                    <div className="flex gap-2 w-full lg:w-auto">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto lg:w-auto">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           handleStatusUpdate(booking.id, 'confirmed')
                         }}
-                        className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 flex-1 lg:flex-initial justify-center"
+                        className="px-3 sm:px-4 py-2 bg-green-500 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 justify-center"
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        {t.confirm || 'Confirm'}
+                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        {t.markAsConfirmed || 'Confirm'}
                       </button>
                       <button
                         onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
-                        className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                        className="px-3 sm:px-4 py-2 bg-red-500 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 justify-center"
                       >
-                        <XCircle className="w-4 h-4" />
+                        <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         {t.cancel || 'Cancel'}
                       </button>
                     </div>
@@ -589,20 +596,22 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   {booking.status === 'confirmed' && (
                     <button
                       onClick={() => handleStatusUpdate(booking.id, 'picked_up')}
-                      className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-500 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 justify-center"
                     >
-                      <CarIcon className="w-4 h-4" />
-                      {t.markPickedUp || 'Mark Picked Up'}
+                      <CarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">{t.markAsPickedUp || 'Mark Picked Up'}</span>
+                      <span className="sm:hidden">Picked Up</span>
                     </button>
                   )}
 
                   {booking.status === 'picked_up' && (
                     <button
                       onClick={() => handleStatusUpdate(booking.id, 'returned')}
-                      className="px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-gray-700 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 justify-center"
                     >
-                      <CheckCircle className="w-4 h-4" />
-                      {t.markReturned || 'Mark Returned'}
+                      <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">{t.markAsReturned || 'Mark Returned'}</span>
+                      <span className="sm:hidden">Returned</span>
                     </button>
                   )}
                 </div>
@@ -620,20 +629,20 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             onClick={() => setIsDetailOpen(false)}
           />
           <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="flex min-h-screen items-start sm:items-center justify-center p-0 sm:p-4">
               <div 
-                className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+                className="relative bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-4xl w-full max-h-screen sm:max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-white" />
+                <div className="bg-gradient-to-r from-blue-900 to-blue-800 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{t.bookingDetails || 'Booking Details'}</h3>
-                      <p className="text-blue-100 text-sm">
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-white truncate">{t.bookingDetails || 'Booking Details'}</h3>
+                      <p className="text-blue-100 text-xs sm:text-sm truncate">
                         {selectedBooking.id.startsWith('mock-') 
                           ? `Booking #${selectedBooking.id.split('-')[2]}` 
                           : `#${selectedBooking.id.slice(0, 8).toUpperCase()}`}
@@ -642,14 +651,14 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   </div>
                   <button
                     onClick={() => setIsDetailOpen(false)}
-                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg flex-shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="px-6 py-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-180px)]">
                   {/* Customer Information */}
                   <div>
                     <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -774,23 +783,24 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gray-50 border-t-2 border-gray-200 px-6 py-4 flex items-center justify-between gap-3">
+                <div className="bg-gray-50 border-t-2 border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
                   <button
                     onClick={() => setIsDetailOpen(false)}
-                    className="px-6 py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors text-sm sm:text-base"
                   >
                     {t.close || 'Close'}
                   </button>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                     {(selectedBooking.customer?.email || selectedBooking.customer?.phone) && (
                       <button
                         onClick={() => {
                           setIsContactModalOpen(true)
                         }}
-                        className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+                        className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                       >
                         <MessageSquare className="w-4 h-4" />
-                        {t.contactPerson || 'Contact Person'}
+                        <span className="hidden sm:inline">{t.contactPerson || 'Contact Person'}</span>
+                        <span className="sm:hidden">Contact</span>
                       </button>
                     )}
                     {(selectedBooking.status === 'returned' || selectedBooking.status === 'picked_up') && (
@@ -799,10 +809,11 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                           setIsDetailOpen(false)
                           setIsClaimModalOpen(true)
                         }}
-                        className="px-6 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors flex items-center gap-2"
+                        className="px-4 sm:px-6 py-2 sm:py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                       >
                         <AlertTriangle className="w-4 h-4" />
-                        {t.fileClaim || 'File Damage Claim'}
+                        <span className="hidden sm:inline">{t.fileClaim || 'File Damage Claim'}</span>
+                        <span className="sm:hidden">File Claim</span>
                       </button>
                     )}
                   </div>
@@ -821,32 +832,32 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             onClick={() => setIsClaimModalOpen(false)}
           />
           <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="flex min-h-screen items-start sm:items-center justify-center p-0 sm:p-4">
               <div 
-                className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden"
+                className="relative bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-3xl w-full max-h-screen sm:max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6 text-white" />
+                <div className="bg-gradient-to-r from-red-600 to-red-700 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{t.fileDamageClaim || 'File Damage Claim'}</h3>
-                      <p className="text-red-100 text-sm">{selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName} - {selectedBooking.car?.make} {selectedBooking.car?.model}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-white truncate">{t.fileDamageClaim || 'File Damage Claim'}</h3>
+                      <p className="text-red-100 text-xs sm:text-sm truncate">{selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName} - {selectedBooking.car?.make} {selectedBooking.car?.model}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setIsClaimModalOpen(false)}
-                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg flex-shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="px-6 py-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-180px)]">
                   <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
                     <p className="text-sm text-red-700 font-medium">
                       {t.claimWarning || 'Please provide detailed information about the damage to file a claim. This will be recorded and can be used for insurance purposes.'}
@@ -963,7 +974,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gray-50 border-t-2 border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
+                <div className="bg-gray-50 border-t-2 border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -971,14 +982,14 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                       setClaimForm({ description: '', damageType: '', estimatedCost: '', insurance: false })
                       setClaimPhotos([])
                     }}
-                    className="px-6 py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors text-sm sm:text-base"
                   >
                     {t.cancel || 'Cancel'}
                   </button>
                   <button
                     type="submit"
                     form="claim-form"
-                    className="px-6 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors flex items-center gap-2"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <AlertTriangle className="w-4 h-4" />
                     {t.submitClaim || 'Submit Claim'}
@@ -1001,22 +1012,22 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             }}
           />
           <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="flex min-h-screen items-start sm:items-center justify-center p-0 sm:p-4">
               <div 
-                className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+                className="relative bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-screen sm:max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                      <MessageSquare className="w-6 h-6 text-white" />
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
+                      <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white">
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-white truncate">
                         {t.contactPerson || 'Contact Person'}
                       </h3>
-                      <p className="text-blue-100 text-sm">
+                      <p className="text-blue-100 text-xs sm:text-sm truncate">
                         {selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName}
                       </p>
                     </div>
@@ -1026,14 +1037,14 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                       setIsContactModalOpen(false)
                       setContactForm({ subject: '', message: '' })
                     }}
-                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg flex-shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="px-6 py-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-180px)]">
                   {/* Customer Info */}
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                     <div className="flex items-center gap-3">
@@ -1112,7 +1123,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gray-50 border-t-2 border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
+                <div className="bg-gray-50 border-t-2 border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -1120,7 +1131,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                       setContactForm({ subject: '', message: '' })
                     }}
                     disabled={isSendingMessage}
-                    className="px-6 py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50 text-sm sm:text-base"
                   >
                     {t.cancel || 'Cancel'}
                   </button>
@@ -1128,7 +1139,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                     type="submit"
                     form="contact-form"
                     disabled={isSendingMessage}
-                    className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
                   >
                     {isSendingMessage ? (
                       <>
