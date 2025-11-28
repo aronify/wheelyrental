@@ -64,8 +64,12 @@ export function filterBookingsByDateRange(
   }
 
   return bookings.filter((booking) => {
-    const bookingStart = new Date(booking.startDateTime)
-    const bookingEnd = new Date(booking.endDateTime)
+    const bookingStart = booking.startDateTime ? new Date(booking.startDateTime) : null
+    const bookingEnd = booking.endDateTime ? new Date(booking.endDateTime) : null
+
+    if (!bookingStart || !bookingEnd) {
+      return false
+    }
 
     if (fromDate && toDate) {
       return bookingStart >= fromDate && bookingEnd <= toDate
