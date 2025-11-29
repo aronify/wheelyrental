@@ -80,11 +80,11 @@ export async function resetPasswordAction(
       success: true,
       message: 'Password updated successfully. Please log in with your new password.',
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Password reset error:', error)
     
     // Check for network/database connection errors in catch block
-    const errorMessage = error?.message?.toLowerCase() || ''
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
     const errorString = String(error).toLowerCase()
     
     if (

@@ -519,15 +519,29 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
 
                       {/* Dates */}
                       <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
-                          <span>{new Date(booking.startDate).toLocaleDateString()}</span>
-                        </div>
-                        <span className="hidden sm:inline">→</span>
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
-                          <span>{new Date(booking.endDate).toLocaleDateString()}</span>
-                        </div>
+                        {(() => {
+                          const startDate = (booking as any).pickup_date || (booking as any).pickupDate || booking.startDate || booking.startDateTime
+                          const endDate = (booking as any).dropoff_date || (booking as any).dropoffDate || booking.endDate || booking.endDateTime
+                          return (
+                            <>
+                              {startDate && (
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+                                  <span>{new Date(startDate).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                              {startDate && endDate && (
+                                <span className="hidden sm:inline">→</span>
+                              )}
+                              {endDate && (
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+                                  <span>{new Date(endDate).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
                         {booking.pickupLocation && (
                           <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                             <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
@@ -741,14 +755,26 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                       {t.bookingDetails || 'Booking Details'}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.pickupDate || 'Pickup Date'}</p>
-                        <p className="text-gray-900 font-medium">{new Date(selectedBooking.startDate).toLocaleDateString()}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.returnDate || 'Return Date'}</p>
-                        <p className="text-gray-900 font-medium">{new Date(selectedBooking.endDate).toLocaleDateString()}</p>
-                      </div>
+                      {(() => {
+                        const startDate = (selectedBooking as any).pickup_date || (selectedBooking as any).pickupDate || selectedBooking.startDate || selectedBooking.startDateTime
+                        const endDate = (selectedBooking as any).dropoff_date || (selectedBooking as any).dropoffDate || selectedBooking.endDate || selectedBooking.endDateTime
+                        return (
+                          <>
+                            {startDate && (
+                              <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.pickupDate || 'Pickup Date'}</p>
+                                <p className="text-gray-900 font-medium">{new Date(startDate).toLocaleDateString()}</p>
+                              </div>
+                            )}
+                            {endDate && (
+                              <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.returnDate || 'Return Date'}</p>
+                                <p className="text-gray-900 font-medium">{new Date(endDate).toLocaleDateString()}</p>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                       {selectedBooking.pickupLocation && (
                         <div className="bg-gray-50 rounded-lg p-4">
                           <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.pickupLocation || 'Pickup Location'}</p>

@@ -137,8 +137,8 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
       setImageFiles(prev => [...prev, file])
       setFormData({ ...formData, imageUrl: compressedBase64 })
       setHasChanges(true)
-    } catch (error: any) {
-      setImageError(error.message)
+    } catch (error: unknown) {
+      setImageError(error instanceof Error ? error.message : 'Failed to process image')
     }
   }
 

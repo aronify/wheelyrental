@@ -210,9 +210,9 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     try {
       await onSubmit({ ...formData, imageUrl: imagePreviews[0] })
       // Success - parent component will close modal
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting form:', error)
-      setImageError(error.message || 'Failed to save car. Try using a smaller image.')
+      setImageError(error instanceof Error ? error.message : 'Failed to save car. Try using a smaller image.')
       setCurrentStep(1) // Go back to image step to show error
       setIsSubmitting(false)
     }

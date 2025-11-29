@@ -8,7 +8,7 @@ export interface CarActionResult {
   success?: boolean
   error?: string
   message?: string
-  data?: any
+  data?: unknown
 }
 
 /**
@@ -78,9 +78,9 @@ export async function addCarAction(carData: CarFormData): Promise<CarActionResul
     console.log('Car added successfully:', data)
     revalidatePath('/cars')
     return { success: true, message: 'Car added successfully', data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unexpected add car error:', error)
-    return { error: `Unexpected error: ${error.message || 'Unknown error'}` }
+    return { error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}` }
   }
 }
 
@@ -126,7 +126,7 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
 
     revalidatePath('/cars')
     return { success: true, message: 'Car updated successfully', data }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Update car error:', error)
     return { error: 'An unexpected error occurred' }
   }
@@ -157,7 +157,7 @@ export async function deleteCarAction(carId: string): Promise<CarActionResult> {
 
     revalidatePath('/cars')
     return { success: true, message: 'Car deleted successfully' }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Delete car error:', error)
     return { error: 'An unexpected error occurred' }
   }

@@ -56,8 +56,8 @@ export function sortCustomers(
   order: 'asc' | 'desc' = 'desc'
 ): Customer[] {
   const sorted = [...customers].sort((a, b) => {
-    let aValue: any
-    let bValue: any
+    let aValue: string | number
+    let bValue: string | number
 
     switch (sortBy) {
       case 'name':

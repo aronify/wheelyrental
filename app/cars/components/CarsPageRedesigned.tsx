@@ -101,7 +101,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
 
         if (result.success && result.data) {
           // Optimistic update - add to local state immediately
-          setCars((prev) => [result.data, ...prev])
+          setCars((prev) => [result.data as Car, ...prev])
           showSuccess(t.carAdded || 'Car added successfully!')
           setIsModalOpen(false)
           // Refresh to sync with server
@@ -118,7 +118,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           // Optimistic update - update local state immediately
           setCars((prev) =>
             prev.map((car) =>
-              car.id === selectedCar.id ? result.data : car
+              car.id === selectedCar.id ? (result.data as Car) : car
             )
           )
           showSuccess(t.carUpdated || 'Car updated successfully!')
@@ -129,9 +129,9 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           showError(result.error || t.carUpdated || 'Failed to update car. Please try again.')
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Car submission error:', error)
-      showError(error.message || 'An unexpected error occurred. Please try with a smaller image.')
+      showError(error instanceof Error ? error.message : 'An unexpected error occurred. Please try with a smaller image.')
     }
   }
 

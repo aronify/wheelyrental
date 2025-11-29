@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 export interface BookingActionResult {
   success?: boolean
   error?: string
-  data?: any
+  data?: unknown
 }
 
 /**
@@ -57,10 +57,10 @@ export async function updateBookingStatusAction(
       success: true,
       data,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Booking update error:', error)
     return {
-      error: error.message || 'An unexpected error occurred',
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
     }
   }
 }

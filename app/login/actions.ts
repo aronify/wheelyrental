@@ -79,11 +79,11 @@ export async function loginAction(
     
     // Redirect will be handled by the client component
     return { success: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Login error:', error)
     
     // Check for network/database connection errors in catch block
-    const errorMessage = error?.message?.toLowerCase() || ''
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
     const errorString = String(error).toLowerCase()
     
     if (

@@ -70,7 +70,7 @@ export async function updateProfileAction(
       success: true,
       message: 'Profile updated successfully',
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Profile update error:', error)
     return {
       error: 'An unexpected error occurred. Please try again.',

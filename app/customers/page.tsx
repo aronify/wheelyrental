@@ -65,7 +65,7 @@ export default async function CustomersRoute() {
       sum + (b.total_price || 0), 0
     )
     
-    const sortedBookings = [...bookings].sort((a: any, b: any) => 
+    const sortedBookings = [...bookings].filter((b: any) => b.pickup_date).sort((a: any, b: any) => 
       new Date(b.pickup_date).getTime() - new Date(a.pickup_date).getTime()
     )
     
@@ -85,7 +85,7 @@ export default async function CustomersRoute() {
       totalBookings: bookings.length,
       totalSpent: totalSpent,
       joinedAt: new Date(customer.created_at),
-      lastBookingAt: sortedBookings.length > 0 ? new Date(sortedBookings[0].pickup_date) : undefined,
+      lastBookingAt: sortedBookings.length > 0 && sortedBookings[0].pickup_date ? new Date(sortedBookings[0].pickup_date) : undefined,
       notes: customer.notes,
     }
   })

@@ -99,9 +99,9 @@ export function searchBookings(
   const term = searchTerm.toLowerCase()
   return bookings.filter(
     (booking) =>
-      booking.customerName.toLowerCase().includes(term) ||
-      booking.carName.toLowerCase().includes(term) ||
-      booking.carPlate.toLowerCase().includes(term)
+      (booking.customerName?.toLowerCase().includes(term) ?? false) ||
+      (booking.carName?.toLowerCase().includes(term) ?? false) ||
+      (booking.carPlate?.toLowerCase().includes(term) ?? false)
   )
 }
 

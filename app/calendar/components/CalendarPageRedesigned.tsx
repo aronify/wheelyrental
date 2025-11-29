@@ -105,6 +105,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   // Get bookings for a specific date
   const getBookingsForDate = (date: Date) => {
     return bookings.filter((booking) => {
+      if (!booking.pickup_date || !booking.dropoff_date) return false
       const pickup = new Date(booking.pickup_date)
       const dropoff = new Date(booking.dropoff_date)
       const checkDate = new Date(date)
@@ -118,6 +119,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   // Get pickups for a date
   const getPickupsForDate = (date: Date) => {
     return bookings.filter((booking) => {
+      if (!booking.pickup_date) return false
       const pickup = new Date(booking.pickup_date)
       const checkDate = new Date(date)
       pickup.setHours(0, 0, 0, 0)
@@ -129,6 +131,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   // Get dropoffs for a date
   const getDropoffsForDate = (date: Date) => {
     return bookings.filter((booking) => {
+      if (!booking.dropoff_date) return false
       const dropoff = new Date(booking.dropoff_date)
       const checkDate = new Date(date)
       dropoff.setHours(0, 0, 0, 0)
@@ -186,11 +189,15 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
     now.setHours(0, 0, 0, 0)
     return bookings
       .filter((b) => {
+        if (!b.pickup_date) return false
         const pickup = new Date(b.pickup_date)
         pickup.setHours(0, 0, 0, 0)
         return pickup >= now
       })
-      .sort((a, b) => new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime())
+      .sort((a, b) => {
+        if (!a.pickup_date || !b.pickup_date) return 0
+        return new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime()
+      })
       .slice(0, 5)
   }, [bookings])
 
@@ -200,11 +207,15 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
     now.setHours(0, 0, 0, 0)
     return bookings
       .filter((b) => {
+        if (!b.dropoff_date) return false
         const dropoff = new Date(b.dropoff_date)
         dropoff.setHours(0, 0, 0, 0)
         return dropoff >= now
       })
-      .sort((a, b) => new Date(a.dropoff_date).getTime() - new Date(b.dropoff_date).getTime())
+      .sort((a, b) => {
+        if (!a.dropoff_date || !b.dropoff_date) return 0
+        return new Date(a.dropoff_date).getTime() - new Date(b.dropoff_date).getTime()
+      })
       .slice(0, 5)
   }, [bookings])
 
@@ -437,8 +448,8 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
             ) : (
               <div className="space-y-3">
                 {todayEvents.map((booking) => {
-                  const isPickup = new Date(booking.pickup_date).toDateString() === today.toDateString()
-                  const isDropoff = new Date(booking.dropoff_date).toDateString() === today.toDateString()
+                  const isPickup = booking.pickup_date ? new Date(booking.pickup_date).toDateString() === today.toDateString() : false
+                  const isDropoff = booking.dropoff_date ? new Date(booking.dropoff_date).toDateString() === today.toDateString() : false
                   const carName = booking.car ? `${booking.car.make} ${booking.car.model} ${booking.car.year}` : 'Unknown Car'
                   const customerName = booking.customer ? `${booking.customer.first_name} ${booking.customer.last_name}` : 'Unknown Customer'
 
