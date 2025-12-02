@@ -57,7 +57,6 @@ export async function updateProfileAction(
       .eq('user_id', session.user.id)
 
     if (error) {
-      console.error('Profile update error:', error)
       return {
         error: 'Failed to update profile. Please try again.',
       }
@@ -71,7 +70,6 @@ export async function updateProfileAction(
       message: 'Profile updated successfully',
     }
   } catch (error: unknown) {
-    console.error('Profile update error:', error)
     return {
       error: 'An unexpected error occurred. Please try again.',
     }

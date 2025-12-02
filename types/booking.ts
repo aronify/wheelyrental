@@ -2,7 +2,6 @@
  * Booking Types
  * 
  * TypeScript definitions for booking data structures.
- * These will be replaced with Supabase-generated types when connecting to the database.
  */
 
 export type BookingStatus = 'pending' | 'confirmed' | 'picked_up' | 'returned' | 'cancelled'
@@ -38,7 +37,6 @@ export interface Booking {
 
 /**
  * Helper function to filter bookings by status
- * TODO: Replace with Supabase query when connecting to database
  */
 export function filterBookingsByStatus(
   bookings: Booking[],
@@ -52,7 +50,6 @@ export function filterBookingsByStatus(
 
 /**
  * Helper function to filter bookings by date range
- * TODO: Replace with Supabase query when connecting to database
  */
 export function filterBookingsByDateRange(
   bookings: Booking[],
@@ -86,7 +83,6 @@ export function filterBookingsByDateRange(
 
 /**
  * Helper function to search bookings by customer name or car name
- * TODO: Replace with Supabase query when connecting to database
  */
 export function searchBookings(
   bookings: Booking[],

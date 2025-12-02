@@ -254,7 +254,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   today.setHours(0, 0, 0, 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-6">
       {/* Breadcrumbs */}
       <Breadcrumbs />
 

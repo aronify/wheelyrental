@@ -4,6 +4,7 @@ import { useState, FormEvent, useEffect, useRef } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Car, CarFormData, TransmissionType, FuelType, CarStatus } from '@/types/car'
 import { X, Save, Image as ImageIcon, Info, Settings, DollarSign, CheckCircle } from 'lucide-react'
+import CustomDropdown from '@/app/components/CustomDropdown'
 
 interface EditCarFormProps {
   isOpen: boolean
@@ -540,32 +541,34 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                     <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
                       {t.transmission || 'TRANSMISSION'} <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    <CustomDropdown
                       value={formData.transmission}
-                      onChange={(e) => handleInputChange('transmission', e.target.value as TransmissionType)}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm bg-white"
-                      required
-                    >
-                      <option value="automatic">{t.automatic || 'Automatic'}</option>
-                      <option value="manual">{t.manual || 'Manual'}</option>
-                    </select>
+                      onChange={(value) => handleInputChange('transmission', value as TransmissionType)}
+                      options={[
+                        { value: 'automatic', label: t.automatic || 'Automatic' },
+                        { value: 'manual', label: t.manual || 'Manual' },
+                      ]}
+                      placeholder={t.transmission || 'Select transmission'}
+                      required={true}
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
                       {t.fuelType || 'FUEL TYPE'} <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    <CustomDropdown
                       value={formData.fuelType}
-                      onChange={(e) => handleInputChange('fuelType', e.target.value as FuelType)}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm bg-white"
-                      required
-                    >
-                      <option value="petrol">{t.petrol || 'Petrol'}</option>
-                      <option value="diesel">{t.diesel || 'Diesel'}</option>
-                      <option value="electric">{t.electric || 'Electric'}</option>
-                      <option value="hybrid">{t.hybrid || 'Hybrid'}</option>
-                    </select>
+                      onChange={(value) => handleInputChange('fuelType', value as FuelType)}
+                      options={[
+                        { value: 'petrol', label: t.petrol || 'Petrol' },
+                        { value: 'diesel', label: t.diesel || 'Diesel' },
+                        { value: 'electric', label: t.electric || 'Electric' },
+                        { value: 'hybrid', label: t.hybrid || 'Hybrid' },
+                      ]}
+                      placeholder={t.fuelType || 'Select fuel type'}
+                      required={true}
+                    />
                   </div>
 
                   <div>

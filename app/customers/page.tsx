@@ -47,12 +47,6 @@ export default async function CustomersRoute() {
     .eq('user_id', session.user.id)
     .order('created_at', { ascending: false })
 
-  // Debug logging
-  console.log('=== CUSTOMERS DEBUG ===')
-  console.log('Session user ID:', session.user.id)
-  console.log('Customers data:', customersData)
-  console.log('Customers error:', customersError)
-  console.log('Number of customers:', customersData?.length || 0)
 
   // Transform data to match Customer type
   const customers = (customersData || []).map((customer: any) => {

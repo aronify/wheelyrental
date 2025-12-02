@@ -35,7 +35,6 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
     try {
       await logoutAction()
     } catch (error) {
-      console.error('Logout error:', error)
       setIsLoggingOut(false)
     }
   }

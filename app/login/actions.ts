@@ -16,9 +16,6 @@ export interface LoginActionResult {
 
 /**
  * Server action to handle user login
- * 
- * TODO: Add role-based checks here to ensure only "owners" can log in
- * Example: Check user metadata or a user_roles table after successful login
  */
 export async function loginAction(
   formData: LoginFormData
@@ -80,8 +77,6 @@ export async function loginAction(
     // Redirect will be handled by the client component
     return { success: true }
   } catch (error: unknown) {
-    console.error('Login error:', error)
-    
     // Check for network/database connection errors in catch block
     const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
     const errorString = String(error).toLowerCase()

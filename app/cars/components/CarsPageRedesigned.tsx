@@ -11,6 +11,7 @@ import { addCarAction, updateCarAction, deleteCarAction } from '../actions'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Pencil, Trash2 } from 'lucide-react'
+import CustomDropdown from '@/app/components/CustomDropdown'
 
 interface CarsPageProps {
   initialCars: Car[]
@@ -130,7 +131,6 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
         }
       }
     } catch (error: unknown) {
-      console.error('Car submission error:', error)
       showError(error instanceof Error ? error.message : 'An unexpected error occurred. Please try with a smaller image.')
     }
   }
@@ -176,7 +176,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-6">
       {/* Toast Messages */}
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in">
@@ -280,17 +280,18 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
 
           {/* Status Filter */}
           <div className="w-full lg:w-56">
-            <select
+            <CustomDropdown
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as CarStatus | 'all')}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-sm sm:text-base"
-            >
-              <option value="all">{t.all}</option>
-              <option value="available">{t.statusAvailable}</option>
-              <option value="rented">{t.statusRented}</option>
-              <option value="maintenance">{t.statusMaintenance}</option>
-              <option value="inactive">{t.statusInactive}</option>
-            </select>
+              onChange={(value) => setStatusFilter(value as CarStatus | 'all')}
+              options={[
+                { value: 'all', label: t.all },
+                { value: 'available', label: t.statusAvailable },
+                { value: 'rented', label: t.statusRented },
+                { value: 'maintenance', label: t.statusMaintenance },
+                { value: 'inactive', label: t.statusInactive },
+              ]}
+              placeholder={t.all}
+            />
           </div>
 
           {/* View Mode Toggle */}
@@ -347,10 +348,14 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {filteredCars.map((car) => (
+          {filteredCars.map((car, index) => (
             <div
               key={car.id}
-              className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in"
+              style={{
+                animationDelay: `${Math.min(index * 75, 600)}ms`,
+                animationFillMode: 'both'
+              }}
             >
               {/* Image */}
               <div className="relative h-40 sm:h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">

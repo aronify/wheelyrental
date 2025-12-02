@@ -59,8 +59,6 @@ export async function forgotPasswordAction(
       message: 'If an account exists with this email, you will receive a password reset link shortly.',
     }
   } catch (error: unknown) {
-    console.error('Forgot password error:', error)
-    
     // Check for network/database connection errors in catch block
     const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
     const errorString = String(error).toLowerCase()

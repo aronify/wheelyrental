@@ -14,7 +14,6 @@ export async function logoutAction() {
     const { error } = await supabase.auth.signOut()
     
     if (error) {
-      console.error('Logout error:', error)
       return {
         error: 'Failed to logout. Please try again.',
       }
@@ -23,7 +22,6 @@ export async function logoutAction() {
     // Redirect to login page
     redirect('/login')
   } catch (error: unknown) {
-    console.error('Logout error:', error)
     return {
       error: 'An unexpected error occurred. Please try again.',
     }

@@ -44,7 +44,6 @@ export async function updateBookingStatusAction(
       .single()
 
     if (error) {
-      console.error('Booking update error:', error)
       return {
         error: 'Failed to update booking status',
       }
@@ -58,7 +57,6 @@ export async function updateBookingStatusAction(
       data,
     }
   } catch (error: unknown) {
-    console.error('Booking update error:', error)
     return {
       error: error instanceof Error ? error.message : 'An unexpected error occurred',
     }

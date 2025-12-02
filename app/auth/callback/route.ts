@@ -16,7 +16,6 @@ export async function GET(request: Request) {
 
   // Handle errors from Supabase
   if (error) {
-    console.error('Auth callback error:', errorDescription || error)
     return NextResponse.redirect(
       `${requestUrl.origin}/forgot-password?error=${encodeURIComponent(
         errorDescription || error
@@ -30,7 +29,6 @@ export async function GET(request: Request) {
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
-      console.error('Code exchange error:', exchangeError)
       return NextResponse.redirect(
         `${requestUrl.origin}/forgot-password?error=${encodeURIComponent(
           'Failed to authenticate. Please try again.'

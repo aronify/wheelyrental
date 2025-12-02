@@ -141,7 +141,7 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-6">
       {/* Breadcrumbs */}
       <Breadcrumbs />
 

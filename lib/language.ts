@@ -323,6 +323,24 @@ export interface LanguageDictionary {
   downloadLicense: string
   addNotes: string
   clickToAddNotes: string
+  reportFine: string
+  fineDetails: string
+  fineType: string
+  finePrice: string
+  fineWarning: string
+  describeFine: string
+  selectFineType: string
+  speedingFine: string
+  parkingFine: string
+  redLightFine: string
+  noSeatbeltFine: string
+  phoneFine: string
+  registrationFine: string
+  uploadFineDocument: string
+  clickToUploadFine: string
+  acceptedFormats: string
+  submitFine: string
+  fineReported: string
 }
 
 export const translations: Record<Language, LanguageDictionary> = {
@@ -640,6 +658,24 @@ export const translations: Record<Language, LanguageDictionary> = {
     downloadLicense: 'Download License',
     addNotes: 'Add Notes',
     clickToAddNotes: 'Click to add notes about this customer...',
+    reportFine: 'Report Fine',
+    fineDetails: 'Fine Details',
+    fineType: 'Fine Type',
+    finePrice: 'Fine Amount',
+    fineWarning: 'Please provide detailed information about the fine received during the rental period. Upload the fine document and provide all necessary details.',
+    describeFine: 'Describe the fine in detail (location, date, violation type, etc.)...',
+    selectFineType: 'Select fine type',
+    speedingFine: 'Speeding',
+    parkingFine: 'Parking Violation',
+    redLightFine: 'Red Light Violation',
+    noSeatbeltFine: 'No Seatbelt',
+    phoneFine: 'Phone Usage While Driving',
+    registrationFine: 'Registration/Insurance Issue',
+    uploadFineDocument: 'Upload Fine Document',
+    clickToUploadFine: 'Click to upload fine document/photos',
+    acceptedFormats: 'Accepted: JPG, PNG, PDF (MAX. 10MB each)',
+    submitFine: 'Submit Fine Report',
+    fineReported: 'Fine reported successfully!',
   },
   al: {
     allBookings: 'Të gjitha rezervimet',
@@ -955,6 +991,24 @@ export const translations: Record<Language, LanguageDictionary> = {
     downloadLicense: 'Shkarko Patentën',
     addNotes: 'Shto Shënime',
     clickToAddNotes: 'Kliko për të shtuar shënime për këtë klient...',
+    reportFine: 'Raporto Gjobë',
+    fineDetails: 'Detajet e Gjobës',
+    fineType: 'Lloji i Gjobës',
+    finePrice: 'Shuma e Gjobës',
+    fineWarning: 'Ju lutemi jepni informacion të detajuar për gjobën e marrë gjatë periudhës së qirasë. Ngarkoni dokumentin e gjobës dhe jepni të gjitha detajet e nevojshme.',
+    describeFine: 'Përshkruani gjobën në detaje (vendndodhja, data, lloji i shkeljes, etj.)...',
+    selectFineType: 'Zgjidhni llojin e gjobës',
+    speedingFine: 'Shpejtësi e tepërt',
+    parkingFine: 'Shkelje Parkimi',
+    redLightFine: 'Shkelje Dritë e Kuqe',
+    noSeatbeltFine: 'Pa Rrip Sigurimi',
+    phoneFine: 'Përdorim Telefoni Gjatë Drejtimit',
+    registrationFine: 'Problem Regjistrimi/Sigurimi',
+    uploadFineDocument: 'Ngarko Dokumentin e Gjobës',
+    clickToUploadFine: 'Kliko për të ngarkuar dokumentin/fotot e gjobës',
+    acceptedFormats: 'Të pranuara: JPG, PNG, PDF (MAKS. 10MB secili)',
+    submitFine: 'Paraqit Raportin e Gjobës',
+    fineReported: 'Gjoba u raportua me sukses!',
   },
 }
 

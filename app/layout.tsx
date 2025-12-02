@@ -12,6 +12,12 @@ const urbanist = Urbanist({
 export const metadata: Metadata = {
   title: 'Wheely - Owner Portal',
   description: 'Manage your cars and bookings',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 }
 
 export default function RootLayout({

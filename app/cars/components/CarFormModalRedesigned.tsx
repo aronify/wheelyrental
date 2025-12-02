@@ -3,6 +3,7 @@
 import { useState, FormEvent, useEffect, useRef } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Car, CarFormData, TransmissionType, FuelType, CarStatus } from '@/types/car'
+import CustomDropdown from '@/app/components/CustomDropdown'
 
 interface CarFormModalProps {
   isOpen: boolean
@@ -115,12 +116,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     }
   }, [isOpen, car])
 
-  // Debug: Log when ref is available
-  useEffect(() => {
-    console.log('🔍 Component mounted/updated')
-    console.log('🔍 fileInputRef.current:', fileInputRef.current)
-    console.log('🔍 Input element exists in DOM:', document.getElementById('car-image-input'))
-  }, [imagePreviews.length])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -211,7 +206,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
       await onSubmit({ ...formData, imageUrl: imagePreviews[0] })
       // Success - parent component will close modal
     } catch (error: unknown) {
-      console.error('Error submitting form:', error)
       setImageError(error instanceof Error ? error.message : 'Failed to save car. Try using a smaller image.')
       setCurrentStep(1) // Go back to image step to show error
       setIsSubmitting(false)
@@ -290,15 +284,11 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('📁 handleImageChange called')
     const files = e.target.files
-    console.log('📁 Files selected:', files?.length || 0)
     
     if (files && files.length > 0) {
-      console.log('📁 Processing files...')
       // Process each file
       Array.from(files).forEach(file => {
-        console.log('📁 Processing file:', file.name)
         handleImageFile(file)
       })
       // Reset the input value so the same files can be selected again
@@ -312,19 +302,12 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   }
 
   const handleAddMorePhotos = () => {
-    console.log('🔵 handleAddMorePhotos called')
-    console.log('🔵 fileInputRef.current:', fileInputRef.current)
-    
     if (fileInputRef.current) {
-      console.log('🟢 File input found, resetting and clicking...')
       fileInputRef.current.value = ''
       // Use setTimeout to ensure the value is cleared before clicking
       setTimeout(() => {
-        console.log('🟢 Triggering click on file input')
         fileInputRef.current?.click()
       }, 0)
-    } else {
-      console.log('🔴 File input ref is null!')
     }
   }
 
@@ -604,7 +587,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, make: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
                           validationErrors.make ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="e.g., Toyota, BMW, Mercedes"
@@ -629,7 +612,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, model: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
                           validationErrors.model ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="e.g., Corolla, X5, E-Class"
@@ -656,7 +639,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, year: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
                           validationErrors.year ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="2024"
@@ -681,7 +664,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, licensePlate: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 uppercase ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 uppercase min-h-[44px] text-base sm:text-sm ${
                           validationErrors.licensePlate ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="TR-1234-AB"
@@ -707,7 +690,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                           })
                           setIsColorDropdownOpen(!isColorDropdownOpen)
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white flex items-center justify-between hover:border-blue-400 ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white flex items-center justify-between hover:border-blue-400 min-h-[44px] text-base sm:text-sm ${
                           validationErrors.color ? 'border-red-500' : 'border-gray-300'
                         }`}
                       >
@@ -785,22 +768,22 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
                         {t.transmission || 'TRANSMISSION'} <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        required
+                      <CustomDropdown
                         value={formData.transmission}
-                        onChange={(e) => {
-                          setFormData({ ...formData, transmission: e.target.value as TransmissionType })
+                        onChange={(value) => {
+                          setFormData({ ...formData, transmission: value as TransmissionType })
                           if (validationErrors.transmission) {
                             setValidationErrors({ ...validationErrors, transmission: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white ${
-                          validationErrors.transmission ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="automatic">{t.automatic}</option>
-                        <option value="manual">{t.manual}</option>
-                      </select>
+                        options={[
+                          { value: 'automatic', label: t.automatic },
+                          { value: 'manual', label: t.manual },
+                        ]}
+                        placeholder={t.transmission || 'Select transmission'}
+                        required={true}
+                        error={!!validationErrors.transmission}
+                      />
                       {validationErrors.transmission && (
                         <p className="mt-1 text-sm text-red-600">{validationErrors.transmission}</p>
                       )}
@@ -811,24 +794,24 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
                         {t.fuelType || 'FUEL TYPE'} <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        required
+                      <CustomDropdown
                         value={formData.fuelType}
-                        onChange={(e) => {
-                          setFormData({ ...formData, fuelType: e.target.value as FuelType })
+                        onChange={(value) => {
+                          setFormData({ ...formData, fuelType: value as FuelType })
                           if (validationErrors.fuelType) {
                             setValidationErrors({ ...validationErrors, fuelType: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white ${
-                          validationErrors.fuelType ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="petrol">{t.petrol}</option>
-                        <option value="diesel">{t.diesel}</option>
-                        <option value="electric">{t.electric}</option>
-                        <option value="hybrid">{t.hybrid}</option>
-                      </select>
+                        options={[
+                          { value: 'petrol', label: t.petrol },
+                          { value: 'diesel', label: t.diesel },
+                          { value: 'electric', label: t.electric },
+                          { value: 'hybrid', label: t.hybrid },
+                        ]}
+                        placeholder={t.fuelType || 'Select fuel type'}
+                        required={true}
+                        error={!!validationErrors.fuelType}
+                      />
                       {validationErrors.fuelType && (
                         <p className="mt-1 text-sm text-red-600">{validationErrors.fuelType}</p>
                       )}
@@ -851,7 +834,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, seats: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 ${
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
                           validationErrors.seats ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="5"
@@ -866,24 +849,24 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
                         {t.status || 'STATUS'} <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        required
+                      <CustomDropdown
                         value={formData.status}
-                        onChange={(e) => {
-                          setFormData({ ...formData, status: e.target.value as CarStatus })
+                        onChange={(value) => {
+                          setFormData({ ...formData, status: value as CarStatus })
                           if (validationErrors.status) {
                             setValidationErrors({ ...validationErrors, status: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white ${
-                          validationErrors.status ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="available">{t.statusAvailable}</option>
-                        <option value="rented">{t.statusRented}</option>
-                        <option value="maintenance">{t.statusMaintenance}</option>
-                        <option value="inactive">{t.statusInactive}</option>
-                      </select>
+                        options={[
+                          { value: 'available', label: t.statusAvailable },
+                          { value: 'rented', label: t.statusRented },
+                          { value: 'maintenance', label: t.statusMaintenance },
+                          { value: 'inactive', label: t.statusInactive },
+                        ]}
+                        placeholder={t.status || 'Select status'}
+                        required={true}
+                        error={!!validationErrors.status}
+                      />
                       {validationErrors.status && (
                         <p className="mt-1 text-sm text-red-600">{validationErrors.status}</p>
                       )}
@@ -952,11 +935,11 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
             </div>
 
             {/* Footer */}
-            <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex justify-between gap-3">
+            <div className="bg-white border-t-2 border-gray-200 px-4 sm:px-6 py-4 flex justify-between gap-3">
               <button
                 type="button"
                 onClick={currentStep === 1 ? onClose : prevStep}
-                className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                className="min-h-[44px] px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold active:bg-gray-50 hover:bg-gray-50 transition-colors touch-manipulation"
               >
                 {currentStep === 1 ? t.cancel : t.back || 'Back'}
               </button>
@@ -966,7 +949,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                   type="button"
                   onClick={nextStep}
                   disabled={currentStep === 1 && (!imagePreviews.length || !imagePreviews[0])}
-                  className="px-8 py-3 bg-blue-900 text-white font-semibold rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="min-h-[44px] px-6 sm:px-8 py-3 bg-blue-900 text-white font-semibold rounded-xl active:bg-blue-800 hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 touch-manipulation"
                 >
                   {t.next || 'Next'}
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -978,7 +961,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                   type="button"
                   onClick={handleSaveClick}
                   disabled={isSubmitting}
-                  className="px-8 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="min-h-[44px] px-6 sm:px-8 py-3 bg-green-600 text-white font-semibold rounded-xl active:bg-green-700 hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 touch-manipulation"
                 >
                   {isSubmitting ? (
                     <>

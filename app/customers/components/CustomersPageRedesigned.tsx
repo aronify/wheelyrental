@@ -24,12 +24,12 @@ import {
   Edit,
   Check
 } from 'lucide-react'
+import CustomDropdown from '@/app/components/CustomDropdown'
 
 interface CustomersPageRedesignedProps {
   initialCustomers: Customer[]
 }
 
-// Mock/Fake customers for frontend display
 const MOCK_CUSTOMERS: Customer[] = [
   {
     id: 'mock-1',
@@ -201,9 +201,6 @@ export default function CustomersPageRedesigned({ initialCustomers }: CustomersP
       setCustomers(updatedCustomers)
       setSelectedCustomer({ ...selectedCustomer, notes: editingNotes })
       setIsEditingNotes(false)
-      
-      // TODO: Add API call to save notes to database if needed
-      // await updateCustomerNotes(selectedCustomer.id, editingNotes)
     } finally {
       setIsSavingNotes(false)
     }
@@ -257,7 +254,7 @@ Downloaded on: ${new Date().toLocaleString()}
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-6">
       {/* Breadcrumbs */}
       <Breadcrumbs />
 
@@ -303,21 +300,17 @@ Downloaded on: ${new Date().toLocaleString()}
 
           {/* Sort */}
           <div className="w-full lg:w-56">
-            <div className="relative">
-              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full pl-10 pr-8 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white appearance-none text-sm"
-              >
-                <option value="name">{t.sortByName || 'Sort by Name'}</option>
-                <option value="joinedAt">{t.sortByJoined || 'Sort by Joined'}</option>
-                <option value="lastBookingAt">{t.sortByLastBooking || 'Sort by Last Booking'}</option>
-              </select>
-              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            <CustomDropdown
+              value={sortBy}
+              onChange={(value) => setSortBy(value as any)}
+              options={[
+                { value: 'name', label: t.sortByName || 'Sort by Name' },
+                { value: 'joinedAt', label: t.sortByJoined || 'Sort by Joined' },
+                { value: 'lastBookingAt', label: t.sortByLastBooking || 'Sort by Last Booking' },
+              ]}
+              placeholder={t.sortByName || 'Sort by Name'}
+              icon={<ArrowUpDown className="w-4 h-4 text-gray-400" />}
+            />
           </div>
         </div>
       </div>

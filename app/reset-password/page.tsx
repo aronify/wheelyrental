@@ -21,7 +21,6 @@ export default async function ResetPasswordPage({
 }) {
   // Check for errors in the URL (from Supabase)
   if (searchParams.error || searchParams.error_description) {
-    console.error('Reset password error:', searchParams.error_description || searchParams.error)
     // Redirect to forgot password with error
     redirect(`/forgot-password?error=${encodeURIComponent(searchParams.error_description || searchParams.error || 'Invalid or expired reset link')}`)
   }
@@ -35,10 +34,6 @@ export default async function ResetPasswordPage({
 
   // Only redirect if explicitly no session AND no error to show
   // This allows the form to show and handle the error client-side if needed
-  if (!session && !searchParams.error) {
-    console.log('No session found for password reset')
-    // Don't redirect immediately - let the form try to work with the token
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">

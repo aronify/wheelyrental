@@ -67,7 +67,6 @@ export async function resetPasswordAction(
         }
       }
 
-      console.error('Password reset error:', error)
       return {
         error: 'Failed to update password. Please try again.',
       }
@@ -81,8 +80,6 @@ export async function resetPasswordAction(
       message: 'Password updated successfully. Please log in with your new password.',
     }
   } catch (error: unknown) {
-    console.error('Password reset error:', error)
-    
     // Check for network/database connection errors in catch block
     const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
     const errorString = String(error).toLowerCase()
