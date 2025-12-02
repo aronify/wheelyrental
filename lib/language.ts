@@ -44,6 +44,7 @@ export interface LanguageDictionary {
   close: string
   success: string
   bookingUpdated: string
+  bookingTimeline: string
   
   // Dashboard
   dashboard: string
@@ -201,6 +202,7 @@ export interface LanguageDictionary {
   pickupTime: string
   dropoffTime: string
   location: string
+  locations: string
   pickupLocation: string
   dropoffLocation: string
   duration: string
@@ -380,6 +382,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     close: 'Close',
     success: 'Success',
     bookingUpdated: 'Booking status updated successfully',
+    bookingTimeline: 'Booking Timeline',
     
     // Dashboard
     dashboard: 'Dashboard',
@@ -536,6 +539,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     pickupTime: 'Pickup Time',
     dropoffTime: 'Dropoff Time',
     location: 'Location',
+    locations: 'Locations',
     pickupLocation: 'Pickup Location',
     dropoffLocation: 'Dropoff Location',
     duration: 'Duration',
@@ -713,6 +717,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     close: 'Mbyll',
     success: 'Sukses',
     bookingUpdated: 'Statusi i rezervimit u përditësua me sukses',
+    bookingTimeline: 'Kronologjia e rezervimit',
     
     // Dashboard
     dashboard: 'Paneli',
@@ -869,6 +874,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     pickupTime: 'Ora e marrjes',
     dropoffTime: 'Ora e dorëzimit',
     location: 'Vendndodhja',
+    locations: 'Vendndodhjet',
     pickupLocation: 'Vendndodhja e marrjes',
     dropoffLocation: 'Vendndodhja e dorëzimit',
     duration: 'Kohëzgjatja',
