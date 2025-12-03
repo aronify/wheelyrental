@@ -97,7 +97,7 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
         scrolled ? 'shadow-lg border-b border-gray-200' : 'shadow-sm border-b border-gray-100'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
@@ -176,7 +176,7 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
                 className="flex items-center gap-2.5 px-2 py-2 hover:bg-gray-50 rounded-xl transition-colors group"
               >
                 <div className="relative">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:shadow-lg transition-shadow overflow-hidden">
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:shadow-lg transition-shadow overflow-hidden">
                     {agencyLogo ? (
                       <img src={agencyLogo} alt={agencyName || 'Agency'} className="w-full h-full object-cover" />
                     ) : (
@@ -205,14 +205,14 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
               {isMenuOpen && (
                 <>
                   {/* Backdrop */}
-                  <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
+                  <div className="fixed inset-0 z-40 lg:z-10" onClick={() => setIsMenuOpen(false)} />
 
                   {/* Menu */}
-                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-20 animate-slide-in">
+                  <div className="fixed lg:absolute right-0 lg:right-0 top-16 lg:top-auto lg:mt-2 w-full sm:w-80 lg:w-72 max-w-[calc(100vw-2rem)] lg:max-w-none bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl border-t-2 lg:border-t-0 lg:border-2 border-gray-200 overflow-hidden z-50 lg:z-20 animate-slide-in-top lg:animate-slide-in max-h-[calc(100vh-4rem)] lg:max-h-none overflow-y-auto">
                     {/* User Info Header */}
-                    <div className="bg-gradient-to-br from-blue-600 to-purple-600 px-5 py-4">
+                    <div className="bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900 px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white font-bold text-lg overflow-hidden">
+                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white font-bold text-lg overflow-hidden flex-shrink-0">
                           {agencyLogo ? (
                             <img src={agencyLogo} alt={agencyName || 'Agency'} className="w-full h-full object-cover" />
                           ) : (
@@ -221,7 +221,7 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-semibold text-sm truncate">{agencyName || userEmail}</p>
-                          <p className="text-blue-100 text-xs">{userEmail}</p>
+                          <p className="text-blue-200 text-xs truncate">{userEmail}</p>
                         </div>
                       </div>
                     </div>
@@ -230,33 +230,33 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
                     <div className="py-2">
                       <Link
                         href="/profile"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors group"
+                        className="flex items-center gap-3 px-4 py-3.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors group min-h-[44px] touch-manipulation"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        <div className="w-9 h-9 bg-gray-100 group-hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors">
-                          <svg className="w-5 h-5 text-gray-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-9 h-9 bg-blue-50 group-hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                          <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900">{t.myProfile}</p>
-                          <p className="text-xs text-gray-500">{t.editProfileSettings || 'Edit profile & settings'}</p>
+                          <p className="text-xs text-gray-500 truncate">{t.editProfileSettings || 'Edit profile & settings'}</p>
                         </div>
                       </Link>
 
                       <Link
                         href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors group"
+                        className="flex items-center gap-3 px-4 py-3.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors group min-h-[44px] touch-manipulation"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        <div className="w-9 h-9 bg-gray-100 group-hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors">
-                          <svg className="w-5 h-5 text-gray-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-9 h-9 bg-blue-50 group-hover:bg-blue-100 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                          <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                           </svg>
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900">{t.dashboard}</p>
-                          <p className="text-xs text-gray-500">{t.viewOverview || 'View overview'}</p>
+                          <p className="text-xs text-gray-500 truncate">{t.viewOverview || 'View overview'}</p>
                         </div>
                       </Link>
                     </div>
@@ -269,9 +269,9 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
                       <button
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                        className="flex items-center gap-3 w-full px-4 py-3.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed group min-h-[44px] touch-manipulation"
                       >
-                        <div className="w-9 h-9 bg-red-50 group-hover:bg-red-100 rounded-lg flex items-center justify-center transition-colors">
+                        <div className="w-9 h-9 bg-red-50 group-hover:bg-red-100 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
                           {isLoggingOut ? (
                             <svg className="animate-spin w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -283,11 +283,11 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
                             </svg>
                           )}
                         </div>
-                        <div className="flex-1 text-left">
+                        <div className="flex-1 text-left min-w-0">
                           <p className="font-medium text-red-600">
                             {isLoggingOut ? t.loggingOut || 'Logging out...' : t.logout}
                           </p>
-                          <p className="text-xs text-red-400">{t.signOutAccount || 'Sign out of your account'}</p>
+                          <p className="text-xs text-red-400 truncate">{t.signOutAccount || 'Sign out of your account'}</p>
                         </div>
                       </button>
                     </div>

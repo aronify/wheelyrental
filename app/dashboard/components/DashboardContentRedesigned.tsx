@@ -253,7 +253,7 @@ export default function DashboardContentRedesigned({ userEmail, bookings, agency
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0">
-      <div className="max-w-7xl mx-auto px-4 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
+      <div className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           <div className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in" style={{ animationDelay: '0ms' }}>

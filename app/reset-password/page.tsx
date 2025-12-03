@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabaseClient'
 import ResetPasswordForm from './ResetPasswordForm'
-import DebugInfo from './DebugInfo'
 
 /**
  * Reset Password Page
@@ -62,9 +61,6 @@ export default async function ResetPasswordPage({
           </div>
 
           <ResetPasswordForm />
-          
-          {/* Debug info - only shows in development */}
-          <DebugInfo />
         </div>
       </div>
     </div>

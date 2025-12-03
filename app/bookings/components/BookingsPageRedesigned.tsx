@@ -340,7 +340,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
           }} />
         </div>
 
-        <div className="relative px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10">
+        <div className="relative px-4 xs:px-5 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
             {/* Title Section */}
             <div className="flex-1 min-w-0">
