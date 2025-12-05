@@ -18,15 +18,15 @@ export async function addCarAction(carData: CarFormData): Promise<CarActionResul
   try {
     const supabase = await createServerActionClient()
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return { error: 'Not authenticated. Please log in again.' }
     }
 
     const { data, error } = await supabase
       .from('cars')
       .insert({
-        owner_id: session.user.id,
+        owner_id: user.id,
         make: carData.make,
         model: carData.model,
         year: carData.year,
@@ -63,8 +63,8 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
   try {
     const supabase = await createServerActionClient()
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return { error: 'Not authenticated' }
     }
 
@@ -87,7 +87,7 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
         updated_at: new Date().toISOString(),
       })
       .eq('id', carId)
-      .eq('owner_id', session.user.id)
+      .eq('owner_id', user.id)
       .select()
       .single()
 
@@ -109,8 +109,8 @@ export async function deleteCarAction(carId: string): Promise<CarActionResult> {
   try {
     const supabase = await createServerActionClient()
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return { error: 'Not authenticated' }
     }
 
@@ -118,7 +118,7 @@ export async function deleteCarAction(carId: string): Promise<CarActionResult> {
       .from('cars')
       .delete()
       .eq('id', carId)
-      .eq('owner_id', session.user.id)
+      .eq('owner_id', user.id)
 
     if (error) {
       return { error: 'Failed to delete car' }

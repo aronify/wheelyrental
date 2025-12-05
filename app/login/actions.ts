@@ -1,8 +1,7 @@
 'use server'
 
-import { createServerComponentClient } from '@/lib/supabaseClient'
+import { createServerActionClient } from '@/lib/supabaseClient'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 export interface LoginFormData {
   email: string
@@ -21,7 +20,7 @@ export async function loginAction(
   formData: LoginFormData
 ): Promise<LoginActionResult> {
   try {
-    const supabase = await createServerComponentClient()
+    const supabase = await createServerActionClient()
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: formData.email,

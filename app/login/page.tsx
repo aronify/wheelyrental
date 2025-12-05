@@ -11,13 +11,14 @@ import LoginForm from './LoginForm'
 export default async function LoginPage() {
   const supabase = await createServerComponentClient()
   
-  // Check if user is already authenticated
+  // Check if user is already authenticated using getUser() for security
+  // getUser() validates with the server, unlike getSession() which only reads from cookies
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Redirect authenticated users to dashboard
-  if (session) {
+  if (user) {
     redirect('/dashboard')
   }
 

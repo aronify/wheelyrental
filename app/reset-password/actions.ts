@@ -1,7 +1,6 @@
 'use server'
 
-import { createServerComponentClient } from '@/lib/supabaseClient'
-import { redirect } from 'next/navigation'
+import { createServerActionClient } from '@/lib/supabaseClient'
 
 export interface ResetPasswordResult {
   error?: string
@@ -24,14 +23,14 @@ export async function resetPasswordAction(
       }
     }
 
-    const supabase = await createServerComponentClient()
+    const supabase = await createServerActionClient()
 
-    // Check if user has a valid session
+    // Check if user has a valid session using getUser() for security
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (!user) {
       return {
         error: 'Your reset link has expired. Please request a new password reset link.',
       }

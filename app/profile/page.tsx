@@ -14,13 +14,13 @@ import QuickAccessMenu from '../components/QuickAccessMenu'
 export default async function ProfileRoute() {
   const supabase = await createServerComponentClient()
   
-  // Check authentication
+  // Check authentication using getUser() for security
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Redirect to login if not authenticated
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -28,17 +28,17 @@ export default async function ProfileRoute() {
   const { data: dbProfile, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   // If no profile exists, create a default one
   let profileData
   if (error || !dbProfile) {
     const defaultProfile = {
-      user_id: session.user.id,
+      user_id: user.id,
       agency_name: 'My Rental Agency',
       description: '',
-      email: session.user.email || '',
+      email: user.email || '',
       phone: '',
       address: '',
       city: '',
@@ -82,7 +82,7 @@ export default async function ProfileRoute() {
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader 
-        userEmail={session.user.email || ''} 
+        userEmail={user.email || ''} 
         agencyName={profile.agencyName}
         agencyLogo={profile.logo}
       />

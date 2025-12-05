@@ -14,13 +14,13 @@ import QuickAccessMenu from '../components/QuickAccessMenu'
 export default async function CarsRoute() {
   const supabase = await createServerComponentClient()
   
-  // Check authentication
+  // Check authentication using getUser() for security
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Redirect to login if not authenticated
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -28,7 +28,7 @@ export default async function CarsRoute() {
   const { data: dbCars } = await supabase
     .from('cars')
     .select('*')
-    .eq('owner_id', session.user.id)
+    .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
   // Convert snake_case to camelCase
@@ -56,13 +56,13 @@ export default async function CarsRoute() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('agency_name, logo')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader 
-        userEmail={session.user.email || ''} 
+        userEmail={user.email || ''} 
         agencyName={profile?.agency_name}
         agencyLogo={profile?.logo}
       />

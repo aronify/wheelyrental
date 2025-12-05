@@ -19,12 +19,12 @@ export async function updateProfileAction(
   try {
     const supabase = await createServerActionClient()
 
-    // Check authentication
+    // Check authentication using getUser() for security
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (!user) {
       return {
         error: 'Not authenticated',
       }
@@ -54,7 +54,7 @@ export async function updateProfileAction(
         logo: profileData.logoUrl, // Database column is 'logo' not 'logo_url'
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
 
     if (error) {
       return {

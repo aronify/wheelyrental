@@ -20,12 +20,12 @@ export async function updateBookingStatusAction(
   try {
     const supabase = await createServerActionClient()
 
-    // Check authentication
+    // Check authentication using getUser() for security
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (!user) {
       return {
         error: 'Not authenticated',
       }
@@ -39,7 +39,7 @@ export async function updateBookingStatusAction(
         updated_at: new Date().toISOString(),
       })
       .eq('id', bookingId)
-      .eq('owner_id', session.user.id) // Ensure user owns this booking
+      .eq('owner_id', user.id) // Ensure user owns this booking
       .select()
       .single()
 

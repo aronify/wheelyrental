@@ -14,13 +14,13 @@ import QuickAccessMenu from '../components/QuickAccessMenu'
 export default async function CalendarRoute() {
   const supabase = await createServerComponentClient()
   
-  // Check authentication
+  // Check authentication using getUser() for security
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Redirect to login if not authenticated
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -28,7 +28,7 @@ export default async function CalendarRoute() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('agency_name, logo')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   // Fetch bookings with car and customer details from Supabase
@@ -39,13 +39,13 @@ export default async function CalendarRoute() {
       car:cars(*),
       customer:customers(*)
     `)
-    .eq('owner_id', session.user.id)
+    .eq('owner_id', user.id)
     .order('pickup_date', { ascending: true })
 
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader 
-        userEmail={session.user.email || ''} 
+        userEmail={user.email || ''} 
         agencyName={profile?.agency_name}
         agencyLogo={profile?.logo}
       />

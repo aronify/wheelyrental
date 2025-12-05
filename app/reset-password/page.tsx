@@ -26,12 +26,12 @@ export default async function ResetPasswordPage({
 
   const supabase = await createServerComponentClient()
   
-  // Check if user has a valid session (from the reset link)
+  // Check if user has a valid session (from the reset link) using getUser() for security
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  // Only redirect if explicitly no session AND no error to show
+  // Only redirect if explicitly no user AND no error to show
   // This allows the form to show and handle the error client-side if needed
 
   return (

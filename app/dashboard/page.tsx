@@ -15,13 +15,14 @@ import { Booking } from '@/types/booking'
 export default async function DashboardPage() {
   const supabase = await createServerComponentClient()
   
-  // Check authentication
+  // Check authentication using getUser() for security
+  // getUser() validates with the server, unlike getSession() which only reads from cookies
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Redirect to login if not authenticated
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -29,7 +30,7 @@ export default async function DashboardPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('agency_name, logo')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   // Fetch bookings with car and customer details from Supabase
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
       cars(*),
       customers(*)
     `)
-    .eq('owner_id', session.user.id)
+    .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
   // Convert snake_case to camelCase for client components
@@ -91,13 +92,13 @@ export default async function DashboardPage() {
   return (
     <>
       <DashboardHeader 
-        userEmail={session.user.email || ''} 
+        userEmail={user.email || ''} 
         agencyName={profile?.agency_name}
         agencyLogo={profile?.logo}
       />
       <QuickAccessMenu />
       <DashboardContentRedesigned 
-        userEmail={session.user.email || ''}
+        userEmail={user.email || ''}
         agencyName={profile?.agency_name}
         bookings={bookings}
       />
