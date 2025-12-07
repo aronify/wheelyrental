@@ -48,6 +48,8 @@ export default async function CarsRoute() {
     vin: car.vin,
     imageUrl: car.image_url,
     features: car.features || [],
+    pickupLocation: car.pickup_location,
+    dropoffLocation: car.dropoff_location,
     createdAt: new Date(car.created_at),
     updatedAt: new Date(car.updated_at),
   }))

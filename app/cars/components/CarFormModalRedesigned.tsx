@@ -51,6 +51,22 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     { name: 'Maroon', hex: '#7F1D1D' },
   ]
 
+  // Common pickup/dropoff locations
+  const commonLocations = [
+    { value: '', label: t.all || 'Select location' },
+    { value: 'Airport Terminal 1', label: 'Airport Terminal 1' },
+    { value: 'Airport Terminal 2', label: 'Airport Terminal 2' },
+    { value: 'City Center Office', label: 'City Center Office' },
+    { value: 'Downtown Office', label: 'Downtown Office' },
+    { value: 'Hotel Grand Plaza', label: 'Hotel Grand Plaza' },
+    { value: 'Train Station', label: 'Train Station' },
+    { value: 'Bus Station', label: 'Bus Station' },
+    { value: 'Port', label: 'Port' },
+    { value: 'Main Office', label: 'Main Office' },
+    { value: 'Branch Office', label: 'Branch Office' },
+    { value: 'Custom Location', label: 'Custom Location' },
+  ]
+
   const [formData, setFormData] = useState<CarFormData>({
     make: '',
     model: '',
@@ -65,6 +81,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     status: 'available',
     vin: '',
     features: [],
+    pickupLocation: '',
+    dropoffLocation: '',
   })
 
   const [newFeature, setNewFeature] = useState('')
@@ -88,6 +106,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           status: car.status || 'available',
           vin: car.vin || '',
           features: car.features || [],
+          pickupLocation: car.pickupLocation || '',
+          dropoffLocation: car.dropoffLocation || '',
         })
         setImagePreviews(car.imageUrl ? [car.imageUrl] : [])
       } else {
@@ -106,6 +126,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           status: 'available',
           vin: '',
           features: [],
+          pickupLocation: '',
+          dropoffLocation: '',
         })
         setImagePreviews([])
         setImageFiles([])
@@ -883,6 +905,48 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         onChange={(e) => setFormData({ ...formData, vin: e.target.value.toUpperCase() })}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 uppercase"
                         placeholder="e.g., 1HGBH41JXMN109186"
+                      />
+                    </div>
+
+                    {/* Pickup Location */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        {t.pickupLocation || 'PICKUP LOCATION'}
+                      </label>
+                      <CustomDropdown
+                        value={formData.pickupLocation || ''}
+                        onChange={(value) => {
+                          setFormData({ ...formData, pickupLocation: value })
+                        }}
+                        options={commonLocations}
+                        placeholder={t.pickupLocation || 'Select pickup location'}
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        }
+                      />
+                    </div>
+
+                    {/* Dropoff Location */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        {t.dropoffLocation || 'DROPOFF LOCATION'}
+                      </label>
+                      <CustomDropdown
+                        value={formData.dropoffLocation || ''}
+                        onChange={(value) => {
+                          setFormData({ ...formData, dropoffLocation: value })
+                        }}
+                        options={commonLocations}
+                        placeholder={t.dropoffLocation || 'Select dropoff location'}
+                        icon={
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        }
                       />
                     </div>
 

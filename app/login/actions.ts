@@ -28,9 +28,33 @@ export async function loginAction(
     })
 
     if (error) {
+      // Log the actual error for debugging
+      console.error('Login error:', {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+        name: error.name,
+      })
+
+      // Check for invalid credentials - be more specific
+      if (
+        error.message === 'Invalid login credentials' ||
+        error.code === 'invalid_credentials'
+      ) {
+        return {
+          error: 'Invalid email or password. Please check your credentials and try again.',
+        }
+      }
+
+      // Check for email not confirmed
+      if (error.message?.includes('Email not confirmed')) {
+        return {
+          error: 'Please confirm your email address before logging in. Check your inbox for a confirmation link.',
+        }
+      }
+
       // Check for database connection errors
       const errorMessage = error.message?.toLowerCase() || ''
-      
       if (
         errorMessage.includes('network') ||
         errorMessage.includes('connection') ||
@@ -45,22 +69,9 @@ export async function loginAction(
         }
       }
 
-      // Check for invalid credentials
-      if (
-        errorMessage.includes('invalid') ||
-        errorMessage.includes('credentials') ||
-        errorMessage.includes('email') ||
-        errorMessage.includes('password') ||
-        error.code === 'invalid_credentials'
-      ) {
-        return {
-          error: 'Invalid email or password. Please check your credentials and try again.',
-        }
-      }
-
-      // Generic error fallback
+      // Generic error fallback - show actual message for debugging
       return {
-        error: error.message || 'Failed to sign in. Please check your credentials.',
+        error: `Login failed: ${error.message}`,
       }
     }
 

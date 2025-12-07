@@ -41,6 +41,8 @@ CREATE TABLE cars (
   features TEXT[],
   vin TEXT,
   insurance_expiry DATE,
+  pickup_location TEXT,
+  dropoff_location TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -81,6 +83,20 @@ CREATE TABLE bookings (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- Payout Requests table
+CREATE TABLE payout_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  invoice_url TEXT NOT NULL,
+  amount DECIMAL(10, 2),
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'processed', 'confirmed')),
+  admin_notes TEXT,
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
 -- Create indexes for better query performance
 CREATE INDEX idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX idx_cars_owner_id ON cars(owner_id);
@@ -91,6 +107,8 @@ CREATE INDEX idx_bookings_car_id ON bookings(car_id);
 CREATE INDEX idx_bookings_customer_id ON bookings(customer_id);
 CREATE INDEX idx_bookings_status ON bookings(status);
 CREATE INDEX idx_bookings_dates ON bookings(start_date_time, end_date_time);
+CREATE INDEX idx_payout_requests_user_id ON payout_requests(user_id);
+CREATE INDEX idx_payout_requests_status ON payout_requests(status);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -114,11 +132,15 @@ CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers
 CREATE TRIGGER update_bookings_updated_at BEFORE UPDATE ON bookings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_payout_requests_updated_at BEFORE UPDATE ON payout_requests
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Enable RLS on all tables
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cars ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payout_requests ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "Users can view their own profile"
@@ -183,5 +205,14 @@ CREATE POLICY "Users can update their own bookings"
 CREATE POLICY "Users can delete their own bookings"
   ON bookings FOR DELETE
   USING (auth.uid() = user_id);
+
+-- Payout Requests policies
+CREATE POLICY "Users can view their own payout requests"
+  ON payout_requests FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own payout requests"
+  ON payout_requests FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
 

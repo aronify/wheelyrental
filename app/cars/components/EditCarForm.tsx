@@ -52,6 +52,22 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     { name: 'Maroon', hex: '#7F1D1D' },
   ]
 
+  // Common pickup/dropoff locations
+  const commonLocations = [
+    { value: '', label: t.all || 'Select location' },
+    { value: 'Airport Terminal 1', label: 'Airport Terminal 1' },
+    { value: 'Airport Terminal 2', label: 'Airport Terminal 2' },
+    { value: 'City Center Office', label: 'City Center Office' },
+    { value: 'Downtown Office', label: 'Downtown Office' },
+    { value: 'Hotel Grand Plaza', label: 'Hotel Grand Plaza' },
+    { value: 'Train Station', label: 'Train Station' },
+    { value: 'Bus Station', label: 'Bus Station' },
+    { value: 'Port', label: 'Port' },
+    { value: 'Main Office', label: 'Main Office' },
+    { value: 'Branch Office', label: 'Branch Office' },
+    { value: 'Custom Location', label: 'Custom Location' },
+  ]
+
   const [formData, setFormData] = useState<CarFormData>({
     make: car.make || '',
     model: car.model || '',
@@ -66,6 +82,8 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     imageUrl: car.imageUrl || '',
     features: car.features || [],
     vin: car.vin || '',
+    pickupLocation: car.pickupLocation || '',
+    dropoffLocation: car.dropoffLocation || '',
   })
 
   // Image compression function
@@ -522,6 +540,42 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                       onChange={(e) => handleInputChange('vin', e.target.value.toUpperCase())}
                       placeholder="17-digit VIN"
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm uppercase"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
+                      {t.pickupLocation || 'PICKUP LOCATION'}
+                    </label>
+                    <CustomDropdown
+                      value={formData.pickupLocation || ''}
+                      onChange={(value) => handleInputChange('pickupLocation', value)}
+                      options={commonLocations}
+                      placeholder={t.pickupLocation || 'Select pickup location'}
+                      icon={
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
+                      {t.dropoffLocation || 'DROPOFF LOCATION'}
+                    </label>
+                    <CustomDropdown
+                      value={formData.dropoffLocation || ''}
+                      onChange={(value) => handleInputChange('dropoffLocation', value)}
+                      options={commonLocations}
+                      placeholder={t.dropoffLocation || 'Select dropoff location'}
+                      icon={
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      }
                     />
                   </div>
                 </div>

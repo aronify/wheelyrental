@@ -28,6 +28,7 @@ export default function Breadcrumbs() {
     if (segment === 'customers') label = t.customers
     if (segment === 'calendar') label = t.calendar
     if (segment === 'profile') label = t.myProfile
+    if (segment === 'payouts') label = t.requestPayout || 'Request Payout'
     
     return {
       label,

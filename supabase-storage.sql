@@ -36,3 +36,21 @@ CREATE POLICY "Owners can delete their profile logos"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'profile-logos');
+
+-- Policy: Allow authenticated users to upload invoices
+CREATE POLICY "Authenticated users can upload invoices"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'invoices');
+
+-- Policy: Allow users to view their own invoices
+CREATE POLICY "Users can view their own invoices"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'invoices' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Policy: Allow users to delete their own invoices
+CREATE POLICY "Users can delete their own invoices"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'invoices' AND (storage.foldername(name))[1] = auth.uid()::text);

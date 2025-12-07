@@ -25,6 +25,8 @@ export interface Car {
   status: CarStatus
   vin?: string
   features: string[]
+  pickupLocation?: string
+  dropoffLocation?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -43,6 +45,8 @@ export interface CarFormData {
   status: CarStatus
   vin?: string
   features: string[]
+  pickupLocation?: string
+  dropoffLocation?: string
 }
 
 /**

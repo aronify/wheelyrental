@@ -343,6 +343,40 @@ export interface LanguageDictionary {
   acceptedFormats: string
   submitFine: string
   fineReported: string
+  requestPayout: string
+  submitPayoutRequest: string
+  payoutRequests: string
+  invoice: string
+  uploadInvoice: string
+  payoutAmount: string
+  payoutDescription: string
+  payoutRequestSubmitted: string
+  payoutRequestSuccess: string
+  viewInvoice: string
+  download: string
+  downloadInvoice: string
+  unableToDisplayInvoice: string
+  uploadYourInvoice: string
+  changeFile: string
+  clickToUpload: string
+  orDragAndDrop: string
+  acceptedFormatsMax: string
+  optional: string
+  enterPayoutAmount: string
+  addAdditionalNotes: string
+  submitting: string
+  importantInformation: string
+  ensureInvoiceClear: string
+  acceptedFormatsInfo: string
+  requestReviewedProcessed: string
+  receiveNotification: string
+  yourPayoutRequests: string
+  refresh: string
+  noPayoutRequestsYet: string
+  submitFirstRequest: string
+  invoicePreview: string
+  processed: string
+  adminNote: string
 }
 
 export const translations: Record<Language, LanguageDictionary> = {
@@ -680,6 +714,40 @@ export const translations: Record<Language, LanguageDictionary> = {
     acceptedFormats: 'Accepted: JPG, PNG, PDF (MAX. 10MB each)',
     submitFine: 'Submit Fine Report',
     fineReported: 'Fine reported successfully!',
+    requestPayout: 'Request Payout',
+    submitPayoutRequest: 'Submit payout request',
+    payoutRequests: 'Payout Requests',
+    invoice: 'Invoice',
+    uploadInvoice: 'Upload Invoice',
+    payoutAmount: 'Amount',
+    payoutDescription: 'Description',
+    payoutRequestSubmitted: 'Payout request submitted successfully!',
+    payoutRequestSuccess: 'Your request is being reviewed. You will be notified once it\'s processed.',
+    viewInvoice: 'View Invoice',
+    download: 'Download',
+    downloadInvoice: 'Download Invoice',
+    unableToDisplayInvoice: 'Unable to display invoice image.',
+    uploadYourInvoice: 'Upload your invoice to request a payout',
+    changeFile: 'Change file',
+    clickToUpload: 'Click to upload',
+    orDragAndDrop: 'or drag and drop',
+    acceptedFormatsMax: 'PDF, JPG, or PNG (MAX. 10MB)',
+    optional: '(Optional)',
+    enterPayoutAmount: 'Enter the payout amount if specified in your invoice',
+    addAdditionalNotes: 'Add any additional notes or details about this payout request...',
+    submitting: 'Submitting...',
+    importantInformation: 'Important Information',
+    ensureInvoiceClear: 'Please ensure your invoice is clear and readable',
+    acceptedFormatsInfo: 'Accepted formats: PDF, JPG, PNG (max 10MB)',
+    requestReviewedProcessed: 'Your request will be reviewed and processed within 3-5 business days',
+    receiveNotification: 'You will receive a notification once your payout is processed',
+    yourPayoutRequests: 'Your Payout Requests',
+    refresh: 'Refresh',
+    noPayoutRequestsYet: 'No payout requests yet',
+    submitFirstRequest: 'Submit your first payout request above to get started.',
+    invoicePreview: 'Invoice preview',
+    processed: 'Processed',
+    adminNote: 'Admin Note',
   },
   al: {
     allBookings: 'Të gjitha rezervimet',
@@ -1015,6 +1083,40 @@ export const translations: Record<Language, LanguageDictionary> = {
     acceptedFormats: 'Të pranuara: JPG, PNG, PDF (MAKS. 10MB secili)',
     submitFine: 'Paraqit Raportin e Gjobës',
     fineReported: 'Gjoba u raportua me sukses!',
+    requestPayout: 'Kërko Pagesë',
+    submitPayoutRequest: 'Paraqit kërkesë për pagesë',
+    payoutRequests: 'Kërkesat për Pagesë',
+    invoice: 'Fatura',
+    uploadInvoice: 'Ngarko Faturë',
+    payoutAmount: 'Shuma',
+    payoutDescription: 'Përshkrimi',
+    payoutRequestSubmitted: 'Kërkesa për pagesë u paraqit me sukses!',
+    payoutRequestSuccess: 'Kërkesa juaj po shqyrohet. Do të njoftoheni pasi të përpunohet.',
+    viewInvoice: 'Shiko Faturën',
+    download: 'Shkarko',
+    downloadInvoice: 'Shkarko Faturën',
+    unableToDisplayInvoice: 'Nuk mund të shfaqet imazhi i faturës.',
+    uploadYourInvoice: 'Ngarko faturën tënde për të kërkuar pagesë',
+    changeFile: 'Ndrysho skedarin',
+    clickToUpload: 'Kliko për të ngarkuar',
+    orDragAndDrop: 'ose tërhiq dhe lësho',
+    acceptedFormatsMax: 'PDF, JPG, ose PNG (MAKS. 10MB)',
+    optional: '(Opsionale)',
+    enterPayoutAmount: 'Shkruaj shumën e pagesës nëse është e specifikuar në faturën tënde',
+    addAdditionalNotes: 'Shto shënime ose detaje shtesë për këtë kërkesë pagese...',
+    submitting: 'Duke dërguar...',
+    importantInformation: 'Informacion i Rëndësishëm',
+    ensureInvoiceClear: 'Ju lutemi sigurohuni që fatura juaj është e qartë dhe e lexueshme',
+    acceptedFormatsInfo: 'Formatet e pranuara: PDF, JPG, PNG (maks 10MB)',
+    requestReviewedProcessed: 'Kërkesa juaj do të shqyrohet dhe përpunohet brenda 3-5 ditëve të punës',
+    receiveNotification: 'Do të merrni një njoftim pasi pagesa juaj të përpunohet',
+    yourPayoutRequests: 'Kërkesat e Tua për Pagesë',
+    refresh: 'Rifresko',
+    noPayoutRequestsYet: 'Nuk ka kërkesa pagese ende',
+    submitFirstRequest: 'Paraqit kërkesën tënde të parë për pagesë më sipër për të filluar.',
+    invoicePreview: 'Parapamje fature',
+    processed: 'E përpunuar',
+    adminNote: 'Shënim Admini',
   },
 }
 

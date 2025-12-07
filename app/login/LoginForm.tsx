@@ -24,9 +24,9 @@ export default function LoginForm() {
         setError(result.error)
         setIsLoading(false)
       } else if (result.success) {
-        // Redirect to dashboard on success
-        router.push('/dashboard')
-        router.refresh()
+        // Force a hard navigation to ensure cookies are picked up
+        // router.push + refresh doesn't always work with server-side auth
+        window.location.href = '/dashboard'
       }
     } catch (err: any) {
       const errorMessage = err?.message?.toLowerCase() || ''
