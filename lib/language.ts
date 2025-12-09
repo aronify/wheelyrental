@@ -377,6 +377,7 @@ export interface LanguageDictionary {
   invoicePreview: string
   processed: string
   adminNote: string
+  loading: string
 }
 
 export const translations: Record<Language, LanguageDictionary> = {
@@ -748,6 +749,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     invoicePreview: 'Invoice preview',
     processed: 'Processed',
     adminNote: 'Admin Note',
+    loading: 'Loading...',
   },
   al: {
     allBookings: 'Të gjitha rezervimet',
@@ -1117,6 +1119,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     invoicePreview: 'Parapamje fature',
     processed: 'E përpunuar',
     adminNote: 'Shënim Admini',
+    loading: 'Duke ngarkuar...',
   },
 }
 
