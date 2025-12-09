@@ -358,7 +358,6 @@ export interface LanguageDictionary {
   unableToDisplayInvoice: string
   uploadYourInvoice: string
   changeFile: string
-  orDragAndDrop: string
   acceptedFormatsMax: string
   optional: string
   enterPayoutAmount: string
@@ -672,8 +671,8 @@ export const translations: Record<Language, LanguageDictionary> = {
     uploadCarImageDescription: 'Upload Car Image Description',
     addMorePhotos: 'Add More Photos',
     addAnotherPhoto: 'Add Another Photo',
-    clickToUpload: 'Click to Upload',
-    orDragAndDrop: 'or Drag and Drop',
+    clickToUpload: 'Click to upload',
+    orDragAndDrop: 'or drag and drop',
     autoCompressed: 'Auto Compressed',
     basicInformation: 'Basic Information',
     provideBasicCarDetails: 'Provide Basic Car Details',
@@ -729,8 +728,6 @@ export const translations: Record<Language, LanguageDictionary> = {
     unableToDisplayInvoice: 'Unable to display invoice image.',
     uploadYourInvoice: 'Upload your invoice to request a payout',
     changeFile: 'Change file',
-    clickToUpload: 'Click to upload',
-    orDragAndDrop: 'or drag and drop',
     acceptedFormatsMax: 'PDF, JPG, or PNG (MAX. 10MB)',
     optional: '(Optional)',
     enterPayoutAmount: 'Enter the payout amount if specified in your invoice',
@@ -1099,8 +1096,6 @@ export const translations: Record<Language, LanguageDictionary> = {
     unableToDisplayInvoice: 'Nuk mund të shfaqet imazhi i faturës.',
     uploadYourInvoice: 'Ngarko faturën tënde për të kërkuar pagesë',
     changeFile: 'Ndrysho skedarin',
-    clickToUpload: 'Kliko për të ngarkuar',
-    orDragAndDrop: 'ose tërhiq dhe lësho',
     acceptedFormatsMax: 'PDF, JPG, ose PNG (MAKS. 10MB)',
     optional: '(Opsionale)',
     enterPayoutAmount: 'Shkruaj shumën e pagesës nëse është e specifikuar në faturën tënde',
