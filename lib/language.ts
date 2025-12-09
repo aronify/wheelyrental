@@ -358,7 +358,6 @@ export interface LanguageDictionary {
   unableToDisplayInvoice: string
   uploadYourInvoice: string
   changeFile: string
-  clickToUpload: string
   orDragAndDrop: string
   acceptedFormatsMax: string
   optional: string
