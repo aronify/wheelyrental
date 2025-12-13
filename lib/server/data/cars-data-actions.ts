@@ -141,10 +141,6 @@ export async function addCarAction(carData: CarFormData): Promise<CarActionResul
         vin: carData.vin,
         image_url: carData.imageUrl,
         features: carData.features,
-        pickup_location: carData.pickupLocation || null, // Legacy field
-        dropoff_location: carData.dropoffLocation || null, // Legacy field
-        pickup_locations: carData.pickupLocations && carData.pickupLocations.length > 0 ? carData.pickupLocations : null,
-        dropoff_locations: carData.dropoffLocations && carData.dropoffLocations.length > 0 ? carData.dropoffLocations : null,
       })
       .select()
       .single()
@@ -229,10 +225,6 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
         vin: carData.vin,
         image_url: carData.imageUrl,
         features: carData.features,
-        pickup_location: carData.pickupLocation || null, // Legacy field
-        dropoff_location: carData.dropoffLocation || null, // Legacy field
-        pickup_locations: carData.pickupLocations && carData.pickupLocations.length > 0 ? carData.pickupLocations : null,
-        dropoff_locations: carData.dropoffLocations && carData.dropoffLocations.length > 0 ? carData.dropoffLocations : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', carId)
