@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
-import { forgotPasswordAction } from './actions'
+import { forgotPasswordAction } from '@/lib/server/auth/forgot-password-actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 

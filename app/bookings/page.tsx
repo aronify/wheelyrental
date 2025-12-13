@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createServerComponentClient } from '@/lib/supabaseClient'
-import BookingsPageRedesigned from './components/BookingsPageRedesigned'
-import DashboardHeader from '../dashboard/components/DashboardHeader'
-import QuickAccessMenu from '../components/QuickAccessMenu'
+import { createServerComponentClient } from '@/lib/supabase/client'
+import BookingsPageRedesigned from '@/app/components/domain/bookings/bookings-list'
+import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
+import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 
 /**
  * Bookings Page for Car Owners

@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createServerComponentClient } from '@/lib/supabaseClient'
-import CalendarPageRedesigned from './components/CalendarPageRedesigned'
-import DashboardHeader from '../dashboard/components/DashboardHeader'
-import QuickAccessMenu from '../components/QuickAccessMenu'
+import { createServerComponentClient } from '@/lib/supabase/client'
+import CalendarPageRedesigned from '@/app/components/domain/calendar/calendar-view'
+import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
+import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 
 /**
  * Calendar Page - Redesigned

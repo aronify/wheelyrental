@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation'
-import { createServerComponentClient } from '@/lib/supabaseClient'
-import PayoutRequestForm from './components/PayoutRequestForm'
-import PayoutRequestsList from './components/PayoutRequestsList'
-import DashboardHeader from '../dashboard/components/DashboardHeader'
-import QuickAccessMenu from '../components/QuickAccessMenu'
-import Breadcrumbs from '../components/Breadcrumbs'
+import { createServerComponentClient } from '@/lib/supabase/client'
+import PayoutRequestForm from '@/app/components/domain/payouts/payout-request-form'
+import PayoutRequestsList from '@/app/components/domain/payouts/payout-requests-list'
+import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
+import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
+import Breadcrumbs from '@/app/components/ui/navigation/breadcrumbs'
 import { PayoutRequest } from '@/types/payout'
 
 /**

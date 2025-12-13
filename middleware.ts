@@ -18,35 +18,52 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Missing Supabase environment variables. Please check your .env.local file.')
+    console.error('[Middleware] Missing Supabase environment variables. Please check your .env.local file.')
     return response
   }
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
+  try {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              request.cookies.set(name, value)
+            )
+            response = NextResponse.next({
+              request,
+            })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+      }
+    )
 
-  // Refresh session if expired - required for Server Components
-  await supabase.auth.getUser()
+    // Refresh session if expired - required for Server Components
+    // Don't throw on error, just log it
+    const { error } = await supabase.auth.getUser()
+    if (error) {
+      console.error('[Middleware] Error refreshing session:', {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+      })
+    }
+  } catch (err: any) {
+    console.error('[Middleware] Unexpected error:', {
+      message: err?.message,
+      stack: err?.stack,
+      path: request.nextUrl.pathname,
+    })
+    // Continue with response - don't block the request
+  }
 
   return response
 }

@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createServerComponentClient } from '@/lib/supabaseClient'
-import CarsPageRedesigned from './components/CarsPageRedesigned'
-import DashboardHeader from '../dashboard/components/DashboardHeader'
-import QuickAccessMenu from '../components/QuickAccessMenu'
+import { createServerComponentClient } from '@/lib/supabase/client'
+import CarsPageRedesigned from '@/app/components/domain/cars/cars-list'
+import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
+import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 
 /**
  * Cars Management Page

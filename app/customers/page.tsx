@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createServerComponentClient } from '@/lib/supabaseClient'
-import CustomersPageRedesigned from './components/CustomersPageRedesigned'
-import DashboardHeader from '../dashboard/components/DashboardHeader'
-import QuickAccessMenu from '../components/QuickAccessMenu'
+import { createServerComponentClient } from '@/lib/supabase/client'
+import CustomersPageRedesigned from '@/app/components/domain/customers/customers-list'
+import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
+import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 
 /**
  * Customers Page

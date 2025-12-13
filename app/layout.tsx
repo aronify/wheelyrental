@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Urbanist } from 'next/font/google'
 import './globals.css'
-import { LanguageProvider } from '@/contexts/LanguageContext'
+import { LanguageProvider } from '@/lib/i18n/language-context'
 
 const urbanist = Urbanist({
   subsets: ['latin'],

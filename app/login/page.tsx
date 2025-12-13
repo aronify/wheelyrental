@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerComponentClient } from '@/lib/supabaseClient'
+import { createServerComponentClient } from '@/lib/supabase/client'
 import LoginForm from './LoginForm'
 
 /**

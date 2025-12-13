@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
-import { loginAction, type LoginFormData } from './actions'
+import { loginAction, type LoginFormData } from '@/lib/server/auth/login-actions'
 import { useRouter } from 'next/navigation'
 
 export default function LoginForm() {
@@ -13,22 +13,45 @@ export default function LoginForm() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginForm.tsx:14',message:'handleSubmit entry',data:{email,hypothesis:'B'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     setError(null)
     setIsLoading(true)
 
     try {
       const formData: LoginFormData = { email, password }
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginForm.tsx:21',message:'Before loginAction call',data:{email,hypothesis:'B'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const result = await loginAction(formData)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginForm.tsx:24',message:'After loginAction call',data:{hasError:!!result.error,hasSuccess:!!result.success,hypothesis:'B'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
 
       if (result.error) {
         setError(result.error)
         setIsLoading(false)
       } else if (result.success) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginForm.tsx:30',message:'Before window.location redirect',data:{hypothesis:'B'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         // Force a hard navigation to ensure cookies are picked up
         // router.push + refresh doesn't always work with server-side auth
         window.location.href = '/dashboard'
       }
     } catch (err: any) {
+      // Log the full error to console for debugging
+      console.error('Login form error:', {
+        message: err?.message,
+        name: err?.name,
+        stack: err?.stack,
+        error: err,
+      })
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginForm.tsx:44',message:'LoginForm catch block',data:{error:err?.message,errorString:String(err),errorName:err?.name,errorStack:err?.stack?.substring(0,200),hypothesis:'B'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const errorMessage = err?.message?.toLowerCase() || ''
       const errorString = String(err).toLowerCase()
       
@@ -41,7 +64,8 @@ export default function LoginForm() {
       ) {
         setError('Connection couldn\'t be made to database. Please check your internet connection and try again.')
       } else {
-        setError('An unexpected error occurred. Please try again.')
+        // Show the actual error message if available, otherwise generic message
+        setError(err?.message || 'An unexpected error occurred. Please try again.')
       }
       setIsLoading(false)
     }
