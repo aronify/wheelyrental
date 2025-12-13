@@ -27,6 +27,9 @@ export interface Car {
   features: string[]
   pickupLocation?: string
   dropoffLocation?: string
+  pickupLocations?: string[]
+  dropoffLocations?: string[]
+  depositRequired?: number
   createdAt: Date
   updatedAt: Date
 }
@@ -47,6 +50,9 @@ export interface CarFormData {
   features: string[]
   pickupLocation?: string
   dropoffLocation?: string
+  pickupLocations?: string[]
+  dropoffLocations?: string[]
+  depositRequired?: number
 }
 
 /**

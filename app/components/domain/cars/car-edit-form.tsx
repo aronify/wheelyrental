@@ -314,7 +314,10 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     }
   }
 
-  const handleInputChange = (field: keyof CarFormData, value: any) => {
+  const handleInputChange = <K extends keyof CarFormData>(
+    field: K,
+    value: CarFormData[K]
+  ) => {
     setFormData({ ...formData, [field]: value })
     setHasChanges(true)
   }

@@ -384,6 +384,8 @@ export interface LanguageDictionary {
   processed: string;
   adminNote: string;
   loading: string;
+  depositRequired: string;
+  depositOptional: string;
 }
 
 export const translations: Record<Language, LanguageDictionary> = {
@@ -771,6 +773,8 @@ export const translations: Record<Language, LanguageDictionary> = {
     processed: "Processed",
     adminNote: "Admin Note",
     loading: "Loading...",
+    depositRequired: "Deposit Required",
+    depositOptional: "Optional: Amount required as deposit for this car",
   },
   al: {
     allBookings: "Të gjitha rezervimet",
@@ -1159,5 +1163,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     processed: "E përpunuar",
     adminNote: "Shënim Admini",
     loading: "Duke ngarkuar...",
+    depositRequired: "Depozita e Kërkuar",
+    depositOptional: "Opsionale: Shuma e kërkuar si depozitë për këtë mjet",
   },
 };

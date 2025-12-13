@@ -41,14 +41,15 @@ export default function MultiSelectDropdown({
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const calculateMaxHeight = () => {
-        const buttonRect = buttonRef.current?.getBoundingClientRect()
+        if (!buttonRef.current) return
+        const buttonRect = buttonRef.current.getBoundingClientRect()
         if (!buttonRect) return
 
         // Find the modal container (closest parent with overflow or max-height)
         let container = buttonRef.current.closest('[class*="overflow"], [class*="max-h"]')
         if (!container) {
           // Fallback: find the form or modal wrapper
-          container = buttonRef.current.closest('form')?.parentElement
+          container = buttonRef.current.closest('form')?.parentElement || null
         }
 
         if (container) {
@@ -64,6 +65,7 @@ export default function MultiSelectDropdown({
           setMaxHeight(calculatedHeight)
         } else {
           // Fallback calculation using viewport
+          if (!buttonRef.current) return
           const viewportHeight = window.innerHeight
           const spaceBelow = viewportHeight - buttonRect.bottom - 16
           setMaxHeight(Math.max(120, Math.min(240, spaceBelow)))
