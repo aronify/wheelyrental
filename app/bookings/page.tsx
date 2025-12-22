@@ -30,15 +30,66 @@ export default async function BookingsRoute() {
     .eq('user_id', user.id)
     .single()
 
-  // Fetch bookings with car and customer details from Supabase
+  // Get user's company_id from their cars
+  const { data: userCar } = await supabase
+    .from('cars')
+    .select('company_id')
+    .limit(1)
+    .single()
+  
+  const companyId = userCar?.company_id
+  
+  if (!companyId) {
+    // User has no company yet
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader
+          userEmail={user.email || ''}
+          agencyName={profile?.agency_name}
+          agencyLogo={profile?.logo}
+        />
+        <QuickAccessMenu />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <BookingsPageRedesigned initialBookings={[]} />
+        </main>
+      </div>
+    )
+  }
+  
+  // Fetch bookings with car, customer, and location details from Supabase
+  // Bookings are company-scoped (bookings.company_id is required)
   const { data: bookings } = await supabase
     .from('bookings')
     .select(`
       *,
-      car:cars(*),
-      customer:customers(*)
+      car:cars(
+        id,
+        make,
+        model,
+        year,
+        license_plate,
+        image_url,
+        daily_rate
+      ),
+      customer:customers(
+        id,
+        full_name,
+        phone
+      ),
+      pickup_location:company_locations!pickup_location_id(
+        id,
+        name,
+        address_line_1,
+        city
+      ),
+      dropoff_location:company_locations!dropoff_location_id(
+        id,
+        name,
+        address_line_1,
+        city
+      )
     `)
-    .eq('owner_id', user.id)
+    .eq('company_id', companyId)
     .order('created_at', { ascending: false })
 
   return (

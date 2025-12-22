@@ -24,17 +24,74 @@ export default async function CarsRoute() {
     redirect('/login')
   }
 
-  // Fetch cars from Supabase
+  // Fetch profile for header (needed for early return case)
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('agency_name, logo')
+    .eq('user_id', user.id)
+    .single()
+
+  // Get user's company_id from their cars
+  // Since cars.company_id is required, we get it from any car
+  const { data: userCar } = await supabase
+    .from('cars')
+    .select('company_id')
+    .limit(1)
+    .single()
+  
+  const companyId = userCar?.company_id
+  
+  if (!companyId) {
+    // User has no cars yet - they need to create one first
+    // For now, return empty array
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader 
+          userEmail={user.email || ''} 
+          agencyName={profileData?.agency_name}
+          agencyLogo={profileData?.logo}
+        />
+        <QuickAccessMenu />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <CarsPageRedesigned initialCars={[]} />
+        </main>
+      </div>
+    )
+  }
+  
+  // Fetch cars from Supabase with company information
+  // Query cars by company_id (company-scoped)
   const { data: dbCars } = await supabase
     .from('cars')
-    .select('*')
-    .eq('owner_id', user.id)
+    .select(`
+      *,
+      company:companies(
+        id,
+        name,
+        is_verified,
+        email,
+        phone,
+        website
+      )
+    `)
+    .eq('company_id', companyId)
     .order('created_at', { ascending: false })
 
-  // Convert snake_case to camelCase
-  const cars = (dbCars || []).map(car => ({
+  // Convert snake_case to camelCase and add computed fields
+  const cars = (dbCars || []).map((car: any) => ({
     id: car.id,
-    ownerId: car.owner_id,
+    companyId: car.company_id,
+    company: car.company ? {
+      id: car.company.id,
+      name: car.company.name,
+      legalName: car.company.legal_name || undefined,
+      email: car.company.email || '',
+      phone: car.company.phone || '',
+      website: car.company.website || undefined,
+      isVerified: car.company.is_verified || false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } : undefined,
     make: car.make,
     model: car.model,
     year: car.year,
@@ -43,30 +100,28 @@ export default async function CarsRoute() {
     transmission: car.transmission,
     fuelType: car.fuel_type,
     seats: car.seats,
-    dailyRate: car.daily_rate,
-    status: car.status,
-    vin: car.vin,
-    imageUrl: car.image_url,
+    dailyRate: Number(car.daily_rate),
+    status: car.status, // 'active', 'maintenance', 'retired'
+    imageUrl: car.image_url || '',
     features: car.features || [],
-    pickupLocation: car.pickup_location,
-    dropoffLocation: car.dropoff_location,
+    pickupLocation: undefined, // Locations are in company_locations table
+    dropoffLocation: undefined, // Locations are in company_locations table
+    pickupLocations: undefined, // Will be fetched from car_locations junction table if it exists
+    dropoffLocations: undefined, // Will be fetched from car_locations junction table if it exists
+    depositRequired: car.deposit_required ? Number(car.deposit_required) : undefined,
     createdAt: new Date(car.created_at),
     updatedAt: new Date(car.updated_at),
+    // Computed fields
+    isVerified: car.company?.is_verified === true,
+    companyName: car.company?.name,
   }))
-
-  // Fetch profile for header
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('agency_name, logo')
-    .eq('user_id', user.id)
-    .single()
 
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader 
         userEmail={user.email || ''} 
-        agencyName={profile?.agency_name}
-        agencyLogo={profile?.logo}
+        agencyName={profileData?.agency_name}
+        agencyLogo={profileData?.logo}
       />
       <QuickAccessMenu />
       

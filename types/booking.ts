@@ -11,28 +11,39 @@ import { Customer } from './customer'
 
 export interface Booking {
   id: string
-  carId?: string
-  customerId?: string
-  pickupDate?: Date
-  dropoffDate?: Date
-  startDate?: Date
-  endDate?: Date
-  startDateTime?: Date
-  endDateTime?: Date
-  carName?: string
-  carPlate?: string
-  carImageUrl?: string
-  dealerName?: string
-  customerName?: string
-  customerPhone?: string
-  pickupLocation?: string
-  dropoffLocation?: string
-  status: BookingStatus
+  bookingReference?: string // 9-digit booking reference
+  companyId: string // Required - company that owns the booking
+  carId: string // Required
+  customerId: string // Required
+  pickupLocationId: string // Required - references company_locations
+  dropoffLocationId: string // Required - references company_locations
+  startTs: Date // start_ts in schema
+  endTs: Date // end_ts in schema
   totalPrice: number
+  status: BookingStatus // 'pending', 'confirmed', 'picked_up', 'returned', 'cancelled'
+  notes?: string
   createdAt: Date
-  updatedAt?: Date
+  updatedAt: Date
+  // Joined data
   car?: Car
   customer?: Customer
+  pickupLocation?: {
+    id: string
+    name: string
+    addressLine1?: string
+    city?: string
+  }
+  dropoffLocation?: {
+    id: string
+    name: string
+    addressLine1?: string
+    city?: string
+  }
+  // Computed/display fields
+  carName?: string
+  carPlate?: string
+  customerName?: string
+  customerPhone?: string
 }
 
 /**
@@ -61,8 +72,8 @@ export function filterBookingsByDateRange(
   }
 
   return bookings.filter((booking) => {
-    const bookingStart = booking.startDateTime ? new Date(booking.startDateTime) : null
-    const bookingEnd = booking.endDateTime ? new Date(booking.endDateTime) : null
+    const bookingStart = booking.startTs ? new Date(booking.startTs) : null
+    const bookingEnd = booking.endTs ? new Date(booking.endTs) : null
 
     if (!bookingStart || !bookingEnd) {
       return false

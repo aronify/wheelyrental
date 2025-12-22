@@ -25,29 +25,78 @@ export default async function CalendarRoute() {
   }
 
   // Fetch profile for header
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('agency_name, logo')
     .eq('user_id', user.id)
     .single()
 
-  // Fetch bookings with car and customer details from Supabase
+  // Get user's company_id from their cars
+  const { data: userCar } = await supabase
+    .from('cars')
+    .select('company_id')
+    .limit(1)
+    .single()
+  
+  const companyId = userCar?.company_id
+  
+  if (!companyId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader 
+          userEmail={user.email || ''} 
+          agencyName={profileData?.agency_name}
+          agencyLogo={profileData?.logo}
+        />
+        <QuickAccessMenu />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <CalendarPageRedesigned initialBookings={[]} />
+        </main>
+      </div>
+    )
+  }
+  
+  // Fetch bookings with car, customer, and location details from Supabase
+  // Bookings are company-scoped (bookings.company_id is required)
   const { data: bookings } = await supabase
     .from('bookings')
     .select(`
       *,
-      car:cars(*),
-      customer:customers(*)
+      car:cars(
+        id,
+        make,
+        model,
+        year,
+        license_plate,
+        image_url
+      ),
+      customer:customers(
+        id,
+        full_name,
+        phone
+      ),
+      pickup_location:company_locations!pickup_location_id(
+        id,
+        name,
+        address_line_1,
+        city
+      ),
+      dropoff_location:company_locations!dropoff_location_id(
+        id,
+        name,
+        address_line_1,
+        city
+      )
     `)
-    .eq('owner_id', user.id)
-    .order('pickup_date', { ascending: true })
+    .eq('company_id', companyId)
+    .order('start_ts', { ascending: true })
 
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader 
         userEmail={user.email || ''} 
-        agencyName={profile?.agency_name}
-        agencyLogo={profile?.logo}
+          agencyName={profileData?.agency_name}
+          agencyLogo={profileData?.logo}
       />
       <QuickAccessMenu />
       

@@ -27,8 +27,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
     const pendingBookings = bookings.filter(b => b.status === 'pending').length
     
     const todayBookings = bookings.filter((b: any) => {
-      const pickupDate = new Date((b as any).pickupDate || (b as any).pickup_date || (b as any).startDate || (b as any).startDateTime || b.pickup_date || b.startDate || b.startDateTime)
-      const dropoffDate = new Date((b as any).dropoffDate || (b as any).dropoff_date || (b as any).endDate || (b as any).endDateTime || b.dropoff_date || b.endDate || b.endDateTime)
+      const pickupDate = b.startTs ? new Date(b.startTs) : new Date()
+      const dropoffDate = b.endTs ? new Date(b.endTs) : new Date()
       return (pickupDate >= today && pickupDate < new Date(today.getTime() + 86400000)) ||
              (dropoffDate >= today && dropoffDate < new Date(today.getTime() + 86400000))
     }).length
@@ -98,7 +98,7 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
       return bookings
         .filter(b => {
           try {
-            const pickupDate = new Date((b as any).pickupDate || (b as any).pickup_date || (b as any).startDate || (b as any).startDateTime)
+            const pickupDate = b.startTs ? new Date(b.startTs) : new Date()
             return pickupDate > now && (b.status === 'confirmed' || b.status === 'pending')
           } catch {
             return false
@@ -106,8 +106,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
         })
         .sort((a, b) => {
           try {
-            const dateA = new Date((a as any).pickupDate || (a as any).pickup_date || (a as any).startDate || (a as any).startDateTime)
-            const dateB = new Date((b as any).pickupDate || (b as any).pickup_date || (b as any).startDate || (b as any).startDateTime)
+            const dateA = a.startTs ? new Date(a.startTs) : new Date()
+            const dateB = b.startTs ? new Date(b.startTs) : new Date()
             return dateA.getTime() - dateB.getTime()
           } catch {
             return 0
@@ -137,7 +137,7 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
         const monthRevenue = bookings
           .filter(b => {
             try {
-              const pickupDate = new Date((b as any).pickupDate || (b as any).pickup_date || (b as any).startDate || (b as any).startDateTime)
+              const pickupDate = b.startTs ? new Date(b.startTs) : new Date()
               return pickupDate.getMonth() === date.getMonth() && 
                      pickupDate.getFullYear() === date.getFullYear() &&
                      (b.status === 'confirmed' || b.status === 'picked_up' || b.status === 'returned')
@@ -612,7 +612,7 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                         {booking.car?.make} {booking.car?.model}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {formatDate(booking.pickupDate || booking.startDate || booking.startDateTime)} - {formatDate(booking.dropoffDate || booking.endDate || booking.endDateTime)}
+                        {formatDate(booking.startTs)} - {formatDate(booking.endTs)}
                       </p>
                     </div>
                     <div className="text-left sm:text-right flex-shrink-0">
@@ -678,7 +678,7 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        {formatDate(booking.pickupDate || booking.startDate || booking.startDateTime)}
+                        {formatDate(booking.startTs)}
                       </p>
                     </div>
                     <span className={`text-xs font-semibold px-2 sm:px-3 py-1 rounded-full border flex-shrink-0 ${getStatusColor(booking.status)}`}>

@@ -5,33 +5,37 @@
  * These will be replaced with Supabase-generated types when connecting to the database.
  */
 
-export type CarStatus = 'available' | 'rented' | 'maintenance' | 'inactive'
+export type CarStatus = 'active' | 'maintenance' | 'retired'
 export type TransmissionType = 'automatic' | 'manual'
 export type FuelType = 'petrol' | 'diesel' | 'electric' | 'hybrid'
 
+import { Company } from './company'
+
 export interface Car {
   id: string
-  ownerId?: string
+  companyId: string // Required - the company that owns this car
+  company?: Company // Joined company data
   make: string
   model: string
   year: number
   licensePlate: string
-  color: string
+  color?: string
   transmission: TransmissionType
   fuelType: FuelType
   seats: number
   dailyRate: number
-  imageUrl: string
-  status: CarStatus
-  vin?: string
-  features: string[]
-  pickupLocation?: string
-  dropoffLocation?: string
-  pickupLocations?: string[]
-  dropoffLocations?: string[]
+  imageUrl?: string
+  status: CarStatus // 'active', 'maintenance', 'retired'
+  features?: string[]
   depositRequired?: number
   createdAt: Date
   updatedAt: Date
+  // Computed fields for client-facing display
+  isVerified?: boolean // Derived from company.is_verified === true
+  companyName?: string // For display purposes
+  // Location arrays (for form compatibility)
+  pickupLocations?: string[]
+  dropoffLocations?: string[]
 }
 
 export interface CarFormData {
@@ -39,20 +43,23 @@ export interface CarFormData {
   model: string
   year: number
   licensePlate: string
-  color: string
+  color?: string
   transmission: TransmissionType
   fuelType: FuelType
   seats: number
   dailyRate: number
-  imageUrl: string
-  status: CarStatus
-  vin?: string
-  features: string[]
-  pickupLocation?: string
-  dropoffLocation?: string
+  imageUrl?: string
+  status: CarStatus // 'active', 'maintenance', 'retired'
+  features?: string[]
+  depositRequired?: number
+  // Location IDs from company_locations (if using junction table)
+  pickupLocationIds?: string[]
+  dropoffLocationIds?: string[]
+  // Legacy field names for compatibility
   pickupLocations?: string[]
   dropoffLocations?: string[]
-  depositRequired?: number
+  pickupLocation?: string // Legacy single location field
+  dropoffLocation?: string // Legacy single location field
 }
 
 /**
@@ -82,7 +89,7 @@ export function searchCars(cars: Car[], searchTerm: string): Car[] {
       car.make.toLowerCase().includes(term) ||
       car.model.toLowerCase().includes(term) ||
       car.licensePlate.toLowerCase().includes(term) ||
-      car.color.toLowerCase().includes(term)
+      (car.color?.toLowerCase().includes(term) ?? false)
   )
 }
 

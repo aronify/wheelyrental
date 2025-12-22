@@ -19,32 +19,7 @@ import {
   Grid3x3,
   ArrowRight
 } from 'lucide-react'
-
-interface Booking {
-  id: string
-  pickup_date: string
-  dropoff_date: string
-  total_price: number
-  status: string
-  pickup_location?: string
-  dropoff_location?: string
-  car?: {
-    id: string
-    make: string
-    model: string
-    year: number
-    license_plate?: string
-    image_url?: string
-    color?: string
-  }
-  customer?: {
-    id: string
-    first_name: string
-    last_name: string
-    email?: string
-    phone?: string
-  }
-}
+import { Booking } from '@/types/booking'
 
 interface CalendarPageProps {
   initialBookings: any[]
@@ -63,15 +38,24 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   const bookings: Booking[] = useMemo(() => {
     return (initialBookings || []).map((b: any) => ({
       id: b.id,
-      pickup_date: b.pickup_date || b.pickupDate,
-      dropoff_date: b.dropoff_date || b.dropoffDate,
-      total_price: b.total_price || b.totalPrice,
+      bookingReference: b.booking_reference || b.bookingReference,
+      companyId: b.company_id || b.companyId,
+      carId: b.car_id || b.carId,
+      customerId: b.customer_id || b.customerId,
+      pickupLocationId: b.pickup_location_id || b.pickupLocationId,
+      dropoffLocationId: b.dropoff_location_id || b.dropoffLocationId,
+      startTs: b.start_ts ? new Date(b.start_ts) : (b.startTs ? new Date(b.startTs) : new Date()),
+      endTs: b.end_ts ? new Date(b.end_ts) : (b.endTs ? new Date(b.endTs) : new Date()),
+      totalPrice: b.total_price || b.totalPrice || 0,
       status: b.status,
-      pickup_location: b.pickup_location || b.pickupLocation,
-      dropoff_location: b.dropoff_location || b.dropoffLocation,
+      notes: b.notes,
+      createdAt: b.created_at ? new Date(b.created_at) : new Date(),
+      updatedAt: b.updated_at ? new Date(b.updated_at) : new Date(),
+      pickupLocation: b.pickup_location || b.pickupLocation,
+      dropoffLocation: b.dropoff_location || b.dropoffLocation,
       car: b.car || b.cars,
       customer: b.customer || b.customers,
-    }))
+    })) as unknown as Booking[]
   }, [initialBookings])
 
   const formatDate = (date: Date | string, format: 'full' | 'short' | 'time' | 'month' = 'full') => {
@@ -105,9 +89,9 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   // Get bookings for a specific date
   const getBookingsForDate = (date: Date) => {
     return bookings.filter((booking) => {
-      if (!booking.pickup_date || !booking.dropoff_date) return false
-      const pickup = new Date(booking.pickup_date)
-      const dropoff = new Date(booking.dropoff_date)
+      if (!booking.startTs || !booking.endTs) return false
+      const pickup = new Date(booking.startTs)
+      const dropoff = new Date(booking.endTs)
       const checkDate = new Date(date)
       pickup.setHours(0, 0, 0, 0)
       dropoff.setHours(0, 0, 0, 0)
@@ -119,8 +103,8 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   // Get pickups for a date
   const getPickupsForDate = (date: Date) => {
     return bookings.filter((booking) => {
-      if (!booking.pickup_date) return false
-      const pickup = new Date(booking.pickup_date)
+      if (!booking.startTs) return false
+      const pickup = new Date(booking.startTs)
       const checkDate = new Date(date)
       pickup.setHours(0, 0, 0, 0)
       checkDate.setHours(0, 0, 0, 0)
@@ -131,8 +115,8 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
   // Get dropoffs for a date
   const getDropoffsForDate = (date: Date) => {
     return bookings.filter((booking) => {
-      if (!booking.dropoff_date) return false
-      const dropoff = new Date(booking.dropoff_date)
+      if (!booking.endTs) return false
+      const dropoff = new Date(booking.endTs)
       const checkDate = new Date(date)
       dropoff.setHours(0, 0, 0, 0)
       checkDate.setHours(0, 0, 0, 0)
@@ -189,14 +173,14 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
     now.setHours(0, 0, 0, 0)
     return bookings
       .filter((b) => {
-        if (!b.pickup_date) return false
-        const pickup = new Date(b.pickup_date)
+        if (!b.startTs) return false
+        const pickup = new Date(b.startTs)
         pickup.setHours(0, 0, 0, 0)
         return pickup >= now
       })
       .sort((a, b) => {
-        if (!a.pickup_date || !b.pickup_date) return 0
-        return new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime()
+        if (!a.startTs || !b.startTs) return 0
+        return new Date(a.startTs).getTime() - new Date(b.startTs).getTime()
       })
       .slice(0, 5)
   }, [bookings])
@@ -207,14 +191,14 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
     now.setHours(0, 0, 0, 0)
     return bookings
       .filter((b) => {
-        if (!b.dropoff_date) return false
-        const dropoff = new Date(b.dropoff_date)
+        if (!b.endTs) return false
+        const dropoff = new Date(b.endTs)
         dropoff.setHours(0, 0, 0, 0)
         return dropoff >= now
       })
       .sort((a, b) => {
-        if (!a.dropoff_date || !b.dropoff_date) return 0
-        return new Date(a.dropoff_date).getTime() - new Date(b.dropoff_date).getTime()
+        if (!a.endTs || !b.endTs) return 0
+        return new Date(a.endTs).getTime() - new Date(b.endTs).getTime()
       })
       .slice(0, 5)
   }, [bookings])
@@ -448,10 +432,10 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
             ) : (
               <div className="space-y-3">
                 {todayEvents.map((booking) => {
-                  const isPickup = booking.pickup_date ? new Date(booking.pickup_date).toDateString() === today.toDateString() : false
-                  const isDropoff = booking.dropoff_date ? new Date(booking.dropoff_date).toDateString() === today.toDateString() : false
+                  const isPickup = booking.startTs ? new Date(booking.startTs).toDateString() === today.toDateString() : false
+                  const isDropoff = booking.endTs ? new Date(booking.endTs).toDateString() === today.toDateString() : false
                   const carName = booking.car ? `${booking.car.make} ${booking.car.model} ${booking.car.year}` : 'Unknown Car'
-                  const customerName = booking.customer ? `${booking.customer.first_name} ${booking.customer.last_name}` : 'Unknown Customer'
+                  const customerName = booking.customer ? `${booking.customer.firstName} ${booking.customer.lastName}` : 'Unknown Customer'
 
                   return (
                     <div
@@ -459,10 +443,10 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                       onClick={() => setSelectedBooking(booking)}
                       className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer border border-gray-200"
                     >
-                      {booking.car?.image_url ? (
+                      {booking.car?.imageUrl ? (
                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
                           <img
-                            src={booking.car.image_url}
+                            src={booking.car.imageUrl}
                             alt={carName}
                             className="w-full h-full object-cover"
                           />
@@ -494,7 +478,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900">€{booking.total_price.toFixed(0)}</p>
+                        <p className="text-lg font-bold text-gray-900">€{booking.totalPrice.toFixed(0)}</p>
                       </div>
                     </div>
                   )
@@ -531,7 +515,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                     >
                       <p className="font-medium text-sm text-gray-900">{carName}</p>
                       <p className="text-xs text-gray-600 mt-1">
-                        {booking.customer?.first_name} {booking.customer?.last_name}
+                        {booking.customer?.firstName} {booking.customer?.lastName}
                       </p>
                     </div>
                   )
@@ -557,19 +541,21 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
               ) : (
                 upcomingPickups.map((booking) => {
                   const carName = booking.car ? `${booking.car.make} ${booking.car.model}` : 'Unknown'
-                  const customerName = booking.customer ? `${booking.customer.first_name} ${booking.customer.last_name}` : 'Unknown'
+                  const customerName = booking.customer 
+                    ? (`${booking.customer.firstName || ''} ${booking.customer.lastName || ''}`.trim() || booking.customer.name || 'Unknown')
+                    : 'Unknown'
                   return (
                     <div key={booking.id} className="bg-white rounded-lg p-3 shadow-sm">
                       <p className="font-medium text-gray-900 text-sm">{carName}</p>
                       <p className="text-xs text-gray-600 mt-1">{customerName}</p>
                       <p className="text-xs text-green-700 font-medium mt-2 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {formatDate(booking.pickup_date, 'short')}
+                        {formatDate(booking.startTs, 'short')}
                       </p>
-                      {booking.pickup_location && (
+                      {booking.pickupLocation && (
                         <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
-                          {booking.pickup_location}
+                          {booking.pickupLocation?.name || ''}
                         </p>
                       )}
                     </div>
@@ -593,19 +579,21 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
               ) : (
                 upcomingDropoffs.map((booking) => {
                   const carName = booking.car ? `${booking.car.make} ${booking.car.model}` : 'Unknown'
-                  const customerName = booking.customer ? `${booking.customer.first_name} ${booking.customer.last_name}` : 'Unknown'
+                  const customerName = booking.customer 
+                    ? (`${booking.customer.firstName || ''} ${booking.customer.lastName || ''}`.trim() || booking.customer.name || 'Unknown')
+                    : 'Unknown'
                   return (
                     <div key={booking.id} className="bg-white rounded-lg p-3 shadow-sm">
                       <p className="font-medium text-gray-900 text-sm">{carName}</p>
                       <p className="text-xs text-gray-600 mt-1">{customerName}</p>
                       <p className="text-xs text-orange-700 font-medium mt-2 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {formatDate(booking.dropoff_date, 'short')}
+                        {formatDate(booking.endTs, 'short')}
                       </p>
-                      {booking.dropoff_location && (
+                      {booking.dropoffLocation && (
                         <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
-                          {booking.dropoff_location}
+                          {booking.dropoffLocation?.name || ''}
                         </p>
                       )}
                     </div>
@@ -646,10 +634,10 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                 {/* Content */}
                 <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-180px)] sm:max-h-[calc(90vh-180px)]">
                   {/* Car Image */}
-                  {selectedBooking.car?.image_url ? (
+                  {selectedBooking.car?.imageUrl ? (
                     <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gray-100">
                       <img
-                        src={selectedBooking.car.image_url}
+                        src={selectedBooking.car.imageUrl}
                         alt={selectedBooking.car.make}
                         className="w-full h-full object-cover"
                       />
@@ -665,8 +653,8 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                     <h4 className="text-xl font-bold text-gray-900">
                       {selectedBooking.car ? `${selectedBooking.car.make} ${selectedBooking.car.model} ${selectedBooking.car.year}` : 'Unknown Car'}
                     </h4>
-                    {selectedBooking.car?.license_plate && (
-                      <p className="text-gray-600">{selectedBooking.car.license_plate}</p>
+                    {selectedBooking.car?.licensePlate && (
+                      <p className="text-gray-600">{selectedBooking.car.licensePlate}</p>
                     )}
                   </div>
 
@@ -675,7 +663,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                     <div>
                       <p className="text-sm font-medium text-gray-500 mb-1">{t.customer || 'Customer'}</p>
                       <p className="text-gray-900 font-medium">
-                        {selectedBooking.customer ? `${selectedBooking.customer.first_name} ${selectedBooking.customer.last_name}` : 'Unknown'}
+                        {selectedBooking.customer ? `${selectedBooking.customer.firstName || ''} ${selectedBooking.customer.lastName || ''}`.trim() || selectedBooking.customer.name || 'Unknown' : 'Unknown'}
                       </p>
                       {selectedBooking.customer?.phone && (
                         <p className="text-sm text-gray-600 mt-1">{selectedBooking.customer.phone}</p>
@@ -683,7 +671,7 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500 mb-1">{t.totalPrice || 'Total Price'}</p>
-                      <p className="text-2xl font-bold text-gray-900">€{selectedBooking.total_price.toFixed(0)}</p>
+                      <p className="text-2xl font-bold text-gray-900">€{selectedBooking.totalPrice.toFixed(0)}</p>
                     </div>
                   </div>
 
@@ -695,11 +683,11 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 mb-1">{t.pickup || 'Pickup'}</p>
-                        <p className="text-sm text-gray-600">{formatDate(selectedBooking.pickup_date)}</p>
-                        {selectedBooking.pickup_location && (
+                        <p className="text-sm text-gray-600">{formatDate(selectedBooking.startTs)}</p>
+                        {selectedBooking.pickupLocation && (
                           <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                             <MapPin className="w-3 h-3" />
-                            {selectedBooking.pickup_location}
+                            {selectedBooking.pickupLocation?.name || ''}
                           </p>
                         )}
                       </div>
@@ -711,11 +699,11 @@ export default function CalendarPageRedesigned({ initialBookings }: CalendarPage
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 mb-1">{t.dropoff || 'Dropoff'}</p>
-                        <p className="text-sm text-gray-600">{formatDate(selectedBooking.dropoff_date)}</p>
-                        {selectedBooking.dropoff_location && (
+                        <p className="text-sm text-gray-600">{formatDate(selectedBooking.endTs)}</p>
+                        {selectedBooking.dropoffLocation && (
                           <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                             <MapPin className="w-3 h-3" />
-                            {selectedBooking.dropoff_location}
+                            {selectedBooking.dropoffLocation?.name || ''}
                           </p>
                         )}
                       </div>

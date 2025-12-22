@@ -51,9 +51,9 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
   const stats = useMemo(() => {
     return {
       total: cars.length,
-      available: cars.filter((c) => c.status === 'available').length,
-      rented: cars.filter((c) => c.status === 'rented').length,
+      active: cars.filter((c) => c.status === 'active').length,
       maintenance: cars.filter((c) => c.status === 'maintenance').length,
+      retired: cars.filter((c) => c.status === 'retired').length,
       totalRevenue: cars.reduce((sum, car) => sum + car.dailyRate, 0),
     }
   }, [cars])
@@ -147,13 +147,11 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
 
   const getStatusColor = (status: CarStatus) => {
     switch (status) {
-      case 'available':
+      case 'active':
         return 'bg-green-100 text-green-700 border-green-200'
-      case 'rented':
-        return 'bg-blue-100 text-blue-700 border-blue-200'
       case 'maintenance':
         return 'bg-orange-100 text-orange-700 border-orange-200'
-      case 'inactive':
+      case 'retired':
         return 'bg-gray-100 text-gray-700 border-gray-200'
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200'
@@ -162,14 +160,12 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
 
   const getStatusText = (status: CarStatus) => {
     switch (status) {
-      case 'available':
-        return t.statusAvailable
-      case 'rented':
-        return t.statusRented
+      case 'active':
+        return t.statusActive || 'Active'
       case 'maintenance':
-        return t.statusMaintenance
-      case 'inactive':
-        return t.statusInactive
+        return t.statusMaintenance || 'Maintenance'
+      case 'retired':
+        return t.statusRetired || 'Retired'
       default:
         return status
     }
@@ -230,16 +226,16 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                   <span className="text-2xl sm:text-3xl font-bold text-white">{stats.total}</span>
                   <span className="text-white/90 text-xs sm:text-sm font-medium">{t.totalCars || 'Total Cars'}</span>
                 </div>
-                {stats.available > 0 && (
+                {stats.active > 0 && (
                   <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-green-500/30 backdrop-blur-sm rounded-full border border-green-400/30">
-                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.available}</span>
-                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusAvailable || 'Available'}</span>
+                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.active}</span>
+                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusActive || 'Active'}</span>
                   </div>
                 )}
-                {stats.rented > 0 && (
-                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-orange-500/30 backdrop-blur-sm rounded-full border border-orange-400/30">
-                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.rented}</span>
-                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusRented || 'Rented'}</span>
+                {stats.retired > 0 && (
+                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-gray-500/30 backdrop-blur-sm rounded-full border border-gray-400/30">
+                    <span className="text-xl sm:text-2xl font-bold text-white">{stats.retired}</span>
+                    <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusRetired || 'Retired'}</span>
                   </div>
                 )}
               </div>
@@ -285,10 +281,9 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
               onChange={(value) => setStatusFilter(value as CarStatus | 'all')}
               options={[
                 { value: 'all', label: t.all },
-                { value: 'available', label: t.statusAvailable },
-                { value: 'rented', label: t.statusRented },
-                { value: 'maintenance', label: t.statusMaintenance },
-                { value: 'inactive', label: t.statusInactive },
+                { value: 'active', label: t.statusActive || 'Active' },
+                { value: 'maintenance', label: t.statusMaintenance || 'Maintenance' },
+                { value: 'retired', label: t.statusRetired || 'Retired' },
               ]}
               placeholder={t.all}
             />
@@ -359,13 +354,21 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
             >
               {/* Image */}
               <div className="relative h-40 sm:h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                <Image
-                  src={car.imageUrl}
-                  alt={`${car.make} ${car.model}`}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-300"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
+                {car.imageUrl ? (
+                  <Image
+                    src={car.imageUrl}
+                    alt={`${car.make} ${car.model}`}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
                 
                 {/* Status Badge */}
                 <div className="absolute top-3 right-3">
@@ -449,13 +452,21 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
               <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
                 {/* Image */}
                 <div className="relative w-full md:w-48 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg sm:rounded-xl overflow-hidden flex-shrink-0">
-                  <Image
-                    src={car.imageUrl}
-                    alt={`${car.make} ${car.model}`}
-                    fill
-                    className="object-cover"
-                    sizes="200px"
-                  />
+                  {car.imageUrl ? (
+                    <Image
+                      src={car.imageUrl}
+                      alt={`${car.make} ${car.model}`}
+                      fill
+                      className="object-cover"
+                      sizes="200px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
 
                 {/* Details */}

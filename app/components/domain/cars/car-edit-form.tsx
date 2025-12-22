@@ -184,14 +184,11 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     seats: car.seats || 5,
     dailyRate: car.dailyRate || 0,
     depositRequired: car.depositRequired,
-    status: car.status || 'available',
+    status: car.status || 'active',
     imageUrl: car.imageUrl || '',
     features: car.features || [],
-    vin: car.vin || '',
-    pickupLocation: car.pickupLocation || '',
-    dropoffLocation: car.dropoffLocation || '',
-    pickupLocations: car.pickupLocations || (car.pickupLocation ? [car.pickupLocation] : []),
-    dropoffLocations: car.dropoffLocations || (car.dropoffLocation ? [car.dropoffLocation] : []),
+    pickupLocations: car.pickupLocations || [],
+    dropoffLocations: car.dropoffLocations || [],
   })
 
   // Image compression function
@@ -651,19 +648,6 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
 
                   <div>
                     <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
-                      {t.vin || 'VIN'}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.vin}
-                      onChange={(e) => handleInputChange('vin', e.target.value.toUpperCase())}
-                      placeholder="17-digit VIN"
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm uppercase"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
                       {t.pickupLocations || 'PICKUP LOCATIONS'}
                     </label>
                     {isLoadingLocations ? (
@@ -938,13 +922,13 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                         className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-left transition-all text-sm bg-white flex items-center justify-between"
                       >
                         <span className={`font-medium ${
-                          formData.status === 'available' ? 'text-green-600' :
-                          formData.status === 'rented' ? 'text-blue-600' :
-                          'text-orange-600'
+                          formData.status === 'active' ? 'text-green-600' :
+                          formData.status === 'maintenance' ? 'text-orange-600' :
+                          'text-gray-600'
                         }`}>
-                          {formData.status === 'available' ? (t.statusAvailable || 'Available') :
-                           formData.status === 'rented' ? (t.statusRented || 'Rented') :
-                           (t.statusMaintenance || 'Maintenance')}
+                          {formData.status === 'active' ? (t.statusActive || 'Active') :
+                           formData.status === 'maintenance' ? (t.statusMaintenance || 'Maintenance') :
+                           (t.statusRetired || 'Retired')}
                         </span>
                         <svg className={`w-4 h-4 transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -968,24 +952,13 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                           <button
                             type="button"
                             onClick={() => {
-                              handleInputChange('status', 'available')
+                              handleInputChange('status', 'active')
                               setIsStatusDropdownOpen(false)
                             }}
                             className="w-full px-3 py-2 text-left hover:bg-green-50 flex items-center gap-2 text-sm border-b"
                           >
                             <span className="w-2 h-2 bg-green-500 rounded-full" />
-                            <span className="text-green-600 font-medium">{t.statusAvailable || 'Available'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleInputChange('status', 'rented')
-                              setIsStatusDropdownOpen(false)
-                            }}
-                            className="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center gap-2 text-sm border-b"
-                          >
-                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                            <span className="text-blue-600 font-medium">{t.statusRented || 'Rented'}</span>
+                            <span className="text-green-600 font-medium">{t.statusActive || 'Active'}</span>
                           </button>
                           <button
                             type="button"
@@ -993,10 +966,21 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                               handleInputChange('status', 'maintenance')
                               setIsStatusDropdownOpen(false)
                             }}
-                            className="w-full px-3 py-2 text-left hover:bg-orange-50 flex items-center gap-2 text-sm"
+                            className="w-full px-3 py-2 text-left hover:bg-orange-50 flex items-center gap-2 text-sm border-b"
                           >
                             <span className="w-2 h-2 bg-orange-500 rounded-full" />
                             <span className="text-orange-600 font-medium">{t.statusMaintenance || 'Maintenance'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('status', 'retired')
+                              setIsStatusDropdownOpen(false)
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                          >
+                            <span className="w-2 h-2 bg-gray-500 rounded-full" />
+                            <span className="text-gray-600 font-medium">{t.statusRetired || 'Retired'}</span>
                           </button>
                         </div>
                       </>

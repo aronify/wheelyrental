@@ -3,6 +3,7 @@
 import { createServerActionClient } from '@/lib/supabase/client'
 import { CarFormData } from '@/types/car'
 import { revalidatePath } from 'next/cache'
+import { getUserCompanyId } from './company-helpers'
 
 export interface Location {
   id: string
@@ -113,7 +114,7 @@ export async function createLocationAction(locationData: CreateLocationData): Pr
 /**
  * Add a new car to the database
  */
-export async function addCarAction(carData: CarFormData): Promise<CarActionResult> {
+export async function addCarAction(carData: CarFormData, companyId?: string): Promise<CarActionResult> {
   try {
     const supabase = await createServerActionClient()
 
@@ -122,11 +123,22 @@ export async function addCarAction(carData: CarFormData): Promise<CarActionResul
       return { error: 'Not authenticated. Please log in again.' }
     }
 
-    // Insert the car
+    // Get user's company_id (from existing cars or parameter)
+    let finalCompanyId: string | undefined = companyId
+    if (!finalCompanyId) {
+      const fetchedCompanyId = await getUserCompanyId(user.id)
+      finalCompanyId = fetchedCompanyId || undefined
+    }
+    
+    if (!finalCompanyId) {
+      return { error: 'Company ID is required. Please create a company first or provide company_id.' }
+    }
+
+    // Insert the car (company_id is required in schema)
     const { data: carDataResult, error: carError } = await supabase
       .from('cars')
       .insert({
-        owner_id: user.id,
+        company_id: finalCompanyId, // Required - company that owns the car
         make: carData.make,
         model: carData.model,
         year: carData.year,
@@ -138,7 +150,6 @@ export async function addCarAction(carData: CarFormData): Promise<CarActionResul
         daily_rate: carData.dailyRate,
         deposit_required: carData.depositRequired || null,
         status: carData.status,
-        vin: carData.vin,
         image_url: carData.imageUrl,
         features: carData.features,
       })
@@ -207,6 +218,34 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       return { error: 'Not authenticated' }
     }
 
+    // Get user's company IDs for access control
+    const { data: userCompanies } = await supabase
+      .from('company_members')
+      .select('company_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+    
+    const companyIds = userCompanies?.map(c => c.company_id) || []
+    
+    // First, verify the user has access to this car (owner or company member)
+    const { data: existingCar } = await supabase
+      .from('cars')
+      .select('id, owner_id, company_id')
+      .eq('id', carId)
+      .single()
+    
+    if (!existingCar) {
+      return { error: 'Car not found' }
+    }
+    
+    // Check access: user must be owner OR company member
+    const hasAccess = existingCar.owner_id === user.id || 
+      (existingCar.company_id && companyIds.includes(existingCar.company_id))
+    
+    if (!hasAccess) {
+      return { error: 'You do not have permission to update this car' }
+    }
+
     // Update the car
     const { data, error } = await supabase
       .from('cars')
@@ -222,13 +261,11 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
         daily_rate: carData.dailyRate,
         deposit_required: carData.depositRequired || null,
         status: carData.status,
-        vin: carData.vin,
         image_url: carData.imageUrl,
         features: carData.features,
         updated_at: new Date().toISOString(),
       })
       .eq('id', carId)
-      .eq('owner_id', user.id)
       .select()
       .single()
 
@@ -298,11 +335,29 @@ export async function deleteCarAction(carId: string): Promise<CarActionResult> {
       return { error: 'Not authenticated' }
     }
 
+    // Get user's company_id for access control
+    const userCompanyId = await getUserCompanyId(user.id)
+    
+    // First, verify the user has access to this car (must belong to user's company)
+    const { data: existingCar } = await supabase
+      .from('cars')
+      .select('id, company_id')
+      .eq('id', carId)
+      .single()
+    
+    if (!existingCar) {
+      return { error: 'Car not found' }
+    }
+    
+    // Check access: car must belong to user's company
+    if (existingCar.company_id !== userCompanyId) {
+      return { error: 'You do not have permission to delete this car' }
+    }
+
     const { error } = await supabase
       .from('cars')
       .delete()
       .eq('id', carId)
-      .eq('owner_id', user.id)
 
     if (error) {
       return { error: 'Failed to delete car' }

@@ -196,11 +196,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     dailyRate: 0,
     depositRequired: undefined,
     imageUrl: '',
-    status: 'available',
-    vin: '',
+    status: 'active',
     features: [],
-    pickupLocation: '',
-    dropoffLocation: '',
     pickupLocations: [],
     dropoffLocations: [],
   })
@@ -224,13 +221,10 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           dailyRate: car.dailyRate || 0,
           depositRequired: car.depositRequired,
           imageUrl: car.imageUrl || '',
-          status: car.status || 'available',
-          vin: car.vin || '',
+          status: car.status || 'active',
           features: car.features || [],
-          pickupLocation: car.pickupLocation || '',
-          dropoffLocation: car.dropoffLocation || '',
-          pickupLocations: car.pickupLocations || (car.pickupLocation ? [car.pickupLocation] : []),
-          dropoffLocations: car.dropoffLocations || (car.dropoffLocation ? [car.dropoffLocation] : []),
+          pickupLocations: car.pickupLocations || [],
+          dropoffLocations: car.dropoffLocations || [],
         })
         setImagePreviews(car.imageUrl ? [car.imageUrl] : [])
       } else {
@@ -247,11 +241,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           dailyRate: 0,
           depositRequired: undefined,
           imageUrl: '',
-          status: 'available',
-          vin: '',
-          features: [],
-          pickupLocation: '',
-          dropoffLocation: '',
+          status: 'active',
+    features: [],
           pickupLocations: [],
           dropoffLocations: [],
         })
@@ -493,7 +484,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     if (newFeature.trim()) {
       setFormData({
         ...formData,
-        features: [...formData.features, newFeature.trim()],
+        features: [...(formData.features || []), newFeature.trim()],
       })
       setNewFeature('')
     }
@@ -502,7 +493,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   const handleRemoveFeature = (index: number) => {
     setFormData({
       ...formData,
-      features: formData.features.filter((_, i) => i !== index),
+      features: (formData.features || []).filter((_, i) => i !== index),
     })
   }
 
@@ -1030,10 +1021,9 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                           }
                         }}
                         options={[
-                          { value: 'available', label: t.statusAvailable },
-                          { value: 'rented', label: t.statusRented },
-                          { value: 'maintenance', label: t.statusMaintenance },
-                          { value: 'inactive', label: t.statusInactive },
+                          { value: 'active', label: t.statusActive || 'Active' },
+                          { value: 'maintenance', label: t.statusMaintenance || 'Maintenance' },
+                          { value: 'retired', label: t.statusRetired || 'Retired' },
                         ]}
                         placeholder={t.status || 'Select status'}
                         required={true}
@@ -1042,20 +1032,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                       {validationErrors.status && (
                         <p className="mt-1 text-sm text-red-600">{validationErrors.status}</p>
                       )}
-                    </div>
-
-                    {/* VIN */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        {t.vin || 'VIN'}
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.vin}
-                        onChange={(e) => setFormData({ ...formData, vin: e.target.value.toUpperCase() })}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 uppercase"
-                        placeholder="e.g., 1HGBH41JXMN109186"
-                      />
                     </div>
 
                     {/* Pickup Locations (Multiple) */}
@@ -1286,7 +1262,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         </button>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {formData.features.map((feature, index) => (
+                        {(formData.features || []).map((feature, index) => (
                           <span
                             key={index}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-900 rounded-full text-sm font-medium"

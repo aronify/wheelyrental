@@ -140,6 +140,8 @@ export interface LanguageDictionary {
   statusRented: string;
   statusMaintenance: string;
   statusInactive: string;
+  statusActive: string;
+  statusRetired: string;
   totalCars: string;
   availableCars: string;
   confirmDelete: string;
@@ -160,6 +162,20 @@ export interface LanguageDictionary {
   // Customers
   customers: string;
   customersSubtitle: string;
+  reviews: string;
+  reviewsSubtitle: string;
+  totalReviews: string;
+  averageRating: string;
+  fiveStarReviews: string;
+  oneStarReviews: string;
+  searchReviews: string;
+  allRatings: string;
+  stars: string;
+  star: string;
+  noReviewsFound: string;
+  tryDifferentFilters: string;
+  noReviewsYet: string;
+  bookingReference: string;
   customerDetails: string;
   customerName: string;
   email: string;
@@ -519,6 +535,8 @@ export const translations: Record<Language, LanguageDictionary> = {
     statusRented: "Rented",
     statusMaintenance: "Maintenance",
     statusInactive: "Inactive",
+    statusActive: "Active",
+    statusRetired: "Retired",
     totalCars: "Total Cars",
     availableCars: "Available Cars",
     confirmDelete: "Confirm Delete",
@@ -540,6 +558,20 @@ export const translations: Record<Language, LanguageDictionary> = {
     // Customers
     customers: "Customers",
     customersSubtitle: "View and manage your customers",
+    reviews: "Reviews",
+    reviewsSubtitle: "View customer feedback for your cars",
+    totalReviews: "Total Reviews",
+    averageRating: "Avg Rating",
+    fiveStarReviews: "5 Stars",
+    oneStarReviews: "1 Star",
+    searchReviews: "Search reviews...",
+    allRatings: "All Ratings",
+    stars: "Stars",
+    star: "Star",
+    noReviewsFound: "No reviews found",
+    tryDifferentFilters: "Try adjusting your filters",
+    noReviewsYet: "No reviews have been submitted yet",
+    bookingReference: "Booking",
     customerDetails: "Customer Details",
     customerName: "Customer Name",
     email: "Email",
@@ -906,6 +938,8 @@ export const translations: Record<Language, LanguageDictionary> = {
     statusRented: "I qiraxhuar",
     statusMaintenance: "Në mirëmbajtje",
     statusInactive: "Jo aktiv",
+    statusActive: "Aktiv",
+    statusRetired: "I tërhequr",
     totalCars: "Mjetet totale",
     availableCars: "Mjetet e disponueshme",
     confirmDelete: "Konfirmo fshirjen",
@@ -927,6 +961,20 @@ export const translations: Record<Language, LanguageDictionary> = {
     // Customers
     customers: "Klientët",
     customersSubtitle: "Shiko dhe menaxho klientët e tu",
+    reviews: "Vlerësimet",
+    reviewsSubtitle: "Shiko komentet e klientëve për makinat tuaja",
+    totalReviews: "Vlerësimet Totale",
+    averageRating: "Vlerësimi Mesatar",
+    fiveStarReviews: "5 Yjet",
+    oneStarReviews: "1 Yll",
+    searchReviews: "Kërko vlerësime...",
+    allRatings: "Të Gjitha Vlerësimet",
+    stars: "Yjet",
+    star: "Yll",
+    noReviewsFound: "Nuk u gjetën vlerësime",
+    tryDifferentFilters: "Provo filtra të ndryshëm",
+    noReviewsYet: "Nuk ka vlerësime të dërguara ende",
+    bookingReference: "Rezervimi",
     customerDetails: "Detajet e klientit",
     customerName: "Emri i klientit",
     email: "Email",
