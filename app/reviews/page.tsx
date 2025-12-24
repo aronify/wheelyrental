@@ -6,6 +6,9 @@ import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import { Review } from '@/types/review'
 import { getUserCompanyId } from '@/lib/server/data/company-helpers'
 
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
+
 /**
  * Reviews Page
  * 
@@ -187,5 +190,6 @@ export default async function ReviewsPage() {
     </div>
   )
 }
+
 
 

@@ -25,7 +25,6 @@ export default function Breadcrumbs() {
     if (segment === 'dashboard') label = t.dashboard
     if (segment === 'bookings') label = t.bookings
     if (segment === 'cars') label = t.cars
-    if (segment === 'customers') label = t.customers
     if (segment === 'calendar') label = t.calendar
     if (segment === 'profile') label = t.myProfile
     if (segment === 'payouts') label = t.requestPayout || 'Request Payout'

@@ -3,6 +3,7 @@
 import { useState, FormEvent, useEffect, useRef } from 'react'
 import { useLanguage } from '@/lib/i18n/language-context'
 import { Car, CarFormData, TransmissionType, FuelType, CarStatus } from '@/types/car'
+import { X, Image as ImageIcon, Info, Settings, MapPin } from 'lucide-react'
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 import MultiSelectDropdown from '@/app/components/ui/dropdowns/multi-select-dropdown'
 import { getLocationsAction, createLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
@@ -18,7 +19,7 @@ interface CarFormModalProps {
 export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car, mode }: CarFormModalProps) {
   const { t } = useLanguage()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
+  const [activeTab, setActiveTab] = useState<'image' | 'details' | 'specs' | 'locations'>('image')
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
@@ -26,10 +27,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false)
-  const [isTransmissionDropdownOpen, setIsTransmissionDropdownOpen] = useState(false)
-  const [isFuelTypeDropdownOpen, setIsFuelTypeDropdownOpen] = useState(false)
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const colorButtonRef = useRef<HTMLButtonElement>(null)
+  const [colorDropdownPosition, setColorDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
 
   // Popular car colors with hex values
   const carColors = [
@@ -66,18 +65,79 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   })
   const [isSavingCustomLocation, setIsSavingCustomLocation] = useState(false)
 
-  // Fetch locations from database
+  // Fetch locations from database (filtered by company_id server-side)
   const fetchLocations = async () => {
     setIsLoadingLocations(true)
+    setValidationErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors.locations
+      return newErrors
+    })
+    
     try {
       const result = await getLocationsAction()
-      if (result.locations) {
+      
+      if (result.error) {
+        // Only log critical errors
+        if (!result.error.includes('Permission denied')) {
+          console.error('[CarForm] Error fetching locations:', result.error)
+        }
+        
+        // Check if it's an RLS/permission error
+        if (result.error.includes('Permission denied') || result.error.includes('RLS')) {
+          setValidationErrors(prev => ({
+            ...prev,
+            locations: 'Permission error. Please run database/fix-locations-rls.sql'
+          }))
+        } else {
+          setValidationErrors(prev => ({
+            ...prev,
+            locations: result.error || 'Failed to load locations'
+          }))
+        }
+        setLocations([])
+        return
+      }
+      
+      if (result.locations && result.locations.length > 0) {
         setLocations(result.locations)
-      } else if (result.error) {
-        console.error('Error fetching locations:', result.error)
+        
+        // Auto-preselect if locations exist
+        const pickupLocs = result.locations.filter(loc => Boolean(loc.isPickupLocation))
+        const dropoffLocs = result.locations.filter(loc => Boolean(loc.isDropoffLocation))
+        
+        // Auto-select if only one pickup location (and not already selected)
+        if (pickupLocs.length === 1) {
+          const currentPickup = formData.pickupLocations || []
+          if (!currentPickup.includes(pickupLocs[0].id)) {
+            setFormData(prev => ({ 
+              ...prev, 
+              pickupLocations: [pickupLocs[0].id] 
+            }))
+          }
+        }
+        
+        // Auto-select if only one dropoff location (and not already selected)
+        if (dropoffLocs.length === 1) {
+          const currentDropoff = formData.dropoffLocations || []
+          if (!currentDropoff.includes(dropoffLocs[0].id)) {
+            setFormData(prev => ({ 
+              ...prev, 
+              dropoffLocations: [dropoffLocs[0].id] 
+            }))
+          }
+        }
+      } else {
+        // Empty result - no locations found
+        setLocations([])
       }
     } catch (error) {
-      console.error('Error fetching locations:', error)
+      console.error('[CarForm] 💥 Exception fetching locations:', error)
+      setValidationErrors(prev => ({
+        ...prev,
+        locations: `Failed to load locations: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }))
+      setLocations([])
     } finally {
       setIsLoadingLocations(false)
     }
@@ -89,19 +149,27 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     }
   }, [isOpen])
 
-  // Prepare location options for dropdowns (including "Custom Location" option)
+  // Prepare location options for dropdowns
+  // Filter: Only locations where is_pickup = true (server already filtered by company_id)
+  const pickupLocations = locations.filter(loc => Boolean(loc.isPickupLocation))
+  
   const pickupLocationOptions = [
-    ...locations
-      .filter(loc => loc.isPickupLocation)
-      .map(loc => ({ value: loc.id, label: loc.name })),
-    { value: 'CUSTOM_PICKUP', label: '➕ Custom Location' },
+    ...pickupLocations.map(loc => ({
+      value: loc.id,
+      label: loc.city ? `${loc.name} (${loc.city})` : loc.name,
+    })),
+    { value: 'CUSTOM_PICKUP', label: '➕ Add Custom Location' },
   ]
 
+  // Filter: Only locations where is_dropoff = true (server already filtered by company_id)
+  const dropoffLocations = locations.filter(loc => Boolean(loc.isDropoffLocation))
+  
   const dropoffLocationOptions = [
-    ...locations
-      .filter(loc => loc.isDropoffLocation)
-      .map(loc => ({ value: loc.id, label: loc.name })),
-    { value: 'CUSTOM_DROPOFF', label: '➕ Custom Location' },
+    ...dropoffLocations.map(loc => ({
+      value: loc.id,
+      label: loc.city ? `${loc.name} (${loc.city})` : loc.name,
+    })),
+    { value: 'CUSTOM_DROPOFF', label: '➕ Add Custom Location' },
   ]
 
   // Handle custom location selection
@@ -137,37 +205,49 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
 
     setIsSavingCustomLocation(true)
     try {
+      // Explicitly set flags based on which form is open
+      const isPickup = showCustomLocationForm === 'pickup'
+      const isDropoff = showCustomLocationForm === 'dropoff'
+      
+      console.log('[CarForm] Creating location:', {
+        name: customLocationData.name,
+        isPickup,
+        isDropoff,
+        formType: showCustomLocationForm
+      })
+      
       const result = await createLocationAction({
         name: customLocationData.name,
-        address: customLocationData.address || undefined,
+        addressLine1: customLocationData.address || undefined,
         city: customLocationData.city || undefined,
-        isPickupLocation: showCustomLocationForm === 'pickup',
-        isDropoffLocation: showCustomLocationForm === 'dropoff',
+        isPickupLocation: isPickup, // Explicitly set: true only if pickup form
+        isDropoffLocation: isDropoff, // Explicitly set: true only if dropoff form
       })
 
       if (result.location) {
-        // Add new location to the list
-        setLocations([...locations, result.location])
+        // Refresh locations list to get latest data from server
+        await fetchLocations()
         
         // Add to selected locations
         if (showCustomLocationForm === 'pickup') {
-          setFormData({
-            ...formData,
-            pickupLocations: [...(formData.pickupLocations || []), result.location.id],
-          })
+          setFormData(prev => ({
+            ...prev,
+            pickupLocations: [...(prev.pickupLocations || []), result.location!.id],
+          }))
         } else {
-          setFormData({
-            ...formData,
-            dropoffLocations: [...(formData.dropoffLocations || []), result.location.id],
-          })
+          setFormData(prev => ({
+            ...prev,
+            dropoffLocations: [...(prev.dropoffLocations || []), result.location!.id],
+          }))
         }
 
         // Reset and close form
         setShowCustomLocationForm(null)
         setCustomLocationData({ name: '', address: '', city: '' })
-        setValidationErrors({ ...validationErrors, customLocation: '' })
+        setValidationErrors(prev => ({ ...prev, customLocation: '' }))
       } else if (result.error) {
-        setValidationErrors({ ...validationErrors, customLocation: result.error })
+        console.error('[CarForm] Error creating location:', result.error)
+        setValidationErrors(prev => ({ ...prev, customLocation: result.error || 'Failed to create location' }))
       }
     } catch (error) {
       console.error('Error saving custom location:', error)
@@ -196,7 +276,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     dailyRate: 0,
     depositRequired: undefined,
     imageUrl: '',
-    status: 'active',
+    status: 'active', // Always default to 'active' - system handles status automatically
     features: [],
     pickupLocations: [],
     dropoffLocations: [],
@@ -221,7 +301,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           dailyRate: car.dailyRate || 0,
           depositRequired: car.depositRequired,
           imageUrl: car.imageUrl || '',
-          status: car.status || 'active',
+          status: car.status || 'active', // Preserve existing status when editing
           features: car.features || [],
           pickupLocations: car.pickupLocations || [],
           dropoffLocations: car.dropoffLocations || [],
@@ -241,8 +321,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           dailyRate: 0,
           depositRequired: undefined,
           imageUrl: '',
-          status: 'active',
-    features: [],
+          status: 'active', // Always default to 'active' - system handles status automatically
+          features: [],
           pickupLocations: [],
           dropoffLocations: [],
         })
@@ -251,7 +331,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
       }
       setNewFeature('')
       setImageError(null)
-      setCurrentStep(1)
+      setActiveTab('image')
       setShowCustomLocationForm(null)
       setCustomLocationData({ name: '', address: '', city: '' })
     }
@@ -309,21 +389,17 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
       errors.seats = t.seats || 'Valid number of seats is required (1-20)'
     }
     
-    if (!formData.status) {
-      errors.status = t.status || 'Status is required'
-    }
-    
     setValidationErrors(errors)
     
-    // If there are errors, navigate to the appropriate step
+    // If there are errors, navigate to the appropriate tab
     if (Object.keys(errors).length > 0) {
       if (errors.image) {
-        setCurrentStep(1)
+        setActiveTab('image')
         setImageError(errors.image)
       } else if (errors.make || errors.model || errors.year || errors.licensePlate || errors.color || errors.dailyRate) {
-        setCurrentStep(2)
-      } else if (errors.transmission || errors.fuelType || errors.seats || errors.status) {
-        setCurrentStep(3)
+        setActiveTab('details')
+      } else if (errors.transmission || errors.fuelType || errors.seats) {
+        setActiveTab('specs')
       }
       return false
     }
@@ -348,7 +424,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
       // Success - parent component will close modal
     } catch (error: unknown) {
       setImageError(error instanceof Error ? error.message : 'Failed to save car. Try using a smaller image.')
-      setCurrentStep(1) // Go back to image step to show error
+      setActiveTab('image') // Go back to image tab to show error
       setIsSubmitting(false)
     }
   }
@@ -497,111 +573,65 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     })
   }
 
-  const nextStep = () => {
-    if (currentStep < 3) setCurrentStep(currentStep + 1)
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
-  }
-
   if (!isOpen) return null
 
-  const steps = [
-    { number: 1, title: t.carImage || 'Car Image', icon: '📸' },
-    { number: 2, title: t.basicInfo || 'Basic Info', icon: '🚗' },
-    { number: 3, title: t.details || 'Details', icon: '📋' },
+  const tabs = [
+    { id: 'image' as const, label: t.image || 'Photo', icon: ImageIcon },
+    { id: 'details' as const, label: t.details || 'Details', icon: Info },
+    { id: 'specs' as const, label: t.specifications || 'Specs', icon: Settings },
+    { id: 'locations' as const, label: t.locations || 'Locations', icon: MapPin },
   ]
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Backdrop */}
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onClick={onClose} />
-
-        {/* Modal */}
-        <div className="inline-block align-bottom bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-          <form onSubmit={handleSubmit} onKeyDown={(e) => {
-            // Prevent Enter key from submitting the form
-            if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
-              e.preventDefault()
-            }
-          }}>
-            {/* Header with Gradient */}
-            <div className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 px-6 py-6">
-              {/* Background pattern */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-                  backgroundSize: '32px 32px'
-                }} />
+    <>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="relative bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl w-full max-w-2xl sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-hidden border-2 border-blue-200">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-1">
+                  {mode === 'add' ? t.addCar || 'Add Vehicle' : t.editCar || 'Edit Vehicle'}
+                </h2>
+                <p className="text-blue-100 text-xs">
+                  {mode === 'add' ? t.addNewCarToFleet || 'Add a new car to your fleet' : car ? `${car.make} ${car.model} • ${car.licensePlate}` : ''}
+                </p>
               </div>
-
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">
-                      {mode === 'add' ? t.addCar : t.editCar}
-                    </h3>
-                    <p className="text-blue-200 text-sm">
-                      {mode === 'add' ? t.addNewCarToFleet || 'Add a new car to your fleet' : t.updateCarDetails || 'Update car details'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="text-white hover:bg-white/20 rounded-xl p-2 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Steps Indicator */}
-              <div className="relative mt-6 flex items-center justify-between">
-                {steps.map((step, index) => (
-                  <div key={step.number} className="flex-1 relative">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all ${
-                          currentStep >= step.number
-                            ? 'bg-white text-blue-900 shadow-lg scale-110'
-                            : 'bg-white/20 text-white'
-                        }`}
-                      >
-                        {step.icon}
-                      </div>
-                      <span className={`mt-2 text-xs font-medium ${
-                        currentStep >= step.number ? 'text-white' : 'text-blue-300'
-                      }`}>
-                        {step.title}
-                      </span>
-                    </div>
-                    {index < steps.length - 1 && (
-                      <div className="absolute top-6 left-1/2 w-full h-0.5 bg-white/20">
-                        <div
-                          className={`h-full bg-white transition-all duration-300 ${
-                            currentStep > step.number ? 'w-full' : 'w-0'
-                          }`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
 
-            {/* Body */}
-            <div className="px-6 py-6 max-h-[60vh] overflow-y-auto bg-gray-50" style={{ overflowX: 'visible' }}>
-              {/* Step 1: Image Upload */}
-              {currentStep === 1 && (
+            {/* Tabs */}
+            <div className="flex gap-2 mt-4">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      activeTab === tab.id
+                        ? 'bg-white text-blue-900 shadow-md'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="px-4 sm:px-6 lg:px-8 py-5 lg:py-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            {/* Image Tab */}
+            {activeTab === 'image' && (
                 <div className="space-y-6">
                   <div className="text-center mb-6">
                     <h4 className="text-lg font-semibold text-gray-900 mb-2">{t.uploadCarImage || 'Upload Car Image'}</h4>
@@ -704,13 +734,9 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                 </div>
               )}
 
-              {/* Step 2: Basic Info */}
-              {currentStep === 2 && (
-                <div className="space-y-6" style={{ overflow: 'visible' }}>
-                  <div className="text-center mb-6">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">{t.basicInformation || 'Basic Information'}</h4>
-                    <p className="text-sm text-gray-600">{t.provideBasicCarDetails || 'Provide essential details about the car'}</p>
-                  </div>
+            {/* Details Tab */}
+            {activeTab === 'details' && (
+              <div className="space-y-6">
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ overflow: 'visible' }}>
                     {/* Make */}
@@ -821,14 +847,17 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         {t.color || 'COLOR'} <span className="text-red-500">*</span>
                       </label>
                       <button
+                        ref={colorButtonRef}
                         type="button"
                         onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect()
-                          setDropdownPosition({
-                            top: rect.bottom + 8,
-                            left: rect.left,
-                            width: rect.width
-                          })
+                          if (colorButtonRef.current) {
+                            const rect = colorButtonRef.current.getBoundingClientRect()
+                            setColorDropdownPosition({
+                              top: rect.bottom + 4,
+                              left: rect.left,
+                              width: rect.width
+                            })
+                          }
                           setIsColorDropdownOpen(!isColorDropdownOpen)
                         }}
                         className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white flex items-center justify-between hover:border-blue-400 min-h-[44px] text-base sm:text-sm ${
@@ -917,15 +946,10 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                 </div>
               )}
 
-              {/* Step 3: Details */}
-              {currentStep === 3 && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">{t.additionalDetails || 'Additional Details'}</h4>
-                    <p className="text-sm text-gray-600">{t.provideMoreDetails || 'Specifications and features'}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Specs Tab */}
+            {activeTab === 'specs' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Transmission */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -1006,335 +1030,404 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         <p className="mt-1 text-sm text-red-600">{validationErrors.seats}</p>
                       )}
                     </div>
+                  </div>
 
-                    {/* Status */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        {t.status || 'STATUS'} <span className="text-red-500">*</span>
-                      </label>
-                      <CustomDropdown
-                        value={formData.status}
-                        onChange={(value) => {
-                          setFormData({ ...formData, status: value as CarStatus })
-                          if (validationErrors.status) {
-                            setValidationErrors({ ...validationErrors, status: '' })
-                          }
-                        }}
-                        options={[
-                          { value: 'active', label: t.statusActive || 'Active' },
-                          { value: 'maintenance', label: t.statusMaintenance || 'Maintenance' },
-                          { value: 'retired', label: t.statusRetired || 'Retired' },
-                        ]}
-                        placeholder={t.status || 'Select status'}
-                        required={true}
-                        error={!!validationErrors.status}
+                  {/* Features */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      {t.features || 'FEATURES'}
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        value={newFeature}
+                        onChange={(e) => setNewFeature(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddFeature())}
+                        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900"
+                        placeholder="e.g., Air Conditioning, GPS, Bluetooth"
                       />
-                      {validationErrors.status && (
-                        <p className="mt-1 text-sm text-red-600">{validationErrors.status}</p>
-                      )}
+                      <button
+                        type="button"
+                        onClick={handleAddFeature}
+                        className="px-6 py-3 bg-blue-900 text-white font-semibold rounded-xl hover:bg-blue-800 transition-colors"
+                      >
+                        {t.add || 'Add'}
+                      </button>
                     </div>
-
-                    {/* Pickup Locations (Multiple) */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        {t.pickupLocations || 'PICKUP LOCATIONS'}
-                      </label>
-                      {isLoadingLocations ? (
-                        <div className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center">
-                          <span className="text-sm text-gray-500">{t.loading || 'Loading locations...'}</span>
-                        </div>
-                      ) : (
-                        <>
-                          <MultiSelectDropdown
-                            values={formData.pickupLocations || []}
-                            onChange={(values) => handleLocationChange(values, 'pickup')}
-                            options={pickupLocationOptions}
-                            placeholder={t.pickupLocation || 'Select pickup locations'}
-                        icon={
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        }
-                          />
-                          {showCustomLocationForm === 'pickup' && (
-                            <div className="mt-4 p-5 bg-white border-2 border-gray-200 rounded-xl shadow-sm">
-                              <div className="flex items-center gap-2 mb-4">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                <h4 className="text-sm font-semibold text-gray-900">
-                                  {t.addCustomLocation || 'Add Custom Pickup Location'}
-                                </h4>
-                              </div>
-                              <div className="space-y-4">
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.name}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
-                                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
-                                      validationErrors.customLocation ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                    placeholder={t.enterLocationName || 'Enter location name'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    {t.address || 'Address'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.address}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm"
-                                    placeholder={t.enterAddress || 'Enter address'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    {t.city || 'City'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.city}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, city: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm"
-                                    placeholder={t.enterCity || 'Enter city'}
-                                  />
-                                </div>
-                                {validationErrors.customLocation && (
-                                  <p className="mt-1 text-sm text-red-600">{validationErrors.customLocation}</p>
-                                )}
-                                <div className="flex gap-3 pt-2">
-                                  <button
-                                    type="button"
-                                    onClick={handleSaveCustomLocation}
-                                    disabled={isSavingCustomLocation || !customLocationData.name.trim()}
-                                    className="flex-1 px-6 py-3 bg-blue-900 text-white rounded-xl font-semibold hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-                                  >
-                                    {isSavingCustomLocation ? (t.saving || 'Saving...') : (t.save || 'Save')}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleCancelCustomLocation}
-                                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors min-h-[44px]"
-                                  >
-                                    {t.cancel || 'Cancel'}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      <p className="mt-1 text-xs text-gray-500">
-                        {t.selectMultipleLocations || 'You can select multiple locations'}
-                      </p>
-                    </div>
-
-                    {/* Dropoff Locations (Multiple) */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        {t.dropoffLocations || 'DROPOFF LOCATIONS'}
-                      </label>
-                      {isLoadingLocations ? (
-                        <div className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center">
-                          <span className="text-sm text-gray-500">{t.loading || 'Loading locations...'}</span>
-                        </div>
-                      ) : (
-                        <>
-                          <MultiSelectDropdown
-                            values={formData.dropoffLocations || []}
-                            onChange={(values) => handleLocationChange(values, 'dropoff')}
-                            options={dropoffLocationOptions}
-                            placeholder={t.dropoffLocation || 'Select dropoff locations'}
-                        icon={
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        }
-                          />
-                          {showCustomLocationForm === 'dropoff' && (
-                            <div className="mt-4 p-5 bg-white border-2 border-gray-200 rounded-xl shadow-sm">
-                              <div className="flex items-center gap-2 mb-4">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                <h4 className="text-sm font-semibold text-gray-900">
-                                  {t.addCustomLocation || 'Add Custom Dropoff Location'}
-                                </h4>
-                              </div>
-                              <div className="space-y-4">
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.name}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
-                                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
-                                      validationErrors.customLocation ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                    placeholder={t.enterLocationName || 'Enter location name'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    {t.address || 'Address'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.address}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm"
-                                    placeholder={t.enterAddress || 'Enter address'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    {t.city || 'City'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.city}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, city: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm"
-                                    placeholder={t.enterCity || 'Enter city'}
-                                  />
-                                </div>
-                                {validationErrors.customLocation && (
-                                  <p className="mt-1 text-sm text-red-600">{validationErrors.customLocation}</p>
-                                )}
-                                <div className="flex gap-3 pt-2">
-                                  <button
-                                    type="button"
-                                    onClick={handleSaveCustomLocation}
-                                    disabled={isSavingCustomLocation || !customLocationData.name.trim()}
-                                    className="flex-1 px-6 py-3 bg-blue-900 text-white rounded-xl font-semibold hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-                                  >
-                                    {isSavingCustomLocation ? (t.saving || 'Saving...') : (t.save || 'Save')}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleCancelCustomLocation}
-                                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors min-h-[44px]"
-                                  >
-                                    {t.cancel || 'Cancel'}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      <p className="mt-1 text-xs text-gray-500">
-                        {t.selectMultipleLocations || 'You can select multiple locations'}
-                      </p>
-                    </div>
-
-
-                    {/* Features */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        {t.features || 'FEATURES'}
-                      </label>
-                      <div className="flex gap-2 mb-3">
-                        <input
-                          type="text"
-                          value={newFeature}
-                          onChange={(e) => setNewFeature(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddFeature())}
-                          className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900"
-                          placeholder="e.g., Air Conditioning, GPS, Bluetooth"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddFeature}
-                          className="px-6 py-3 bg-blue-900 text-white font-semibold rounded-xl hover:bg-blue-800 transition-colors"
+                    <div className="flex flex-wrap gap-2">
+                      {(formData.features || []).map((feature, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-900 rounded-full text-sm font-medium"
                         >
-                          {t.add || 'Add'}
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(formData.features || []).map((feature, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-900 rounded-full text-sm font-medium"
+                          {feature}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFeature(index)}
+                            className="text-blue-900 hover:text-blue-700"
                           >
-                            {feature}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveFeature(index)}
-                              className="text-blue-900 hover:text-blue-700"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
               )}
-            </div>
+
+            {/* Locations Tab */}
+            {activeTab === 'locations' && (
+              <div className="space-y-5">
+                {/* Section Header */}
+                <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <h3 className="text-sm font-bold text-gray-900">{t.locations || 'LOCATIONS'}</h3>
+                </div>
+
+                {/* Grid Layout: Wider on large screens for better horizontal extension */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
+                  {/* Pickup Location Field */}
+                  <div className="flex flex-col">
+                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
+                      {t.pickupLocations || 'PICKUP LOCATIONS'}
+                    </label>
+                          {isLoadingLocations ? (
+                            <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 flex items-center justify-center gap-2 min-h-[44px]">
+                              <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span className="text-sm text-gray-500">{t.loading || 'Loading...'}</span>
+                            </div>
+                          ) : pickupLocations.length === 0 ? (
+                            <div className="w-full px-4 py-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex flex-col items-center justify-center gap-3 min-h-[120px]">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-gray-700 mb-1">
+                                  {t.noPickupLocations || 'No pickup locations'}
+                                </p>
+                                <p className="text-xs text-gray-500 mb-3">
+                                  Add a location to enable pickup
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowCustomLocationForm('pickup')
+                                  setCustomLocationData({ name: '', address: '', city: '' })
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                {t.addLocation || 'Add Location'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <MultiSelectDropdown
+                                values={formData.pickupLocations || []}
+                                onChange={(values) => handleLocationChange(values, 'pickup')}
+                                options={pickupLocationOptions}
+                                placeholder={t.pickupLocation || 'Select pickup locations'}
+                                disabled={isLoadingLocations || pickupLocationOptions.length === 0}
+                                icon={
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                }
+                              />
+                            </div>
+                          )}
+                          {showCustomLocationForm === 'pickup' && (
+                            <div className="mt-6 p-6 lg:p-8 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border-2 border-blue-300 rounded-2xl shadow-lg">
+                              <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-blue-600 rounded-lg">
+                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <h4 className="text-base font-bold text-gray-900">
+                                      {t.addCustomLocation || 'Add Custom Pickup Location'}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-0.5">Create a new location for vehicle pickup</p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelCustomLocation}
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-lg transition-all"
+                                >
+                                  <X className="w-5 h-5" />
+                                </button>
+                              </div>
+                              <div className="space-y-5">
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
+                                    {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={customLocationData.name}
+                                    onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
+                                    className={`w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white ${
+                                      validationErrors.customLocation ? 'border-red-500' : ''
+                                    }`}
+                                    placeholder={t.enterLocationName || 'Enter location name (e.g., Airport Terminal)'}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
+                                    {t.address || 'Street Address'}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={customLocationData.address}
+                                    onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
+                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
+                                    placeholder={t.enterAddress || 'Enter street address'}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
+                                    {t.city || 'City'}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={customLocationData.city}
+                                    onChange={(e) => setCustomLocationData({ ...customLocationData, city: e.target.value })}
+                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
+                                    placeholder={t.enterCity || 'Enter city name'}
+                                  />
+                                </div>
+                                {validationErrors.customLocation && (
+                                  <p className="mt-1 text-sm text-red-600">{validationErrors.customLocation}</p>
+                                )}
+                                <div className="flex gap-4 pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={handleSaveCustomLocation}
+                                    disabled={isSavingCustomLocation || !customLocationData.name.trim()}
+                                    className="flex-1 px-6 py-4 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg"
+                                  >
+                                    {isSavingCustomLocation ? (t.saving || 'Saving...') : (t.save || 'Save Location')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelCustomLocation}
+                                    className="px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base"
+                                  >
+                                    {t.cancel || 'Cancel'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        <p className="mt-1 text-xs text-gray-500">
+                          {t.selectMultipleLocations || 'You can select multiple locations'}
+                        </p>
+                      </div>
+
+                      {/* Dropoff Location Field */}
+                      <div className="flex flex-col">
+                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
+                          {t.dropoffLocations || 'DROPOFF LOCATIONS'}
+                        </label>
+                          {isLoadingLocations ? (
+                            <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 flex items-center justify-center gap-2 min-h-[44px]">
+                              <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span className="text-sm text-gray-500">{t.loading || 'Loading...'}</span>
+                            </div>
+                          ) : dropoffLocations.length === 0 ? (
+                            <div className="w-full px-4 py-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex flex-col items-center justify-center gap-3 min-h-[120px]">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-gray-700 mb-1">
+                                  {t.noDropoffLocations || 'No dropoff locations'}
+                                </p>
+                                <p className="text-xs text-gray-500 mb-3">
+                                  Add a location to enable dropoff
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowCustomLocationForm('dropoff')
+                                  setCustomLocationData({ name: '', address: '', city: '' })
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                {t.addLocation || 'Add Location'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <MultiSelectDropdown
+                                values={formData.dropoffLocations || []}
+                                onChange={(values) => handleLocationChange(values, 'dropoff')}
+                                options={dropoffLocationOptions}
+                                placeholder={t.dropoffLocation || 'Select dropoff locations'}
+                                disabled={isLoadingLocations || dropoffLocationOptions.length === 0}
+                                icon={
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                }
+                              />
+                            </div>
+                          )}
+                          {showCustomLocationForm === 'dropoff' && (
+                            <div className="mt-6 p-6 lg:p-8 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border-2 border-blue-300 rounded-2xl shadow-lg">
+                              <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-blue-600 rounded-lg">
+                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <h4 className="text-base font-bold text-gray-900">
+                                      {t.addCustomLocation || 'Add Custom Dropoff Location'}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-0.5">Create a new location for vehicle dropoff</p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelCustomLocation}
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-lg transition-all"
+                                >
+                                  <X className="w-5 h-5" />
+                                </button>
+                              </div>
+                              <div className="space-y-5">
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
+                                    {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={customLocationData.name}
+                                    onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
+                                    className={`w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white ${
+                                      validationErrors.customLocation ? 'border-red-500' : ''
+                                    }`}
+                                    placeholder={t.enterLocationName || 'Enter location name (e.g., Airport Terminal)'}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
+                                    {t.address || 'Street Address'}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={customLocationData.address}
+                                    onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
+                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
+                                    placeholder={t.enterAddress || 'Enter street address'}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
+                                    {t.city || 'City'}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={customLocationData.city}
+                                    onChange={(e) => setCustomLocationData({ ...customLocationData, city: e.target.value })}
+                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
+                                    placeholder={t.enterCity || 'Enter city name'}
+                                  />
+                                </div>
+                                {validationErrors.customLocation && (
+                                  <p className="mt-1 text-sm text-red-600">{validationErrors.customLocation}</p>
+                                )}
+                                <div className="flex gap-4 pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={handleSaveCustomLocation}
+                                    disabled={isSavingCustomLocation || !customLocationData.name.trim()}
+                                    className="flex-1 px-6 py-4 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg"
+                                  >
+                                    {isSavingCustomLocation ? (t.saving || 'Saving...') : (t.save || 'Save Location')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelCustomLocation}
+                                    className="px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base"
+                                  >
+                                    {t.cancel || 'Cancel'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        <p className="mt-1 text-xs text-gray-500">
+                          {t.selectMultipleLocations || 'You can select multiple locations'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+              )}
+            </form>
 
             {/* Footer */}
-            <div className="bg-white border-t-2 border-gray-200 px-4 sm:px-6 py-4 flex justify-between gap-3">
+            <div className="bg-white border-t-2 border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex justify-between gap-3">
               <button
                 type="button"
-                onClick={currentStep === 1 ? onClose : prevStep}
-                className="min-h-[44px] px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold active:bg-gray-50 hover:bg-gray-50 transition-colors touch-manipulation"
+                onClick={onClose}
+                className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
               >
-                {currentStep === 1 ? t.cancel : t.back || 'Back'}
+                {t.cancel || 'Cancel'}
               </button>
               
-              {currentStep < 3 ? (
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  disabled={currentStep === 1 && (!imagePreviews.length || !imagePreviews[0])}
-                  className="min-h-[44px] px-6 sm:px-8 py-3 bg-blue-900 text-white font-semibold rounded-xl active:bg-blue-800 hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 touch-manipulation"
-                >
-                  {t.next || 'Next'}
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSaveClick}
-                  disabled={isSubmitting}
-                  className="min-h-[44px] px-6 sm:px-8 py-3 bg-green-600 text-white font-semibold rounded-xl active:bg-green-700 hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 touch-manipulation"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {t.saving}
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {mode === 'add' ? t.addCar : t.saveChanges}
-                    </>
-                  )}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleSaveClick}
+                disabled={isSubmitting}
+                className="px-6 sm:px-8 py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {t.saving || 'Saving...'}
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {mode === 'add' ? (t.addCar || 'Add Vehicle') : (t.saveChanges || 'Save Changes')}
+                  </>
+                )}
+              </button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
 
@@ -1343,16 +1436,16 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-[100]"
+            className="fixed inset-0 z-[9998]"
             onClick={() => setIsColorDropdownOpen(false)}
           />
           {/* Dropdown */}
           <div
-            className="fixed z-[101] bg-white border-2 border-blue-900 rounded-xl shadow-2xl max-h-72 overflow-y-auto"
+            className="fixed z-[9999] bg-white border-2 border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto"
             style={{
-              top: `${dropdownPosition.top}px`,
-              left: `${dropdownPosition.left}px`,
-              width: `${dropdownPosition.width}px`
+              top: `${colorDropdownPosition.top}px`,
+              left: `${colorDropdownPosition.left}px`,
+              width: `${colorDropdownPosition.width}px`
             }}
           >
             <div className="p-2">
@@ -1393,7 +1486,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           </div>
         </>
       )}
-    </div>
+    </>
   )
 }
 

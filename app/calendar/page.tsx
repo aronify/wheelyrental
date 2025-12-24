@@ -3,6 +3,10 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import CalendarPageRedesigned from '@/app/components/domain/calendar/calendar-view'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
+import { ensureUserCompany, getUserCompanyId } from '@/lib/server/data/company-helpers'
+
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
 
 /**
  * Calendar Page - Redesigned
@@ -31,14 +35,8 @@ export default async function CalendarRoute() {
     .eq('user_id', user.id)
     .single()
 
-  // Get user's company_id from their cars
-  const { data: userCar } = await supabase
-    .from('cars')
-    .select('company_id')
-    .limit(1)
-    .single()
-  
-  const companyId = userCar?.company_id
+  // Get user's company_id using helper (more reliable)
+  const companyId = await ensureUserCompany(user.id, user.email) || await getUserCompanyId(user.id)
   
   if (!companyId) {
     return (
@@ -58,7 +56,8 @@ export default async function CalendarRoute() {
   
   // Fetch bookings with car, customer, and location details from Supabase
   // Bookings are company-scoped (bookings.company_id is required)
-  const { data: bookings } = await supabase
+  // RLS will automatically filter by company_id, but we keep explicit filter for clarity
+  const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
     .select(`
       *,
@@ -75,13 +74,13 @@ export default async function CalendarRoute() {
         full_name,
         phone
       ),
-      pickup_location:company_locations!pickup_location_id(
+      pickup_location:locations!pickup_location_id(
         id,
         name,
         address_line_1,
         city
       ),
-      dropoff_location:company_locations!dropoff_location_id(
+      dropoff_location:locations!dropoff_location_id(
         id,
         name,
         address_line_1,
@@ -90,6 +89,22 @@ export default async function CalendarRoute() {
     `)
     .eq('company_id', companyId)
     .order('start_ts', { ascending: true })
+  
+  // Log errors for debugging
+  if (bookingsError) {
+    console.error('[CalendarPage] Error fetching bookings:', {
+      message: bookingsError.message,
+      code: bookingsError.code,
+      details: bookingsError.details,
+      hint: bookingsError.hint,
+      companyId
+    })
+  }
+  
+  console.log('[CalendarPage] Fetched bookings:', {
+    count: bookings?.length || 0,
+    companyId
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">

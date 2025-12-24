@@ -223,6 +223,9 @@ export interface LanguageDictionary {
   dropoffLocation: string;
   pickupLocations: string;
   dropoffLocations: string;
+  noPickupLocations: string;
+  noDropoffLocations: string;
+  addLocation: string;
   selectMultipleLocations: string;
   addCustomLocation: string;
   locationName: string;
@@ -278,6 +281,10 @@ export interface LanguageDictionary {
   dragDropLogo: string;
   orClickToUpload: string;
   logoPreview: string;
+  // Company Data Prompt
+  companyDataRequiredTitle: string;
+  companyDataRequiredMessage: string;
+  updateCompanyInfo: string;
   active: string;
   found: string;
   statusPickedup: string;
@@ -620,6 +627,9 @@ export const translations: Record<Language, LanguageDictionary> = {
     dropoffLocation: "Dropoff Location",
     pickupLocations: "Pickup Locations",
     dropoffLocations: "Dropoff Locations",
+    noPickupLocations: "No pickup locations",
+    noDropoffLocations: "No dropoff locations",
+    addLocation: "Add Location",
     selectMultipleLocations: "You can select multiple locations",
     addCustomLocation: "Add Custom Location",
     locationName: "Location Name",
@@ -675,6 +685,10 @@ export const translations: Record<Language, LanguageDictionary> = {
     dragDropLogo: "Drag and drop your logo here",
     orClickToUpload: "or click to upload",
     logoPreview: "Logo Preview",
+    // Company Data Prompt
+    companyDataRequiredTitle: "Complete Your Company Information",
+    companyDataRequiredMessage: "Please add your company name, email, and phone number to continue using the dashboard.",
+    updateCompanyInfo: "Update Company Info",
     active: "Active",
     found: "found",
     statusPickedup: "Picked Up",
@@ -1023,6 +1037,9 @@ export const translations: Record<Language, LanguageDictionary> = {
     dropoffLocation: "Vendndodhja e dorëzimit",
     pickupLocations: "Vendndodhjet e marrjes",
     dropoffLocations: "Vendndodhjet e dorëzimit",
+    noPickupLocations: "Nuk ka vendndodhje marrjeje",
+    noDropoffLocations: "Nuk ka vendndodhje dorëzimi",
+    addLocation: "Shto Vendndodhje",
     selectMultipleLocations: "Mund të zgjidhni disa vendndodhje",
     addCustomLocation: "Shto Vendndodhje të Re",
     locationName: "Emri i Vendndodhjes",
@@ -1078,6 +1095,10 @@ export const translations: Record<Language, LanguageDictionary> = {
     dragDropLogo: "Zvarrit dhe lësho logon këtu",
     orClickToUpload: "ose kliko për të ngarkuar",
     logoPreview: "Pamja e logos",
+    // Company Data Prompt
+    companyDataRequiredTitle: "Plotësoni Informacionin e Kompanisë",
+    companyDataRequiredMessage: "Ju lutemi shtoni emrin e kompanisë, email dhe numrin e telefonit për të vazhduar përdorimin e panelit.",
+    updateCompanyInfo: "Përditëso Informacionin e Kompanisë",
     active: "Aktiv",
     found: "u gjetën",
     statusPickedup: "Marrë",

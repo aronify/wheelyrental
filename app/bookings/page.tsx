@@ -3,6 +3,10 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import BookingsPageRedesigned from '@/app/components/domain/bookings/bookings-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
+import { ensureUserCompany, getUserCompanyId } from '@/lib/server/data/company-helpers'
+
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
 
 /**
  * Bookings Page for Car Owners
@@ -30,14 +34,8 @@ export default async function BookingsRoute() {
     .eq('user_id', user.id)
     .single()
 
-  // Get user's company_id from their cars
-  const { data: userCar } = await supabase
-    .from('cars')
-    .select('company_id')
-    .limit(1)
-    .single()
-  
-  const companyId = userCar?.company_id
+  // Get user's company_id using helper (more reliable)
+  const companyId = await ensureUserCompany(user.id, user.email) || await getUserCompanyId(user.id)
   
   if (!companyId) {
     // User has no company yet
@@ -58,31 +56,43 @@ export default async function BookingsRoute() {
   
   // Fetch bookings with car, customer, and location details from Supabase
   // Bookings are company-scoped (bookings.company_id is required)
-  const { data: bookings } = await supabase
+  // RLS will automatically filter by company_id, but we keep explicit filter for clarity
+  const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
     .select(`
       *,
       car:cars(
         id,
+        company_id,
         make,
         model,
         year,
         license_plate,
+        color,
+        transmission,
+        fuel_type,
+        seats,
+        daily_rate,
+        deposit_required,
+        status,
         image_url,
-        daily_rate
+        features,
+        created_at,
+        updated_at
       ),
       customer:customers(
         id,
+        user_id,
         full_name,
         phone
       ),
-      pickup_location:company_locations!pickup_location_id(
+      pickup_location:locations!pickup_location_id(
         id,
         name,
         address_line_1,
         city
       ),
-      dropoff_location:company_locations!dropoff_location_id(
+      dropoff_location:locations!dropoff_location_id(
         id,
         name,
         address_line_1,
@@ -91,6 +101,92 @@ export default async function BookingsRoute() {
     `)
     .eq('company_id', companyId)
     .order('created_at', { ascending: false })
+  
+  // Log errors for debugging
+  if (bookingsError) {
+    console.error('[BookingsPage] Error fetching bookings:', {
+      message: bookingsError.message,
+      code: bookingsError.code,
+      details: bookingsError.details,
+      hint: bookingsError.hint,
+      companyId
+    })
+  }
+  
+  console.log('[BookingsPage] Fetched bookings:', {
+    count: bookings?.length || 0,
+    companyId
+  })
+
+  // Transform bookings data to match Booking interface
+  const transformedBookings = (bookings || []).map((booking: any) => ({
+    id: booking.id,
+    bookingReference: booking.booking_reference || undefined,
+    companyId: booking.company_id,
+    carId: booking.car_id,
+    customerId: booking.customer_id,
+    pickupLocationId: booking.pickup_location_id,
+    dropoffLocationId: booking.dropoff_location_id,
+    startTs: new Date(booking.start_ts),
+    endTs: new Date(booking.end_ts),
+    totalPrice: Number(booking.total_price),
+    status: booking.status as 'pending' | 'confirmed' | 'picked_up' | 'returned' | 'cancelled',
+    notes: booking.notes || undefined,
+    createdAt: new Date(booking.created_at),
+    updatedAt: new Date(booking.updated_at),
+    // Joined data
+    car: booking.car ? {
+      id: booking.car.id,
+      companyId: booking.car.company_id,
+      make: booking.car.make,
+      model: booking.car.model,
+      year: booking.car.year,
+      licensePlate: booking.car.license_plate,
+      color: booking.car.color || undefined,
+      transmission: booking.car.transmission as 'automatic' | 'manual',
+      fuelType: booking.car.fuel_type as 'petrol' | 'diesel' | 'electric' | 'hybrid',
+      seats: Number(booking.car.seats || 0),
+      dailyRate: Number(booking.car.daily_rate || 0),
+      depositRequired: booking.car.deposit_required ? Number(booking.car.deposit_required) : undefined,
+      status: booking.car.status as 'active' | 'maintenance' | 'retired',
+      imageUrl: booking.car.image_url || undefined,
+      features: booking.car.features || undefined,
+      createdAt: new Date(booking.car.created_at),
+      updatedAt: new Date(booking.car.updated_at),
+    } : undefined,
+    customer: booking.customer ? {
+      id: booking.customer.id,
+      email: '', // Email is not stored in customers table, would need to join with auth.users
+      phone: booking.customer.phone || '',
+      fullName: booking.customer.full_name,
+      // Parse full_name into firstName and lastName if possible
+      ...(booking.customer.full_name ? (() => {
+        const nameParts = booking.customer.full_name.trim().split(/\s+/)
+        return {
+          firstName: nameParts[0] || undefined,
+          lastName: nameParts.slice(1).join(' ') || undefined,
+          name: booking.customer.full_name,
+        }
+      })() : {}),
+    } : undefined,
+    pickupLocation: booking.pickup_location ? {
+      id: booking.pickup_location.id,
+      name: booking.pickup_location.name,
+      addressLine1: booking.pickup_location.address_line_1 || undefined,
+      city: booking.pickup_location.city || undefined,
+    } : undefined,
+    dropoffLocation: booking.dropoff_location ? {
+      id: booking.dropoff_location.id,
+      name: booking.dropoff_location.name,
+      addressLine1: booking.dropoff_location.address_line_1 || undefined,
+      city: booking.dropoff_location.city || undefined,
+    } : undefined,
+    // Computed fields
+    carName: booking.car ? `${booking.car.make} ${booking.car.model} ${booking.car.year}` : undefined,
+    carPlate: booking.car?.license_plate,
+    customerName: booking.customer?.full_name,
+    customerPhone: booking.customer?.phone,
+  }))
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,7 +198,7 @@ export default async function BookingsRoute() {
       <QuickAccessMenu />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <BookingsPageRedesigned initialBookings={bookings || []} />
+        <BookingsPageRedesigned initialBookings={transformedBookings} />
       </main>
     </div>
   )

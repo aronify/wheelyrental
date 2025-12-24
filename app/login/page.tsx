@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabase/client'
 import LoginForm from './LoginForm'
 
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
+
 /**
  * Login Page for Car Owners
  * 

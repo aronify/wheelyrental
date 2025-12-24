@@ -305,3 +305,4 @@ const isVerified = company?.is_verified === true
 - [ ] Location names displayed from company_locations
 
 
+

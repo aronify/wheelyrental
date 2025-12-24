@@ -3,7 +3,12 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import DashboardContent from '@/app/components/domain/dashboard/dashboard-content'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
+import CompanyDataPrompt from '@/app/components/ui/alerts/company-data-prompt'
 import { Booking } from '@/types/booking'
+import { ensureUserCompany, getUserCompanyId, companyHasMinimalData } from '@/lib/server/data/company-helpers'
+
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
 
 /**
  * Dashboard Page for Car Owners
@@ -77,14 +82,16 @@ export default async function DashboardPage() {
     // Continue without profile - it's optional
   }
 
-  // Get user's company_id from their cars
-  const { data: userCar } = await supabase
-    .from('cars')
-    .select('company_id')
-    .limit(1)
-    .single()
+  // Ensure user has a company (create if doesn't exist)
+  const companyId = await ensureUserCompany(user.id, user.email)
   
-  const companyId = userCar?.company_id
+  if (!companyId) {
+    // If company creation failed, still show dashboard but with error state
+    console.error('Failed to create or retrieve company for user')
+  }
+  
+  // Check if company has minimal required data
+  const hasMinimalData = companyId ? await companyHasMinimalData(companyId) : false
   
   // Fetch bookings with car and customer details from Supabase
   // Bookings are company-scoped (bookings.company_id is required)
@@ -232,11 +239,14 @@ export default async function DashboardPage() {
         agencyLogo={profileData?.logo}
       />
       <QuickAccessMenu />
-      <DashboardContent 
-        userEmail={user.email || ''}
-        agencyName={profileData?.agency_name}
-        bookings={bookings}
-      />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <CompanyDataPrompt hasMinimalData={hasMinimalData} />
+        <DashboardContent 
+          userEmail={user.email || ''}
+          agencyName={profileData?.agency_name}
+          bookings={bookings}
+        />
+      </main>
     </>
   )
 }

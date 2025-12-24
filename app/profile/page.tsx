@@ -3,6 +3,10 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import ProfilePageRedesigned from '@/app/components/domain/profile/profile-form'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
+import { getUserCompanyId, getUserCompany, ensureUserCompany } from '@/lib/server/data/company-helpers'
+
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
 
 /**
  * Profile Page - Redesigned
@@ -24,59 +28,48 @@ export default async function ProfileRoute() {
     redirect('/login')
   }
 
-  // Fetch profile from Supabase
-  const { data: dbProfile, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
-
-  // If no profile exists, create a default one
+  // Fetch company data from companies table (not profiles)
+  // First, get user's company_id
+  let companyId = await getUserCompanyId(user.id)
+  
   let profileData
-  if (error || !dbProfile) {
-    const defaultProfile = {
-      user_id: user.id,
-      agency_name: 'My Rental Agency',
-      description: '',
-      email: user.email || '',
-      phone: '',
-      address: '',
-      city: '',
-      country: '',
-      postal_code: '',
-      website: '',
-      tax_id: '',
-      logo: null, // Database column is 'logo' not 'logo_url'
+  if (companyId) {
+    // Fetch company data
+    const company = await getUserCompany(user.id)
+    if (company) {
+      profileData = company
     }
-    
-    const { data: newProfile } = await supabase
-      .from('profiles')
-      .insert(defaultProfile)
-      .select()
-      .single()
-      
-    profileData = newProfile || defaultProfile
-  } else {
-    profileData = dbProfile
+  }
+  
+  // If no company exists, ensure one is created
+  if (!profileData || !companyId) {
+    companyId = await ensureUserCompany(user.id, user.email)
+    if (companyId) {
+      const company = await getUserCompany(user.id)
+      if (company) {
+        profileData = company
+      }
+    }
   }
 
   // Convert snake_case to camelCase for the component
+  // Map companies table fields to Profile interface
   const profile = {
-    id: profileData.id,
-    userId: profileData.user_id,
-    agencyName: profileData.agency_name || '',
-    description: profileData.description || '',
-    email: profileData.email || '',
-    phone: profileData.phone || '',
-    address: profileData.address || '',
-    city: profileData.city || '',
-    country: profileData.country || '',
-    postalCode: profileData.postal_code || '',
-    website: profileData.website || '',
-    taxId: profileData.tax_id || '',
-    logo: profileData.logo || '', // Database column is 'logo' not 'logo_url'
-    createdAt: profileData.created_at,
-    updatedAt: profileData.updated_at,
+    id: profileData?.id || '',
+    userId: user.id,
+    agencyName: profileData?.name || '',
+    description: profileData?.description || '',
+    email: profileData?.email || user.email || '',
+    phone: profileData?.phone || '',
+    address: profileData?.address || '',
+    city: profileData?.city || '',
+    country: profileData?.country || '',
+    postalCode: profileData?.postal_code || '',
+    website: profileData?.website || '',
+    taxId: profileData?.tax_id || '',
+    logo: profileData?.logo || '',
+    createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
+    updatedAt: profileData?.updated_at ? new Date(profileData.updated_at) : new Date(),
   }
 
   return (

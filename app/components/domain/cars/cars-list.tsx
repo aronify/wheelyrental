@@ -36,6 +36,11 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
 
   // Sync local state with initialCars prop (e.g., after router.refresh())
   useEffect(() => {
+    console.log('[CarsList] initialCars updated:', {
+      count: initialCars.length,
+      carIds: initialCars.map(c => c.id),
+      currentCarsCount: cars.length
+    })
     setCars(initialCars)
   }, [initialCars])
 

@@ -7,6 +7,9 @@ import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import Breadcrumbs from '@/app/components/ui/navigation/breadcrumbs'
 import { PayoutRequest } from '@/types/payout'
 
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
+
 /**
  * Payout Requests Page
  * 

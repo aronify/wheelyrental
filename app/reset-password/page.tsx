@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabase/client'
 import ResetPasswordForm from './ResetPasswordForm'
 
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
+
 /**
  * Reset Password Page
  * 

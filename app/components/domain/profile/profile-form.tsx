@@ -80,6 +80,7 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
     if (result.success) {
       setSuccessMessage(t.profileUpdated || 'Profile updated successfully!')
       setIsEditing(false)
+      // Refresh the page to get updated data from DB
       setTimeout(() => {
         setSuccessMessage('')
         window.location.reload()
@@ -321,21 +322,28 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
             </div>
 
             <div className="space-y-5">
+              {/* Email and Phone - Side by Side Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Email Field */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     {t.email || 'Email'} <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="contact@agency.com"
-                      />
+                    <div>
+                      {/* Flexbox layout for icon + input */}
+                      <div className="flex items-center gap-3 border-2 border-gray-200 rounded-lg bg-gray-50 px-3 py-3">
+                        <Mail className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        <input
+                          type="email"
+                          value={formData.email}
+                          disabled
+                          readOnly
+                          className="flex-1 bg-transparent text-gray-600 cursor-not-allowed outline-none border-none"
+                          placeholder="contact@agency.com"
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-gray-900">
@@ -345,25 +353,42 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
                   )}
                 </div>
 
+                {/* Phone Field */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     {t.phone || 'Phone'} <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="+355 69 123 4567"
-                      />
+                    <div>
+                      {/* Flexbox layout for icon + input */}
+                      <div className={`flex items-center gap-3 border-2 rounded-lg px-3 py-3 transition-all ${
+                        initialProfile.phone && initialProfile.phone.trim() !== ''
+                          ? 'border-gray-200 bg-gray-50'
+                          : 'border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500'
+                      }`}>
+                        <Phone className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          disabled={!!initialProfile.phone && initialProfile.phone.trim() !== ''}
+                          readOnly={!!initialProfile.phone && initialProfile.phone.trim() !== ''}
+                          className={`flex-1 bg-transparent outline-none border-none ${
+                            initialProfile.phone && initialProfile.phone.trim() !== ''
+                              ? 'text-gray-600 cursor-not-allowed'
+                              : 'text-gray-900'
+                          }`}
+                          placeholder="+355 69 123 4567"
+                        />
+                      </div>
+                      {initialProfile.phone && initialProfile.phone.trim() !== '' && (
+                        <p className="mt-1 text-xs text-gray-500">Phone number cannot be changed once set</p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-gray-900">
                       <Phone className="w-4 h-4 text-gray-400" />
-                      <p>{formData.phone}</p>
+                      <p>{formData.phone || <span className="text-gray-400">Not set</span>}</p>
                     </div>
                   )}
                 </div>

@@ -262,17 +262,17 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
   const getStatusColor = (status: BookingStatus) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+        return 'bg-amber-50 text-amber-700 border-amber-200'
       case 'confirmed':
-        return 'bg-green-100 text-green-700 border-green-200'
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200'
       case 'picked_up':
-        return 'bg-blue-100 text-blue-700 border-blue-200'
+        return 'bg-blue-50 text-blue-700 border-blue-200'
       case 'returned':
-        return 'bg-gray-100 text-gray-700 border-gray-200'
+        return 'bg-slate-50 text-slate-700 border-slate-200'
       case 'cancelled':
-        return 'bg-red-100 text-red-700 border-red-200'
+        return 'bg-rose-50 text-rose-700 border-rose-200'
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200'
+        return 'bg-gray-50 text-gray-700 border-gray-200'
     }
   }
 
@@ -361,13 +361,13 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   <span className="text-white/90 text-xs sm:text-sm font-medium">{t.totalBookings || 'Total'}</span>
                 </div>
                 {stats.pending > 0 && (
-                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-yellow-500/30 backdrop-blur-sm rounded-full border border-yellow-400/30">
+                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-amber-400/30 backdrop-blur-sm rounded-full border border-amber-300/30">
                     <span className="text-xl sm:text-2xl font-bold text-white">{stats.pending}</span>
                     <span className="text-white/90 text-xs sm:text-sm font-medium">{t.statusPending || 'Pending'}</span>
                   </div>
                 )}
                 {stats.today > 0 && (
-                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-green-500/30 backdrop-blur-sm rounded-full border border-green-400/30">
+                  <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-emerald-400/30 backdrop-blur-sm rounded-full border border-emerald-300/30">
                     <span className="text-xl sm:text-2xl font-bold text-white">{stats.today}</span>
                     <span className="text-white/90 text-xs sm:text-sm font-medium">{t.today || 'Today'}</span>
                   </div>
@@ -402,7 +402,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
               onClick={() => setViewFilter('all')}
               className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
                 viewFilter === 'all'
-                  ? 'bg-blue-900 text-white shadow-md active:bg-blue-800'
+                  ? 'bg-slate-600 text-white shadow-md active:bg-slate-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
               }`}
             >
@@ -412,7 +412,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
               onClick={() => setViewFilter('pending')}
               className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
                 viewFilter === 'pending'
-                  ? 'bg-yellow-500 text-white shadow-md active:bg-yellow-600'
+                  ? 'bg-amber-600 text-white shadow-md active:bg-amber-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
               }`}
             >
@@ -426,7 +426,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
               onClick={() => setViewFilter('today')}
               className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
                 viewFilter === 'today'
-                  ? 'bg-green-500 text-white shadow-md active:bg-green-600'
+                  ? 'bg-emerald-600 text-white shadow-md active:bg-emerald-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
               }`}
             >
@@ -439,7 +439,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
               onClick={() => setViewFilter('upcoming')}
               className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
                 viewFilter === 'upcoming'
-                  ? 'bg-purple-500 text-white shadow-md active:bg-purple-600'
+                  ? 'bg-violet-600 text-white shadow-md active:bg-violet-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
               }`}
             >
@@ -596,7 +596,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                         setSelectedBooking(booking)
                         setIsDetailOpen(true)
                       }}
-                      className="min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-blue-700 hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:shadow-md active:scale-95 touch-manipulation"
+                      className="min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2.5 bg-slate-600 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-slate-700 hover:bg-slate-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:shadow-md active:scale-95 touch-manipulation"
                     >
                       <FileText className="w-4 h-4 sm:w-4 sm:h-4" />
                       <span>{t.viewDetails || 'View Details'}</span>
@@ -611,14 +611,14 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                           e.stopPropagation()
                           handleStatusUpdate(booking.id, 'confirmed')
                         }}
-                        className="min-h-[44px] px-4 sm:px-4 py-2.5 bg-green-500 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-green-600 hover:bg-green-600 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
+                        className="min-h-[44px] px-4 sm:px-4 py-2.5 bg-emerald-600 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-emerald-700 hover:bg-emerald-700 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
                       >
                         <CheckCircle className="w-4 h-4 sm:w-4 sm:h-4" />
                         {t.markAsConfirmed || 'Confirm'}
                       </button>
                       <button
                         onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
-                        className="min-h-[44px] px-4 sm:px-4 py-2.5 bg-red-500 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-red-600 hover:bg-red-600 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
+                        className="min-h-[44px] px-4 sm:px-4 py-2.5 bg-rose-600 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-rose-700 hover:bg-rose-700 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
                       >
                         <XCircle className="w-4 h-4 sm:w-4 sm:h-4" />
                         {t.cancel || 'Cancel'}
@@ -629,7 +629,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   {booking.status === 'confirmed' && (
                     <button
                       onClick={() => handleStatusUpdate(booking.id, 'picked_up')}
-                      className="min-h-[44px] w-full sm:w-auto px-4 sm:px-4 py-2.5 bg-blue-500 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-blue-600 hover:bg-blue-600 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
+                      className="min-h-[44px] w-full sm:w-auto px-4 sm:px-4 py-2.5 bg-slate-500 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-slate-600 hover:bg-slate-600 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
                     >
                       <CarIcon className="w-4 h-4 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">{t.markAsPickedUp || 'Mark Picked Up'}</span>
@@ -640,7 +640,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   {booking.status === 'picked_up' && (
                     <button
                       onClick={() => handleStatusUpdate(booking.id, 'returned')}
-                      className="min-h-[44px] w-full sm:w-auto px-4 sm:px-4 py-2.5 bg-gray-700 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-gray-800 hover:bg-gray-800 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
+                      className="min-h-[44px] w-full sm:w-auto px-4 sm:px-4 py-2.5 bg-slate-500 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-slate-600 hover:bg-slate-600 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
                     >
                       <CheckCircle className="w-4 h-4 sm:w-4 sm:h-4" />
                       <span>{t.markAsReturned || 'Mark Returned'}</span>
@@ -953,7 +953,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                           onClick={() => {
                             setIsContactModalOpen(true)
                           }}
-                          className="min-h-[44px] px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl active:bg-blue-700 hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation"
+                          className="min-h-[44px] px-6 py-3 bg-slate-500 text-white font-semibold rounded-xl active:bg-slate-600 hover:bg-slate-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation"
                         >
                           <MessageSquare className="w-5 h-5" />
                           <span>{t.contactPerson || 'Contact Customer'}</span>
@@ -966,7 +966,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                               setIsDetailOpen(false)
                               setIsFineModalOpen(true)
                             }}
-                            className="min-h-[44px] px-6 py-3 bg-orange-600 text-white font-semibold rounded-xl active:bg-orange-700 hover:bg-orange-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation"
+                            className="min-h-[44px] px-6 py-3 bg-amber-500 text-white font-semibold rounded-xl active:bg-amber-600 hover:bg-amber-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation"
                           >
                             <Receipt className="w-5 h-5" />
                             <span>{t.reportFine || 'Report Fine'}</span>
@@ -976,7 +976,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                               setIsDetailOpen(false)
                               setIsClaimModalOpen(true)
                             }}
-                            className="min-h-[44px] px-6 py-3 bg-red-600 text-white font-semibold rounded-xl active:bg-red-700 hover:bg-red-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation"
+                            className="min-h-[44px] px-6 py-3 bg-rose-500 text-white font-semibold rounded-xl active:bg-rose-600 hover:bg-rose-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation"
                           >
                             <AlertTriangle className="w-5 h-5" />
                             <span>{t.fileClaim || 'File Damage Claim'}</span>
@@ -1006,7 +1006,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-red-600 to-red-700 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-rose-500 to-rose-600 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
                       <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -1159,7 +1159,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   <button
                     type="submit"
                     form="claim-form"
-                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-rose-500 text-white font-semibold rounded-xl hover:bg-rose-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <AlertTriangle className="w-4 h-4" />
                     {t.submitClaim || 'Submit Claim'}
@@ -1185,7 +1185,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
                       <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -1342,7 +1342,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   <button
                     type="submit"
                     form="fine-form"
-                    className="min-h-[44px] px-4 sm:px-6 py-2 sm:py-2.5 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation text-sm sm:text-base"
+                    className="min-h-[44px] px-4 sm:px-6 py-2 sm:py-2.5 bg-amber-500 text-white font-semibold rounded-xl hover:bg-amber-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 touch-manipulation text-sm sm:text-base"
                   >
                     <Receipt className="w-4 h-4" />
                     {t.submitFine || 'Submit Fine Report'}
@@ -1371,7 +1371,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
                       <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -1492,7 +1492,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                     type="submit"
                     form="contact-form"
                     disabled={isSendingMessage}
-                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-slate-500 text-white font-semibold rounded-xl hover:bg-slate-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
                   >
                     {isSendingMessage ? (
                       <>

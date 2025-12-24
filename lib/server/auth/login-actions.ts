@@ -2,6 +2,7 @@
 
 import { createServerActionClient } from '@/lib/supabase/client'
 import { revalidatePath } from 'next/cache'
+import { withTimeout, TIMEOUTS, TimeoutError } from '@/lib/utils/timeout'
 
 export interface LoginFormData {
   email: string
@@ -22,10 +23,15 @@ export async function loginAction(
   try {
     const supabase = await createServerActionClient()
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password,
-    })
+    // Wrap auth operation with timeout
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      }),
+      TIMEOUTS.LOGIN,
+      'Login request timed out. Please check your internet connection and try again.'
+    )
 
     if (error) {
       // Log the actual error for debugging
@@ -101,6 +107,14 @@ export async function loginAction(
     // #region agent log
     fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'actions.ts:100',message:'loginAction catch block',data:{error:error instanceof Error ? error.message : String(error),errorName:error instanceof Error ? error.name : 'unknown',hypothesis:'B'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
+    
+    // Handle timeout errors specifically
+    if (error instanceof TimeoutError) {
+      return {
+        error: error.message || 'Login request timed out. Please check your internet connection and try again.',
+      }
+    }
+    
     // Check for network/database connection errors in catch block
     const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
     const errorString = String(error).toLowerCase()

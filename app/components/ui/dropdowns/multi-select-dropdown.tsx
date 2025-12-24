@@ -33,49 +33,45 @@ export default function MultiSelectDropdown({
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1)
   const [maxHeight, setMaxHeight] = useState(240)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Calculate available space within modal container
+  // Calculate menu position and available space (like color dropdown - fixed positioning)
   useEffect(() => {
     if (isOpen && buttonRef.current) {
-      const calculateMaxHeight = () => {
+      const calculatePosition = () => {
         if (!buttonRef.current) return
         const buttonRect = buttonRef.current.getBoundingClientRect()
         if (!buttonRect) return
 
-        // Find the modal container (closest parent with overflow or max-height)
-        let container = buttonRef.current.closest('[class*="overflow"], [class*="max-h"]')
-        if (!container) {
-          // Fallback: find the form or modal wrapper
-          container = buttonRef.current.closest('form')?.parentElement || null
-        }
+        // Calculate position for fixed dropdown (overlays content like color dropdown)
+        // getBoundingClientRect() returns viewport-relative coordinates
+        // For fixed positioning, we use these directly (no scroll offset needed)
+        setMenuPosition({
+          top: buttonRect.bottom + 4, // 4px gap below button (viewport-relative)
+          left: buttonRect.left, // Viewport-relative
+          width: buttonRect.width
+        })
 
-        if (container) {
-          const containerRect = container.getBoundingClientRect()
-          const spaceBelow = containerRect.bottom - buttonRect.bottom - 8 // 8px padding
-          const spaceAbove = buttonRect.top - containerRect.top - 8
-          
-          // Use space below if available, otherwise space above
-          const availableSpace = spaceBelow > 100 ? spaceBelow : spaceAbove
-          
-          // Ensure minimum height and maximum constraint
-          const calculatedHeight = Math.max(120, Math.min(240, availableSpace))
-          setMaxHeight(calculatedHeight)
-        } else {
-          // Fallback calculation using viewport
-          if (!buttonRef.current) return
-          const viewportHeight = window.innerHeight
-          const spaceBelow = viewportHeight - buttonRect.bottom - 16
-          setMaxHeight(Math.max(120, Math.min(240, spaceBelow)))
-        }
+        // Calculate max height based on viewport space
+        const viewportHeight = window.innerHeight
+        const spaceBelow = viewportHeight - buttonRect.bottom - 16
+        const spaceAbove = buttonRect.top - 16
+        
+        // Use space below if available, otherwise space above
+        const availableSpace = spaceBelow > 100 ? spaceBelow : spaceAbove
+        
+        // Ensure minimum height and maximum constraint
+        const calculatedHeight = Math.max(120, Math.min(300, availableSpace))
+        setMaxHeight(calculatedHeight)
       }
 
-      calculateMaxHeight()
+      calculatePosition()
 
       // Recalculate on scroll/resize
-      const handleResize = () => calculateMaxHeight()
+      const handleResize = () => calculatePosition()
       window.addEventListener('scroll', handleResize, true)
       window.addEventListener('resize', handleResize)
 
@@ -293,12 +289,25 @@ export default function MultiSelectDropdown({
       </button>
 
       {isOpen && (
-        <div
-          ref={menuRef}
-          className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
-          style={{ maxHeight: `${maxHeight}px` }}
-        >
-          <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: `${maxHeight}px` }}>
+        <>
+          {/* Backdrop - like color dropdown */}
+          <div 
+            className="fixed inset-0 z-[99998]" 
+            onClick={() => setIsOpen(false)}
+          />
+          {/* Fixed positioned menu - overlays content like color dropdown */}
+          {/* Using very high z-index to ensure it appears above modal and all content */}
+          <div
+            ref={menuRef}
+            className="fixed z-[99999] bg-white rounded-lg shadow-2xl border-2 border-gray-300 overflow-hidden"
+            style={{
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              width: `${menuPosition.width}px`,
+              maxHeight: `${maxHeight}px`
+            }}
+          >
+            <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: `${maxHeight}px` }}>
             <div className="py-1.5">
               {options.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm text-gray-400">
@@ -371,6 +380,7 @@ export default function MultiSelectDropdown({
             </div>
           </div>
         </div>
+        </>
       )}
     </div>
   )

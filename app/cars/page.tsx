@@ -3,6 +3,11 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import CarsPageRedesigned from '@/app/components/domain/cars/cars-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
+import CompanyDataPrompt from '@/app/components/ui/alerts/company-data-prompt'
+import { ensureUserCompany, companyHasMinimalData } from '@/lib/server/data/company-helpers'
+
+// Force dynamic rendering - this page uses Supabase auth (cookies)
+export const dynamic = 'force-dynamic'
 
 /**
  * Cars Management Page
@@ -31,19 +36,15 @@ export default async function CarsRoute() {
     .eq('user_id', user.id)
     .single()
 
-  // Get user's company_id from their cars
-  // Since cars.company_id is required, we get it from any car
-  const { data: userCar } = await supabase
-    .from('cars')
-    .select('company_id')
-    .limit(1)
-    .single()
+  // Ensure user has a company (create if doesn't exist)
+  const companyId = await ensureUserCompany(user.id, user.email)
   
-  const companyId = userCar?.company_id
+  // Check if company has minimal required data
+  const hasMinimalData = companyId ? await companyHasMinimalData(companyId) : false
   
   if (!companyId) {
-    // User has no cars yet - they need to create one first
-    // For now, return empty array
+    // If company creation failed, still show page but with error state
+    console.error('Failed to create or retrieve company for user')
     return (
       <div className="min-h-screen bg-gray-50">
         <DashboardHeader 
@@ -53,6 +54,7 @@ export default async function CarsRoute() {
         />
         <QuickAccessMenu />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <CompanyDataPrompt hasMinimalData={false} />
           <CarsPageRedesigned initialCars={[]} />
         </main>
       </div>
@@ -60,22 +62,73 @@ export default async function CarsRoute() {
   }
   
   // Fetch cars from Supabase with company information
-  // Query cars by company_id (company-scoped)
-  const { data: dbCars } = await supabase
+  // RLS will automatically filter by company_id (JWT-based with fallback)
+  // Try without explicit filter first (RLS handles it)
+  let { data: dbCars, error: carsError } = await supabase
     .from('cars')
     .select(`
       *,
       company:companies(
         id,
         name,
-        is_verified,
         email,
         phone,
         website
       )
     `)
-    .eq('company_id', companyId)
     .order('created_at', { ascending: false })
+  
+  // If query failed or returned no results, try with explicit company_id filter as fallback
+  if (carsError || !dbCars || dbCars.length === 0) {
+    console.warn('[CarsPage] Initial query failed or empty, trying with explicit company_id filter:', {
+      error: carsError?.message,
+      count: dbCars?.length || 0,
+      companyId
+    })
+    
+    // Retry with explicit filter (this might work if RLS is too restrictive)
+    const retryResult = await supabase
+      .from('cars')
+      .select(`
+        *,
+        company:companies(
+          id,
+          name,
+          email,
+          phone,
+          website
+        )
+      `)
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+    
+    if (!retryResult.error && retryResult.data) {
+      dbCars = retryResult.data
+      carsError = retryResult.error
+      console.log('[CarsPage] Retry with explicit filter succeeded:', retryResult.data.length)
+    } else {
+      console.error('[CarsPage] Retry also failed:', retryResult.error)
+    }
+  }
+  
+  // Log any errors for debugging
+  if (carsError) {
+    console.error('[CarsPage] Error fetching cars:', {
+      message: carsError.message,
+      code: carsError.code,
+      details: carsError.details,
+      hint: carsError.hint,
+      companyId,
+      rlsIssue: carsError.code === '42501' ? 'RLS might be blocking query' : 'Other error'
+    })
+  }
+  
+  // Debug: Log what we got
+  console.log('[CarsPage] Fetched cars:', {
+    count: dbCars?.length || 0,
+    companyId,
+    sampleCar: dbCars?.[0] ? { id: dbCars[0].id, company_id: dbCars[0].company_id } : null
+  })
 
   // Convert snake_case to camelCase and add computed fields
   const cars = (dbCars || []).map((car: any) => ({
@@ -88,7 +141,7 @@ export default async function CarsRoute() {
       email: car.company.email || '',
       phone: car.company.phone || '',
       website: car.company.website || undefined,
-      isVerified: car.company.is_verified || false,
+      isVerified: false, // Companies table doesn't have is_verified column
       createdAt: new Date(),
       updatedAt: new Date(),
     } : undefined,
@@ -112,7 +165,7 @@ export default async function CarsRoute() {
     createdAt: new Date(car.created_at),
     updatedAt: new Date(car.updated_at),
     // Computed fields
-    isVerified: car.company?.is_verified === true,
+    isVerified: false, // Companies table doesn't have is_verified column
     companyName: car.company?.name,
   }))
 
@@ -126,6 +179,7 @@ export default async function CarsRoute() {
       <QuickAccessMenu />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <CompanyDataPrompt hasMinimalData={hasMinimalData} />
         <CarsPageRedesigned initialCars={cars} />
       </main>
     </div>
