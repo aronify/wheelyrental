@@ -6,6 +6,7 @@ import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import Breadcrumbs from '@/app/components/ui/navigation/breadcrumbs'
 import { PayoutRequest } from '@/types/payout'
+import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -30,12 +31,22 @@ export default async function PayoutsRoute() {
     redirect('/login')
   }
 
-  // Fetch profile for header
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('agency_name, logo')
-    .eq('user_id', user.id)
-    .single()
+  // Fetch company data for header (profiles table doesn't exist - use companies table)
+  let profile: { agency_name?: string; logo?: string } | null = null
+  try {
+    const companyId = await getUserCompanyId(user.id)
+    if (companyId) {
+      const company = await getUserCompany(user.id)
+      if (company) {
+        profile = {
+          agency_name: company.name || undefined,
+          logo: company.logo || undefined,
+        }
+      }
+    }
+  } catch (err) {
+    // Silently continue without profile data
+  }
 
   // Fetch payout requests
   const { data: dbRequests } = await supabase

@@ -7,11 +7,13 @@ const urbanist = Urbanist({
   subsets: ['latin'],
   variable: '--font-urbanist',
   display: 'swap',
+  preload: false, // Disable preload to fix warning
+  adjustFontFallback: true,
 })
 
 export const metadata: Metadata = {
-  title: 'Wheely - Owner Portal',
-  description: 'Manage your cars and bookings',
+  title: 'Wheely - Partner Dashboard',
+  description: 'Manage your car rental business',
 }
 
 export const viewport: Viewport = {
@@ -28,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={urbanist.variable}>
+    <html lang="sq" className={urbanist.variable}>
       <body className="font-urbanist">
         <LanguageProvider>
           {children}

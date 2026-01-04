@@ -255,7 +255,7 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
             userId: user.id,
             errorCode: error.code, 
             errorMessage: error.message,
-            hint: 'Run database/fix-locations-rls.sql to fix RLS policies'
+            hint: 'Run database/rls-policies/fix-jwt-rls-defensive-complete.sql to fix RLS policies'
           }
         }
       }

@@ -14,10 +14,13 @@ Database schema migrations and initial setup scripts.
 
 ### `rls-policies/`
 Row Level Security (RLS) policies and security configurations.
-- `fix-jwt-rls-defensive-complete.sql` - **CURRENT** - Main RLS setup with JWT-based ownership
+- `fix-jwt-rls-defensive-complete.sql` - **CURRENT PRODUCTION** - Main RLS setup with JWT-based ownership
+- `fix-locations-rls-final-working.sql` - Locations table RLS policies
 - `standardize-jwt-rls-all-tables.sql` - Standardizes RLS across all tables
+- `rls-security-policies.sql` - Comprehensive RLS security policies
 - `verify-rls-complete.sql` - RLS validation script
-- Other fix scripts for specific table RLS issues
+- `fix-company-update-owner-id.sql` - Company owner ID update utility
+- `fix-hq-location-name-format.sql` - HQ location name formatting
 
 ### `utilities/`
 Business logic utilities and constraints.
@@ -31,9 +34,6 @@ Sample/dummy data for testing and development.
 - `sample-bookings-data.sql` - Sample booking records
 - `add-payout-requests.sql` - Sample payout requests
 
-### `debug/`
-Debugging and diagnostic scripts (not for production use).
-- Various diagnostic queries for troubleshooting RLS, permissions, and data issues
 
 ## Usage
 
@@ -44,12 +44,13 @@ Debugging and diagnostic scripts (not for production use).
 
 **For Development:**
 - Use sample data scripts to populate test data
-- Debug scripts are for troubleshooting only
 
 ## Important Notes
 
 - Always backup your database before running scripts
 - RLS policies are production-ready and should remain enabled
 - Debug scripts are for diagnostic purposes only
+
+
 
 

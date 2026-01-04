@@ -1,0 +1,56 @@
+/**
+ * Supabase Admin Client
+ * 
+ * Server-only utility for creating Supabase admin client with service role key.
+ * This client has admin privileges and must NEVER be exposed to the client.
+ * 
+ * SECURITY:
+ * - Server-only execution
+ * - Uses SUPABASE_SERVICE_ROLE_KEY (never exposed to client)
+ * - Validates environment variables at module load time
+ */
+
+import { createClient } from '@supabase/supabase-js'
+
+// Validate environment variables at module load time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl) {
+  throw new Error(
+    'Missing NEXT_PUBLIC_SUPABASE_URL environment variable. ' +
+    'Please set this in your .env.local file.'
+  )
+}
+
+if (!serviceRoleKey) {
+  throw new Error(
+    'Missing SUPABASE_SERVICE_ROLE_KEY environment variable. ' +
+    'This is required for admin operations like role assignment. ' +
+    'Please set this in your .env.local file. ' +
+    'Get it from: https://app.supabase.com/project/_/settings/api'
+  )
+}
+
+// TypeScript type narrowing: after validation checks, these are guaranteed to be strings
+const validatedSupabaseUrl: string = supabaseUrl
+const validatedServiceRoleKey: string = serviceRoleKey
+
+/**
+ * Creates a Supabase admin client with service role key.
+ * This client has admin privileges and can perform operations like:
+ * - Updating user metadata (app_metadata)
+ * - Managing user roles
+ * - Bypassing RLS policies
+ * 
+ * @returns Supabase admin client
+ */
+export function createAdminClient() {
+  return createClient(validatedSupabaseUrl, validatedServiceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+

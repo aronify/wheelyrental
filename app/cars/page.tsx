@@ -4,7 +4,7 @@ import CarsPageRedesigned from '@/app/components/domain/cars/cars-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import CompanyDataPrompt from '@/app/components/ui/alerts/company-data-prompt'
-import { ensureUserCompany, companyHasMinimalData } from '@/lib/server/data/company-helpers'
+import { ensureUserCompany, companyHasMinimalData, getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -29,12 +29,22 @@ export default async function CarsRoute() {
     redirect('/login')
   }
 
-  // Fetch profile for header (needed for early return case)
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('agency_name, logo')
-    .eq('user_id', user.id)
-    .single()
+  // Fetch company data for header (profiles table doesn't exist - use companies table)
+  let profileData: { agency_name?: string; logo?: string } | null = null
+  try {
+    const companyId = await getUserCompanyId(user.id)
+    if (companyId) {
+      const company = await getUserCompany(user.id)
+      if (company) {
+        profileData = {
+          agency_name: company.name || undefined,
+          logo: company.logo || undefined,
+        }
+      }
+    }
+  } catch (err) {
+    // Silently continue without profile data
+  }
 
   // Ensure user has a company (create if doesn't exist)
   const companyId = await ensureUserCompany(user.id, user.email)

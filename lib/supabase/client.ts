@@ -107,11 +107,6 @@ export async function createServerActionClient() {
 
   try {
     const cookieStore = await cookies()
-    const allCookies = cookieStore.getAll()
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'client.ts:109',message:'createServerActionClient cookies',data:{cookieCount:allCookies.length,cookieNames:allCookies.map(c=>c.name),hasSbAccessToken:allCookies.some(c=>c.name.includes('sb-access-token')),hasSbRefreshToken:allCookies.some(c=>c.name.includes('sb-refresh-token'))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
 
     const client = createServerClient(
       url,
@@ -119,11 +114,7 @@ export async function createServerActionClient() {
       {
         cookies: {
           getAll() {
-            const cookies = cookieStore.getAll()
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'client.ts:118',message:'getAll cookies called',data:{cookieCount:cookies.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
-            return cookies
+            return cookieStore.getAll()
           },
           setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
             try {
@@ -143,15 +134,8 @@ export async function createServerActionClient() {
       }
     )
     
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'client.ts:142',message:'Server action client created',data:{hasUrl:!!url,hasKey:!!key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
-    
     return client
   } catch (err: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'client.ts:145',message:'Error creating server action client',data:{errorMessage:err?.message,errorStack:err?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     console.error('[SupabaseClient] Error creating server action client:', {
       message: err?.message,
       stack: err?.stack,

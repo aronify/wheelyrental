@@ -70,28 +70,36 @@ export default function QuickAccessMenu() {
   return (
     <>
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-area-inset-bottom">
-        <div className="grid grid-cols-6 h-16 max-w-screen-xl mx-auto">
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-area-inset-bottom"
+        role="navigation"
+        aria-label="Main navigation"
+      >
+        <div className="grid grid-cols-6 h-20 max-w-screen-xl mx-auto">
           {mainMenuItems.map((item) => {
             const isActive = pathname === item.href
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 min-h-[64px] touch-manipulation transition-colors active:bg-gray-50 ${
+                className={`relative flex flex-col items-center justify-center gap-1 min-h-[80px] touch-manipulation transition-colors active:bg-gray-50 ${
                   isActive
                     ? 'text-blue-600'
                     : 'text-gray-500'
                 }`}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={item.label}
               >
-                <div className={`${isActive ? 'text-blue-600' : 'text-gray-400'} transition-colors`}>
-                  {item.icon}
+                <div className={`${isActive ? 'text-blue-600' : 'text-gray-400'} transition-colors flex items-center justify-center`}>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7">
+                    {item.icon}
+                  </div>
                 </div>
-                <span className={`text-[10px] font-medium leading-tight px-1 text-center ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
+                <span className={`text-[11px] sm:text-xs font-medium leading-tight px-1 text-center truncate w-full ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
                   {item.label}
                 </span>
                 {isActive && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-10 h-1 bg-blue-600 rounded-b-full" />
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-blue-600 rounded-b-full" aria-hidden="true" />
                 )}
               </Link>
             )

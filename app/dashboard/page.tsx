@@ -4,8 +4,9 @@ import DashboardContent from '@/app/components/domain/dashboard/dashboard-conten
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import CompanyDataPrompt from '@/app/components/ui/alerts/company-data-prompt'
+import RoleAssignmentHandler from '@/app/components/ui/auth/role-assignment-handler'
 import { Booking } from '@/types/booking'
-import { ensureUserCompany, getUserCompanyId, companyHasMinimalData } from '@/lib/server/data/company-helpers'
+import { getUserCompanyId, companyHasMinimalData, getUserCompany } from '@/lib/server/data/company-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -27,68 +28,45 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
 
   // Redirect to login if not authenticated
+  // Do this FIRST before any async operations to prevent streaming errors
   if (!user) {
     redirect('/login')
   }
 
-  // Fetch profile for header - handle case where profile doesn't exist
-  let profileData: { agency_name?: string; logo?: string } | null = null
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('agency_name, logo')
-      .eq('user_id', user.id)
-      .single()
-    
-    // Handle the response: profile might not exist (valid state), or there might be a real error
-    if (error) {
-      // PGRST116 is "not found" - this is expected for new users without profiles
-      // This is NOT an error condition, just a missing optional record
-      if (error.code === 'PGRST116') {
-        // Profile doesn't exist yet - this is normal, not an error
-        // Silently continue without logging
-        profileData = null
-      } else if (error.code && error.message) {
-        // Real error with both code and message - log it
-        console.error('Error fetching profile:', {
-          message: error.message,
-          code: error.code,
-          ...(error.details && { details: error.details }),
-          ...(error.hint && { hint: error.hint }),
-        })
-      } else if (error.message) {
-        // Error with message but no code - still worth logging
-        console.error('Error fetching profile:', {
-          message: error.message,
-          ...(error.details && { details: error.details }),
-        })
-      }
-      // If error has no meaningful information (no code, no message), it's likely
-      // just a missing record or empty response - don't log it
-    } else if (data) {
-      // Successfully fetched profile data
-      profileData = data
-    }
-    // If both data and error are null/undefined, profile doesn't exist (valid state)
-  } catch (err: unknown) {
-    // Only log unexpected errors that have meaningful information
-    if (err instanceof Error && err.message) {
-      console.error('Unexpected error fetching profile:', {
-        message: err.message,
-        name: err.name,
-        ...(err.stack && { stack: err.stack }),
-      })
-    }
-    // Continue without profile - it's optional
+  // Check role - read-only check, no side effects
+  // If user has a non-partner role, redirect immediately
+  const userRole = (user.app_metadata?.role as string) || null
+  if (userRole !== null && userRole !== 'partner') {
+    // User has a role that is NOT "partner" - redirect immediately
+    const customerSiteUrl = process.env.NEXT_PUBLIC_CUSTOMER_SITE_URL || 'https://customer.wheely.com'
+    redirect(customerSiteUrl)
   }
 
-  // Ensure user has a company (create if doesn't exist)
-  const companyId = await ensureUserCompany(user.id, user.email)
-  
-  if (!companyId) {
-    // If company creation failed, still show dashboard but with error state
-    console.error('Failed to create or retrieve company for user')
+  // If role is NULL, allow access but role assignment will happen via client-side call
+  // This keeps server components read-only and prevents streaming errors
+
+  // Fetch company data for header (profiles table doesn't exist - use companies table)
+  let profileData: { agency_name?: string; logo?: string } | null = null
+  try {
+    const companyId = await getUserCompanyId(user.id)
+    if (companyId) {
+      const company = await getUserCompany(user.id)
+      if (company) {
+        profileData = {
+          agency_name: company.name || undefined,
+          logo: company.logo || undefined,
+        }
+      }
+    }
+  } catch (err: unknown) {
+    // Silently continue without profile data - it's optional
   }
+
+  // Get user's company ID (read-only, no side effects)
+  const companyId = await getUserCompanyId(user.id)
+  
+  // If no company exists, show prompt but don't create during render
+  // Company creation should happen via server action when user fills the form
   
   // Check if company has minimal required data
   const hasMinimalData = companyId ? await companyHasMinimalData(companyId) : false
@@ -233,6 +211,8 @@ export default async function DashboardPage() {
 
   return (
     <>
+      {/* Role assignment handler - client component that assigns role after render */}
+      <RoleAssignmentHandler userRole={userRole} />
       <DashboardHeader 
         userEmail={user.email || ''} 
         agencyName={profileData?.agency_name}

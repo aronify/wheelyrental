@@ -3,7 +3,7 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import CalendarPageRedesigned from '@/app/components/domain/calendar/calendar-view'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
-import { ensureUserCompany, getUserCompanyId } from '@/lib/server/data/company-helpers'
+import { ensureUserCompany, getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -28,12 +28,22 @@ export default async function CalendarRoute() {
     redirect('/login')
   }
 
-  // Fetch profile for header
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('agency_name, logo')
-    .eq('user_id', user.id)
-    .single()
+  // Fetch company data for header (profiles table doesn't exist - use companies table)
+  let profileData: { agency_name?: string; logo?: string } | null = null
+  try {
+    const companyId = await getUserCompanyId(user.id)
+    if (companyId) {
+      const company = await getUserCompany(user.id)
+      if (company) {
+        profileData = {
+          agency_name: company.name || undefined,
+          logo: company.logo || undefined,
+        }
+      }
+    }
+  } catch (err) {
+    // Silently continue without profile data
+  }
 
   // Get user's company_id using helper (more reliable)
   const companyId = await ensureUserCompany(user.id, user.email) || await getUserCompanyId(user.id)

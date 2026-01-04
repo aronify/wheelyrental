@@ -49,9 +49,9 @@ export function withTimeout<T>(
  */
 export const TIMEOUTS = {
   // Authentication operations
-  LOGIN: 15000, // 15 seconds
-  AUTH_CHECK: 10000, // 10 seconds
-  PASSWORD_RESET: 15000, // 15 seconds
+  LOGIN: 8000, // 8 seconds - optimized for faster login
+  AUTH_CHECK: 5000, // 5 seconds
+  PASSWORD_RESET: 10000, // 10 seconds
   
   // Database operations
   QUERY: 20000, // 20 seconds

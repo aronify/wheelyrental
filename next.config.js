@@ -14,8 +14,7 @@ const nextConfig = {
       },
     ],
   },
-  // Note: Server Actions body size limit is handled automatically in Next.js 16.
-  // The deprecated serverActions key has been removed as it's not recognized.
+  // Font optimization is handled by Next.js automatically
   // Set turbopack root to prevent workspace root warnings
   turbopack: {
     root: process.cwd(),

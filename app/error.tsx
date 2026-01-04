@@ -3,12 +3,12 @@
 import { useEffect } from 'react'
 
 /**
- * Dashboard Error Boundary
+ * Global Error Boundary
  * 
- * Catches errors in the dashboard and makes them completely invisible to users.
+ * Catches all unhandled errors in the application and makes them invisible to users.
  * Errors are logged to the console for debugging but no UI is shown.
  */
-export default function DashboardError({
+export default function GlobalError({
   error,
   reset,
 }: {
@@ -17,8 +17,8 @@ export default function DashboardError({
 }) {
   useEffect(() => {
     // Log error to console for debugging
-    // Don't show any UI to the user - completely invisible
-    console.error('[Dashboard Error] Application error (invisible to user):', {
+    // Don't show any UI to the user
+    console.error('[Global Error] Application error (invisible to user):', {
       message: error.message,
       stack: error.stack,
       digest: error.digest,
@@ -31,3 +31,4 @@ export default function DashboardError({
   // Next.js will handle navigation/redirects automatically
   return null
 }
+

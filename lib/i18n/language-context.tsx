@@ -12,10 +12,10 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  // CRITICAL: Always initialize with 'en' to match server-side rendering
+  // CRITICAL: Always initialize with 'al' (Albanian) for Partner Dashboard
   // This prevents hydration mismatch errors
   // We'll update from localStorage AFTER hydration completes in useEffect
-  const [language, setLanguageState] = useState<Language>('en')
+  const [language, setLanguageState] = useState<Language>('al')
   const hasInitialized = useRef(false)
 
   // Load language from localStorage AFTER hydration is complete
@@ -31,8 +31,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (typeof window === 'undefined') return
       
       const savedLanguage = localStorage.getItem('wheely-language') as Language
-      if (savedLanguage === 'en' || savedLanguage === 'al') {
+      // Force Albanian for Partner Dashboard
+      if (savedLanguage === 'al') {
         setLanguageState(savedLanguage)
+      } else {
+        // Default to Albanian
+        setLanguageState('al')
+        localStorage.setItem('wheely-language', 'al')
       }
     } catch (err: any) {
       // Silently fail - don't break the app if localStorage is unavailable

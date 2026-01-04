@@ -109,27 +109,27 @@ export default function ReviewsList({ initialReviews }: ReviewsListProps) {
         </div>
 
         {/* Statistics */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <div className="text-2xl sm:text-3xl font-bold">{stats.total}</div>
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{stats.total}</div>
             <div className="text-blue-100 text-xs sm:text-sm mt-1">
               {t.totalReviews || 'Total Reviews'}
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <div className="text-2xl sm:text-3xl font-bold">{stats.average}</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{stats.average}</div>
             <div className="text-blue-100 text-xs sm:text-sm mt-1">
               {t.averageRating || 'Avg Rating'}
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <div className="text-2xl sm:text-3xl font-bold">{stats.byRating[5]}</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{stats.byRating[5]}</div>
             <div className="text-blue-100 text-xs sm:text-sm mt-1">
               {t.fiveStarReviews || '5 Stars'}
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <div className="text-2xl sm:text-3xl font-bold">{stats.byRating[1]}</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{stats.byRating[1]}</div>
             <div className="text-blue-100 text-xs sm:text-sm mt-1">
               {t.oneStarReviews || '1 Star'}
             </div>
@@ -142,21 +142,31 @@ export default function ReviewsList({ initialReviews }: ReviewsListProps) {
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
+            <label htmlFor="review-search" className="sr-only">
+              {t.searchReviews || 'Search reviews'}
+            </label>
             <input
+              id="review-search"
               type="text"
               placeholder={t.searchReviews || 'Search reviews...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 sm:py-2.5 text-base sm:text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all touch-manipulation"
+              aria-label={t.searchReviews || 'Search reviews'}
             />
           </div>
 
           {/* Rating Filter */}
           <div className="sm:w-48">
+            <label htmlFor="rating-filter" className="sr-only">
+              {t.filterByRating || 'Filter by rating'}
+            </label>
             <select
+              id="rating-filter"
               value={ratingFilter}
               onChange={(e) => setRatingFilter(e.target.value as RatingFilter)}
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 sm:py-2.5 text-base sm:text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all touch-manipulation bg-white"
+              aria-label={t.filterByRating || 'Filter by rating'}
             >
               <option value="all">{t.allRatings || 'All Ratings'}</option>
               <option value="5">5 {t.stars || 'Stars'}</option>
@@ -183,22 +193,22 @@ export default function ReviewsList({ initialReviews }: ReviewsListProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 sm:space-y-6">
           {filteredReviews.map((review) => (
             <div
               key={review.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
             >
-              <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                 {/* Car Image */}
                 {review.car?.imageUrl && (
-                  <div className="relative w-full lg:w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                  <div className="relative w-full lg:w-32 h-40 sm:h-32 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                     <Image
                       src={review.car.imageUrl}
                       alt={`${review.car.make} ${review.car.model}`}
                       fill
                       className="object-cover"
-                      sizes="128px"
+                      sizes="(max-width: 640px) 100vw, 128px"
                     />
                   </div>
                 )}
@@ -206,45 +216,47 @@ export default function ReviewsList({ initialReviews }: ReviewsListProps) {
                 {/* Review Content */}
                 <div className="flex-1 min-w-0">
                   {/* Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-2">
                         {renderStars(review.rating)}
-                        <span className="text-sm font-semibold text-gray-700">
+                        <span className="text-sm sm:text-base font-semibold text-gray-700">
                           {review.rating}/5
                         </span>
                       </div>
                       {review.title && (
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 break-words">
                           {review.title}
                         </h3>
                       )}
                     </div>
-                    <div className="text-sm text-gray-500 flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(review.createdAt)}
+                    <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 flex-shrink-0">
+                      <Calendar className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                      <time dateTime={review.createdAt.toISOString()}>
+                        {formatDate(review.createdAt)}
+                      </time>
                     </div>
                   </div>
 
                   {/* Comment */}
                   {review.comment && (
-                    <p className="text-gray-700 mb-4 leading-relaxed">
+                    <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4 leading-relaxed break-words">
                       {review.comment}
                     </p>
                   )}
 
                   {/* Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-100">
                     {/* Car Info */}
                     {review.car && (
-                      <div className="flex items-center gap-3">
-                        <Car className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
+                      <div className="flex items-start gap-3">
+                        <Car className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm sm:text-base font-medium text-gray-900 break-words">
                             {review.car.make} {review.car.model} {review.car.year}
                           </p>
                           {review.car.licensePlate && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                               {review.car.licensePlate}
                             </p>
                           )}
@@ -254,16 +266,16 @@ export default function ReviewsList({ initialReviews }: ReviewsListProps) {
 
                     {/* Customer Info */}
                     {review.customer && (
-                      <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
+                      <div className="flex items-start gap-3">
+                        <User className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm sm:text-base font-medium text-gray-900 break-words">
                             {review.customer.firstName && review.customer.lastName
                               ? `${review.customer.firstName} ${review.customer.lastName}`
                               : review.customer.name || 'Anonymous'}
                           </p>
                           {review.bookingReference && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 break-all">
                               {t.bookingReference || 'Booking'}: {review.bookingReference}
                             </p>
                           )}

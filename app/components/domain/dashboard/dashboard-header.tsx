@@ -157,10 +157,11 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
             {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all border border-gray-200 hover:border-gray-300"
+              className="hidden sm:flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all border border-gray-200 hover:border-gray-300 touch-manipulation min-h-[44px]"
               title={language === 'en' ? 'Switch to Albanian' : 'Switch to English'}
+              aria-label={language === 'en' ? 'Switch to Albanian' : 'Switch to English'}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
               </svg>
               <span className="font-semibold">{language === 'en' ? 'EN' : 'AL'}</span>
@@ -169,9 +170,12 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
+              className="lg:hidden p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-navigation-menu"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 {isMobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -184,7 +188,10 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
             <div className="relative">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex items-center gap-2.5 px-2 py-2 hover:bg-gray-50 rounded-xl transition-colors group"
+                className="flex items-center gap-2.5 px-2 py-2 hover:bg-gray-50 rounded-xl transition-colors group touch-manipulation min-h-[44px]"
+                aria-label="User menu"
+                aria-expanded={isMenuOpen}
+                aria-haspopup="true"
               >
                 <div className="relative">
                   <div className="w-9 h-9 bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:shadow-lg transition-shadow overflow-hidden">
@@ -219,7 +226,7 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
                   <div className="fixed inset-0 z-40 lg:z-10" onClick={() => setIsMenuOpen(false)} />
 
                   {/* Menu */}
-                  <div className="fixed lg:absolute right-0 lg:right-0 top-16 lg:top-auto lg:mt-2 w-full sm:w-80 lg:w-72 max-w-[calc(100vw-2rem)] lg:max-w-none bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl border-t-2 lg:border-t-0 lg:border-2 border-gray-200 overflow-hidden z-50 lg:z-20 animate-slide-in-top lg:animate-slide-in max-h-[calc(100vh-4rem)] lg:max-h-none overflow-y-auto">
+                  <div className="fixed lg:absolute right-0 lg:right-0 top-16 lg:top-auto lg:mt-2 w-full sm:w-80 lg:w-72 max-w-[calc(100vw-2rem)] lg:max-w-none bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl border-t-2 lg:border-t-0 lg:border-2 border-gray-200 overflow-hidden z-50 lg:z-20 animate-slide-in-top lg:animate-slide-in max-h-[calc(100vh-4rem)] lg:max-h-none overflow-y-auto safe-area-inset-bottom">
                     {/* User Info Header */}
                     <div className="bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900 px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -328,43 +335,53 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-100 bg-white animate-slide-down">
-          <nav className="px-4 py-4 space-y-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive
-                      ? 'text-blue-700 bg-blue-50 shadow-sm font-medium'
-                      : 'text-gray-600 hover:bg-gray-50 font-medium'
-                  }`}
-                >
-                  <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <span className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></span>
-                  )}
-                </Link>
-              )
-            })}
-            
-            {/* Mobile Language Toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-xl transition-all font-medium"
-            >
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-              </svg>
-              <span>{language === 'en' ? 'English' : 'Shqip'}</span>
-              <span className="ml-auto text-xs font-semibold text-gray-400">{language.toUpperCase()}</span>
-            </button>
-          </nav>
-        </div>
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/20 z-40 lg:hidden" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="lg:hidden border-t border-gray-100 bg-white animate-slide-down z-50 max-h-[calc(100vh-4rem)] overflow-y-auto safe-area-inset-bottom">
+            <nav id="mobile-navigation-menu" className="px-4 py-4 space-y-1" role="navigation" aria-label="Main navigation">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all touch-manipulation min-h-[48px] ${
+                      isActive
+                        ? 'text-blue-700 bg-blue-50 shadow-sm font-medium'
+                        : 'text-gray-600 hover:bg-gray-50 font-medium'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <span className={isActive ? 'text-blue-600' : 'text-gray-400'} aria-hidden="true">{item.icon}</span>
+                    <span>{item.label}</span>
+                    {isActive && (
+                      <span className="ml-auto w-2 h-2 bg-blue-600 rounded-full" aria-hidden="true"></span>
+                    )}
+                  </Link>
+                )
+              })}
+              
+              {/* Mobile Language Toggle */}
+              <button
+                onClick={toggleLanguage}
+                className="flex items-center gap-3 w-full px-4 py-3.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-all font-medium touch-manipulation min-h-[48px]"
+                aria-label={language === 'en' ? 'Switch to Albanian' : 'Switch to English'}
+              >
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+                <span>{language === 'en' ? 'English' : 'Shqip'}</span>
+                <span className="ml-auto text-xs font-semibold text-gray-400" aria-hidden="true">{language.toUpperCase()}</span>
+              </button>
+            </nav>
+          </div>
+        </>
       )}
     </header>
   )

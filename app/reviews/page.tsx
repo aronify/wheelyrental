@@ -4,7 +4,7 @@ import ReviewsList from '@/app/components/domain/reviews/reviews-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import { Review } from '@/types/review'
-import { getUserCompanyId } from '@/lib/server/data/company-helpers'
+import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -30,34 +30,21 @@ export default async function ReviewsPage() {
     redirect('/login')
   }
 
-  // Fetch profile for header
+  // Fetch company data for header (profiles table doesn't exist - use companies table)
   let profileData: { agency_name?: string; logo?: string } | null = null
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('agency_name, logo')
-      .eq('user_id', user.id)
-      .single()
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        profileData = null
-      } else if (error.code && error.message) {
-        console.error('Error fetching profile:', {
-          message: error.message,
-          code: error.code,
-        })
+    const companyId = await getUserCompanyId(user.id)
+    if (companyId) {
+      const company = await getUserCompany(user.id)
+      if (company) {
+        profileData = {
+          agency_name: company.name || undefined,
+          logo: company.logo || undefined,
+        }
       }
-    } else if (data) {
-      profileData = data
     }
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message) {
-      console.error('Unexpected error fetching profile:', {
-        message: err.message,
-        name: err.name,
-      })
-    }
+  } catch (err) {
+    // Silently continue without profile data
   }
 
   // Get user's company_id
@@ -184,7 +171,7 @@ export default async function ReviewsPage() {
       />
       <QuickAccessMenu />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         <ReviewsList initialReviews={reviews} />
       </main>
     </div>

@@ -87,7 +87,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
         if (result.error.includes('Permission denied') || result.error.includes('RLS')) {
           setValidationErrors(prev => ({
             ...prev,
-            locations: 'Permission error. Please run database/fix-locations-rls.sql'
+            locations: 'Permission error. Please run database/rls-policies/fix-jwt-rls-defensive-complete.sql'
           }))
         } else {
           setValidationErrors(prev => ({

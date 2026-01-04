@@ -12,6 +12,7 @@ export interface LanguageDictionary {
   allBookings: string;
   filterByStatus: string;
   filterByDate: string;
+  filterByRating: string;
   statusPending: string;
   statusConfirmed: string;
   statusPickedUp: string;
@@ -416,6 +417,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     allBookings: "All Bookings",
     filterByStatus: "Filter by Status",
     filterByDate: "Filter by Date",
+    filterByRating: "Filter by rating",
     statusPending: "Pending",
     statusConfirmed: "Confirmed",
     statusPickedUp: "Picked Up",
@@ -826,6 +828,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     allBookings: "Të gjitha rezervimet",
     filterByStatus: "Filtro sipas statusit",
     filterByDate: "Filtro sipas datës",
+    filterByRating: "Filtro sipas vlerësimit",
     statusPending: "Në pritje",
     statusConfirmed: "E konfirmuar",
     statusPickedUp: "E marrë",

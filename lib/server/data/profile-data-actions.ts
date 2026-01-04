@@ -18,9 +18,6 @@ export async function updateProfileAction(
   profileData: ProfileFormData
 ): Promise<ProfileUpdateResult> {
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:16',message:'updateProfileAction entry',data:{hasAgencyName:!!profileData.agencyName,hasEmail:!!profileData.email,hasPhone:!!profileData.phone},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const supabase = await createServerActionClient()
 
     // Check authentication using getUser() for security - with timeout
@@ -33,9 +30,6 @@ export async function updateProfileAction(
       'Authentication check timed out. Please try again.'
     )
 
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:25',message:'getUser result',data:{hasUser:!!user,userId:user?.id,userEmail:user?.email,authError:authError?.message,authErrorCode:authError?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
 
     if (!user) {
       return {
@@ -73,24 +67,15 @@ export async function updateProfileAction(
       'Failed to update profile. The request timed out. Please try again.'
     )
     
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:58',message:'Profile update attempt',data:{hasError:!!profileError,errorCode:profileError?.code,errorMessage:profileError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
 
     // Always update company (regardless of profile update result)
     // This ensures company data is always synced
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:65',message:'Starting company update process',data:{profileErrorCode:profileError?.code,willUpdateCompany:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     // Get user's company_id and update company
     // Profiles table doesn't exist OR profile update succeeded - update company directly
     // Get user's company_id - use helper function or query company_members
     let companyId: string | null = null
       
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:68',message:'Starting company lookup',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       // Try to get from companies table using owner_id - with timeout
       const { data: company, error: companyQueryError } = await withSupabaseTimeout(
@@ -103,9 +88,6 @@ export async function updateProfileAction(
         'Failed to retrieve company information. Please try again.'
       )
 
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:75',message:'Company query result',data:{hasCompany:!!company,companyId:company?.id,hasError:!!companyQueryError,errorCode:companyQueryError?.code,errorMessage:companyQueryError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
 
       if (companyQueryError) {
         console.error('Error querying companies:', {
@@ -119,9 +101,6 @@ export async function updateProfileAction(
       
       // If no company from members, try to find any company for this user
       if (!companyId) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:88',message:'No company from members, checking cars',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         
         // Try to get company_id from cars table - with timeout
         const { data: userCar } = await withSupabaseTimeout(
@@ -137,14 +116,8 @@ export async function updateProfileAction(
         
         companyId = userCar?.company_id || null
         
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:98',message:'Car lookup result',data:{hasCar:!!userCar,companyIdFromCar:userCar?.company_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
       }
       
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:129',message:'Company lookup complete',data:{userId:user.id,companyId,hasCompany:!!company},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H'})}).catch(()=>{});
-      // #endregion
       
       console.log('Company lookup:', {
         userId: user.id,
@@ -155,9 +128,6 @@ export async function updateProfileAction(
 
       // If no company exists, create one
       if (!companyId) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:137',message:'No companyId found, creating new company',data:{userId:user.id,agencyName:profileData.agencyName},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H'})}).catch(()=>{});
-        // #endregion
         
         // Create a new company with owner_id set - with timeout
         const { data: newCompany, error: createError } = await withSupabaseTimeout(
@@ -185,9 +155,6 @@ export async function updateProfileAction(
           'Failed to create company. The request timed out. Please try again.'
         )
 
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:160',message:'Company creation result',data:{hasError:!!createError,errorCode:createError?.code,errorMessage:createError?.message,hasCompany:!!newCompany,companyId:newCompany?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H'})}).catch(()=>{});
-        // #endregion
 
         if (createError || !newCompany) {
           console.error('Company creation error:', {
@@ -214,9 +181,6 @@ export async function updateProfileAction(
             'Failed to update company owner. Please try again.'
           )
 
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:185',message:'Company owner update result',data:{hasError:!!ownerError,errorCode:ownerError?.code,errorMessage:ownerError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H'})}).catch(()=>{});
-          // #endregion
 
           if (ownerError) {
             console.error('Company owner update error:', {
@@ -232,9 +196,6 @@ export async function updateProfileAction(
 
       // Update the company directly (RLS is off, so this should work)
       if (companyId) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:150',message:'Before company update',data:{companyId,userId:user.id,userEmail:user.email,updateData:{name:profileData.agencyName,email:profileData.email,phone:profileData.phone}},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
         
         // Get current company data to check if phone is already set and if owner_id is set - with timeout
         const { data: currentCompany } = await withSupabaseTimeout(
@@ -282,9 +243,6 @@ export async function updateProfileAction(
           updatePayload.owner_id = user.id
         }
         
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:165',message:'Update payload prepared',data:{companyId,payloadKeys:Object.keys(updatePayload),payloadValues:Object.values(updatePayload).filter(v=>v!==null).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         
         const { error: companyError, data: updateData, count } = await withSupabaseTimeout(
           supabase
@@ -296,9 +254,6 @@ export async function updateProfileAction(
           'Failed to update company. The request timed out. Please try again.'
         )
 
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:177',message:'Company update result',data:{hasError:!!companyError,errorCode:companyError?.code,errorMessage:companyError?.message,errorDetails:companyError?.details,errorHint:companyError?.hint,hasData:!!updateData,dataLength:updateData?.length,updatedId:updateData?.[0]?.id,updatedName:updateData?.[0]?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'F'})}).catch(()=>{});
-        // #endregion
 
         if (companyError) {
           console.error('Company update error:', {
@@ -323,21 +278,12 @@ export async function updateProfileAction(
         }
         
         if (!updateData || updateData.length === 0) {
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:195',message:'No data returned from update',data:{companyId,hasData:!!updateData,dataLength:updateData?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'G'})}).catch(()=>{});
-          // #endregion
           return {
             error: 'Company update completed but no data was returned. The company may not exist.',
           }
         }
         
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:202',message:'Company update success',data:{companyId,updatedName:updateData[0]?.name,updatedEmail:updateData[0]?.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'SUCCESS'})}).catch(()=>{});
-        // #endregion
       } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/89bc02dc-6d86-4a10-b990-b9a557f9da17',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile-data-actions.ts:256',message:'No companyId found',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'G'})}).catch(()=>{});
-        // #endregion
         return {
           error: 'Failed to create or find company. Please try again.',
         }
