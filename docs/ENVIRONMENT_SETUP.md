@@ -114,7 +114,68 @@ Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and 
 
 ## Production Deployment
 
-For production deployments (Vercel, Netlify, etc.):
+### Vercel Deployment
+
+**CRITICAL: You must set environment variables in Vercel before deployment.**
+
+#### Step-by-Step Vercel Setup:
+
+1. **Go to your Vercel project dashboard:**
+   - Visit: https://vercel.com/dashboard
+   - Select your project (wheelyrental)
+
+2. **Navigate to Project Settings:**
+   - Click on your project
+   - Go to **Settings** tab
+   - Click **Environment Variables** in the left sidebar
+
+3. **Add the following environment variables:**
+
+   **Required for all environments (Production, Preview, Development):**
+   
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+   ```
+
+   **Optional:**
+   ```
+   NEXT_PUBLIC_CUSTOMER_SITE_URL=https://customer.wheely.com
+   NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
+   ```
+
+4. **For each variable:**
+   - Click **Add New**
+   - Enter the variable name (e.g., `SUPABASE_SERVICE_ROLE_KEY`)
+   - Enter the variable value
+   - **IMPORTANT:** Select which environments to apply to:
+     - ✅ Production
+     - ✅ Preview  
+     - ✅ Development
+   - Click **Save**
+
+5. **Redeploy after adding variables:**
+   - Go to **Deployments** tab
+   - Click the three dots (⋯) on the latest deployment
+   - Click **Redeploy**
+   - Or push a new commit to trigger a new deployment
+
+#### Where to Get Your Supabase Keys:
+
+1. Go to: https://app.supabase.com/project/_/settings/api
+2. **Project URL** → Copy to `NEXT_PUBLIC_SUPABASE_URL`
+3. **anon public** key → Copy to `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. **service_role** key → Copy to `SUPABASE_SERVICE_ROLE_KEY` ⚠️ **Keep this secret!**
+
+#### Verification:
+
+After deployment, check that:
+- ✅ Build completes successfully
+- ✅ `/api/assign-role` endpoint works (no 500 errors)
+- ✅ Users can login and get role assigned automatically
+
+### Other Platforms (Netlify, Railway, etc.)
 
 1. Add all environment variables in your hosting platform's dashboard
 2. Ensure `SUPABASE_SERVICE_ROLE_KEY` is set (required for role assignment)

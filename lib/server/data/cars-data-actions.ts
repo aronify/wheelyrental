@@ -965,7 +965,8 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
     }
 
     // Prepare update data with proper types
-    const carUpdateData = {
+    // Also include pickup_locations and dropoff_locations TEXT[] arrays if provided
+    const carUpdateData: any = {
       make: carData.make.trim(),
       model: carData.model.trim(),
       year: Math.floor(carData.year), // Ensure integer
@@ -986,27 +987,98 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       updated_at: new Date().toISOString(),
     }
 
-    // Update the car - with timeout
-    const { data, error } = await withSupabaseTimeout(
+    // Add pickup_locations and dropoff_locations TEXT[] arrays if provided
+    // These are stored as arrays of location IDs (strings)
+    if (carData.pickupLocations && Array.isArray(carData.pickupLocations)) {
+      carUpdateData.pickup_locations = carData.pickupLocations.length > 0 
+        ? carData.pickupLocations.filter(id => id && id.trim()).map(id => id.trim())
+        : null
+    } else {
+      carUpdateData.pickup_locations = null
+    }
+
+    if (carData.dropoffLocations && Array.isArray(carData.dropoffLocations)) {
+      carUpdateData.dropoff_locations = carData.dropoffLocations.length > 0
+        ? carData.dropoffLocations.filter(id => id && id.trim()).map(id => id.trim())
+        : null
+    } else {
+      carUpdateData.dropoff_locations = null
+    }
+
+    // Update the car - don't use select() as it can fail with relationships
+    // We'll fetch the car separately after update to ensure we get it
+    const { error: updateError } = await withSupabaseTimeout(
       supabase
         .from('cars')
         .update(carUpdateData)
-        .eq('id', carId)
-        .select()
-        .single(),
+        .eq('id', carId),
       TIMEOUTS.UPDATE,
       'Failed to update car. The request timed out. Please try again.'
     )
 
-    if (error) {
+    if (updateError) {
       // Handle specific database errors
-      if (error.code === '23505') { // Unique violation
+      if (updateError.code === '23505') { // Unique violation
         return { error: `A car with this license plate already exists` }
       }
-      if (error.code === '23514') { // Check constraint violation
-        return { error: `Invalid data: ${error.message}` }
+      if (updateError.code === '23514') { // Check constraint violation
+        return { error: `Invalid data: ${updateError.message}` }
       }
-      return { error: `Failed to update car: ${error.message}` }
+      return { error: `Failed to update car: ${updateError.message}` }
+    }
+
+    // Always fetch the car separately after update to ensure we get the updated data
+    // This avoids issues with .select() returning null or coercion errors
+    const { data, error: fetchError } = await withSupabaseTimeout(
+      supabase
+        .from('cars')
+        .select(`
+          id,
+          company_id,
+          make,
+          model,
+          year,
+          license_plate,
+          color,
+          transmission,
+          fuel_type,
+          seats,
+          daily_rate,
+          deposit_required,
+          status,
+          image_url,
+          features,
+          pickup_locations,
+          dropoff_locations,
+          created_at,
+          updated_at
+        `)
+        .eq('id', carId)
+        .maybeSingle(),
+      TIMEOUTS.QUERY,
+      'Failed to fetch updated car. The request timed out. Please try again.'
+    )
+
+    if (fetchError) {
+      console.error('[updateCarAction] Error fetching car after update:', fetchError)
+      return { error: `Failed to fetch updated car: ${fetchError.message}` }
+    }
+
+    if (!data) {
+      // Car might have been deleted or RLS is blocking access
+      // Try one more time with a simpler query to verify car still exists
+      const { data: verifyData } = await supabase
+        .from('cars')
+        .select('id')
+        .eq('id', carId)
+        .maybeSingle()
+      
+      if (!verifyData) {
+        return { error: 'Car not found after update. It may have been deleted or you may not have permission to view it.' }
+      }
+      
+      // Car exists but we can't fetch full data - return error with more context
+      return { error: 'Car was updated but could not be retrieved. Please refresh the page.' }
     }
 
     // Delete existing car locations
@@ -1017,6 +1089,10 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
 
     if (deleteError) {
       console.error('Error deleting existing car locations:', deleteError)
+      // Don't fail the update if car_locations table doesn't exist
+      if (deleteError.code !== '42P01') { // 42P01 = table does not exist
+        console.warn('[updateCarAction] Car locations deletion failed (non-critical):', deleteError.message)
+      }
     }
 
     // Insert new car locations
@@ -1033,6 +1109,10 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
 
       if (pickupError) {
         console.error('Error inserting pickup locations:', pickupError)
+        // Don't fail the update if car_locations table doesn't exist
+        if (pickupError.code !== '42P01') { // 42P01 = table does not exist
+          console.warn('[updateCarAction] Pickup locations insertion failed (non-critical):', pickupError.message)
+        }
       }
     }
 
@@ -1049,11 +1129,38 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
 
       if (dropoffError) {
         console.error('Error inserting dropoff locations:', dropoffError)
+        // Don't fail the update if car_locations table doesn't exist
+        if (dropoffError.code !== '42P01') { // 42P01 = table does not exist
+          console.warn('[updateCarAction] Dropoff locations insertion failed (non-critical):', dropoffError.message)
+        }
       }
     }
 
+    // Transform the returned car data to match Car interface (camelCase)
+    const transformedCar = {
+      id: data.id,
+      companyId: data.company_id,
+      make: data.make,
+      model: data.model,
+      year: data.year,
+      licensePlate: data.license_plate,
+      color: data.color || undefined,
+      transmission: data.transmission as 'automatic' | 'manual',
+      fuelType: data.fuel_type as 'petrol' | 'diesel' | 'electric' | 'hybrid',
+      seats: data.seats,
+      dailyRate: Number(data.daily_rate),
+      status: data.status as 'active' | 'maintenance' | 'retired',
+      imageUrl: data.image_url || undefined,
+      features: data.features || undefined,
+      depositRequired: data.deposit_required ? Number(data.deposit_required) : undefined,
+      pickupLocations: Array.isArray(data.pickup_locations) ? data.pickup_locations : undefined,
+      dropoffLocations: Array.isArray(data.dropoff_locations) ? data.dropoff_locations : undefined,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    }
+
     revalidatePath('/cars')
-    return { success: true, message: 'Car updated successfully', data }
+    return { success: true, message: 'Car updated successfully', data: transformedCar }
   } catch (error: unknown) {
     // Handle timeout errors
     if (error instanceof TimeoutError) {
