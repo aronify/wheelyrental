@@ -253,16 +253,23 @@ export default function MultiSelectDropdown({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-800 text-xs font-semibold border border-blue-200"
                   >
                     <span className="truncate max-w-[120px]">{opt.label}</span>
-                    <button
-                      type="button"
-                      className="flex-shrink-0 text-blue-600 hover:text-blue-800 focus:outline-none transition-colors"
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="flex-shrink-0 text-blue-600 hover:text-blue-800 focus:outline-none transition-colors cursor-pointer"
                       onClick={(e) => removeOption(opt.value, e)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          removeOption(opt.value, e as any)
+                        }
+                      }}
                       aria-label={`Remove ${opt.label}`}
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </button>
+                    </span>
                   </span>
                 ))}
                 {selectedOptions.length > 2 && (

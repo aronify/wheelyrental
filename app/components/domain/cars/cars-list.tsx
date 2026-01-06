@@ -118,13 +118,63 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
       } else {
         if (!selectedCar) return
 
+        console.log('[CarsList] Calling updateCarAction with:', {
+          carId: selectedCar.id,
+          pickupLocations: formData.pickupLocations,
+          dropoffLocations: formData.dropoffLocations,
+        })
+
         const result = await updateCarAction(selectedCar.id, formData)
 
+        console.log('[CarsList] updateCarAction result:', {
+          success: result.success,
+          error: result.error,
+          hasData: !!result.data,
+          returnedPickupLocations: (result.data as Car)?.pickupLocations,
+          returnedDropoffLocations: (result.data as Car)?.dropoffLocations,
+        })
+
         if (result.success && result.data) {
-          // Optimistic update - update local state immediately
+          const updatedCar = result.data as Car
+          
+          // Filter out CUSTOM_PICKUP and CUSTOM_DROPOFF from submitted data for comparison
+          const submittedPickup = (formData.pickupLocations || []).filter(id => id !== 'CUSTOM_PICKUP')
+          const submittedDropoff = (formData.dropoffLocations || []).filter(id => id !== 'CUSTOM_DROPOFF')
+          
+          // Verify locations were actually saved
+          const pickupMatch = JSON.stringify((updatedCar.pickupLocations || []).sort()) === JSON.stringify(submittedPickup.sort())
+          const dropoffMatch = JSON.stringify((updatedCar.dropoffLocations || []).sort()) === JSON.stringify(submittedDropoff.sort())
+          
+          if (!pickupMatch || !dropoffMatch) {
+            console.error('[CarsList] ⚠️ Location mismatch detected - locations may not have been saved!', {
+              submitted: {
+                pickup: submittedPickup,
+                dropoff: submittedDropoff,
+              },
+              returned: {
+                pickup: updatedCar.pickupLocations,
+                dropoff: updatedCar.dropoffLocations,
+              },
+              pickupMatch,
+              dropoffMatch,
+            })
+            // Still update the UI but show a warning
+            setCars((prev) =>
+              prev.map((car) =>
+                car.id === selectedCar.id ? updatedCar : car
+              )
+            )
+            showError('Car updated but locations may not have been saved. Please check and try again.')
+            setIsModalOpen(false)
+            router.refresh()
+            return
+          }
+
+          // Locations match - update was successful
+          console.log('[CarsList] ✅ Car and locations updated successfully!')
           setCars((prev) =>
             prev.map((car) =>
-              car.id === selectedCar.id ? (result.data as Car) : car
+              car.id === selectedCar.id ? updatedCar : car
             )
           )
           showSuccess(t.carUpdated || 'Car updated successfully!')
@@ -132,7 +182,8 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           // Refresh to sync with server
           router.refresh()
         } else {
-          showError(result.error || t.carUpdated || 'Failed to update car. Please try again.')
+          console.error('[CarsList] Update failed:', result.error)
+          showError(result.error || 'Failed to update car. Please try again.')
         }
       }
     } catch (error: unknown) {

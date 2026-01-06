@@ -38,6 +38,167 @@ export interface CarActionResult {
 }
 
 /**
+ * Validate location IDs and ensure they belong to the same company
+ * Returns validated location IDs or throws error
+ */
+async function validateAndFilterLocationIds(
+  supabase: any,
+  locationIds: string[] | undefined,
+  carCompanyId: string,
+  locationType: 'pickup' | 'dropoff'
+): Promise<string[]> {
+  if (!locationIds || !Array.isArray(locationIds) || locationIds.length === 0) {
+    return []
+  }
+
+  // Filter out UI markers and invalid values
+  const validIds = locationIds
+    .filter(id => {
+      if (!id) return false
+      const strId = String(id).trim()
+      return strId && strId !== 'CUSTOM_PICKUP' && strId !== 'CUSTOM_DROPOFF'
+    })
+    .map(id => String(id).trim())
+
+  if (validIds.length === 0) {
+    return []
+  }
+
+  // Verify all locations exist, belong to same company, and have correct type flag
+  const { data: locations, error } = await supabase
+    .from('locations')
+    .select('id, company_id, is_pickup, is_dropoff')
+    .in('id', validIds)
+
+  if (error) {
+    console.error(`[validateAndFilterLocationIds] Error fetching locations:`, error)
+    throw new Error(`Failed to validate locations: ${error.message}`)
+  }
+
+  if (!locations || locations.length !== validIds.length) {
+    const foundIds = locations?.map((l: any) => l.id) || []
+    const missingIds = validIds.filter(id => !foundIds.includes(id))
+    throw new Error(`Some locations do not exist: ${missingIds.join(', ')}`)
+  }
+
+  // Validate company ownership and type flags
+  const invalidLocations: string[] = []
+  for (const loc of locations as Array<{ id: string; company_id: string; is_pickup: boolean; is_dropoff: boolean }>) {
+    if (loc.company_id !== carCompanyId) {
+      invalidLocations.push(`${loc.id} (wrong company)`)
+    }
+    if (locationType === 'pickup' && !loc.is_pickup) {
+      invalidLocations.push(`${loc.id} (not a pickup location)`)
+    }
+    if (locationType === 'dropoff' && !loc.is_dropoff) {
+      invalidLocations.push(`${loc.id} (not a dropoff location)`)
+    }
+  }
+
+  if (invalidLocations.length > 0) {
+    throw new Error(`Invalid locations: ${invalidLocations.join(', ')}`)
+  }
+
+  return validIds
+}
+
+/**
+ * Update car_locations junction table for a car
+ * Deletes existing entries and inserts new ones atomically
+ */
+async function updateCarLocationsJunction(
+  supabase: any,
+  carId: string,
+  pickupLocationIds: string[],
+  dropoffLocationIds: string[]
+): Promise<void> {
+  console.log('[updateCarLocationsJunction] Updating junction table:', {
+    carId,
+    pickupCount: pickupLocationIds.length,
+    dropoffCount: dropoffLocationIds.length,
+  })
+
+  // Delete existing entries for this car
+  const { error: deleteError } = await supabase
+    .from('car_locations')
+    .delete()
+    .eq('car_id', carId)
+
+  if (deleteError) {
+    console.error('[updateCarLocationsJunction] Error deleting existing entries:', deleteError)
+    throw new Error(`Failed to clear existing locations: ${deleteError.message}`)
+  }
+
+  // Prepare new entries
+  const newEntries: Array<{ car_id: string; location_id: string; location_type: 'pickup' | 'dropoff' }> = []
+
+  for (const locationId of pickupLocationIds) {
+    newEntries.push({
+      car_id: carId,
+      location_id: locationId,
+      location_type: 'pickup',
+    })
+  }
+
+  for (const locationId of dropoffLocationIds) {
+    newEntries.push({
+      car_id: carId,
+      location_id: locationId,
+      location_type: 'dropoff',
+    })
+  }
+
+  if (newEntries.length === 0) {
+    console.log('[updateCarLocationsJunction] No locations to insert')
+    return
+  }
+
+  // Insert new entries
+  const { error: insertError } = await supabase
+    .from('car_locations')
+    .insert(newEntries)
+
+  if (insertError) {
+    console.error('[updateCarLocationsJunction] Error inserting new entries:', insertError)
+    throw new Error(`Failed to save locations: ${insertError.message}`)
+  }
+
+  console.log('[updateCarLocationsJunction] Successfully updated junction table')
+}
+
+/**
+ * Fetch location IDs for a car from the junction table
+ */
+async function fetchCarLocationIds(
+  supabase: any,
+  carId: string
+): Promise<{ pickup: string[]; dropoff: string[] }> {
+  const { data: carLocations, error } = await supabase
+    .from('car_locations')
+    .select('location_id, location_type')
+    .eq('car_id', carId)
+
+  if (error) {
+    console.error('[fetchCarLocationIds] Error fetching locations:', error)
+    // Return empty arrays on error (don't fail the whole operation)
+    return { pickup: [], dropoff: [] }
+  }
+
+  const pickup: string[] = []
+  const dropoff: string[] = []
+
+  for (const entry of carLocations || []) {
+    if (entry.location_type === 'pickup') {
+      pickup.push(entry.location_id)
+    } else if (entry.location_type === 'dropoff') {
+      dropoff.push(entry.location_id)
+    }
+  }
+
+  return { pickup, dropoff }
+}
+
+/**
  * Ensure HQ location exists for a company
  * Creates "HQ - {company_name}" location if it doesn't exist
  * Matches exact schema: public.locations table
@@ -733,21 +894,32 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
 
     // Add pickup_locations and dropoff_locations TEXT[] arrays if provided
     // These are stored as arrays of location IDs (UUIDs as strings)
-    if (carData.pickupLocations && Array.isArray(carData.pickupLocations)) {
-      carInsertData.pickup_locations = carData.pickupLocations.length > 0 
-        ? carData.pickupLocations.filter(id => id && id.trim()).map(id => id.trim())
-        : null
-    } else {
-      carInsertData.pickup_locations = null
+    // Helper function to validate and filter location IDs
+    const validateLocationIds = (ids: any[] | undefined): string[] | null => {
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return null
+      }
+      
+      // Filter out invalid values: null, undefined, empty strings, and non-UUID-like strings
+      // Also filter out CUSTOM_PICKUP and CUSTOM_DROPOFF which are UI markers
+      const validIds = ids
+        .filter(id => {
+          if (!id) return false
+          const strId = String(id).trim()
+          if (!strId) return false
+          // Filter out custom location markers
+          if (strId === 'CUSTOM_PICKUP' || strId === 'CUSTOM_DROPOFF') return false
+          // Basic UUID validation (8-4-4-4-12 format)
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          return uuidRegex.test(strId)
+        })
+        .map(id => String(id).trim())
+      
+      return validIds.length > 0 ? validIds : null
     }
 
-    if (carData.dropoffLocations && Array.isArray(carData.dropoffLocations)) {
-      carInsertData.dropoff_locations = carData.dropoffLocations.length > 0
-        ? carData.dropoffLocations.filter(id => id && id.trim()).map(id => id.trim())
-        : null
-    } else {
-      carInsertData.dropoff_locations = null
-    }
+    carInsertData.pickup_locations = validateLocationIds(carData.pickupLocations)
+    carInsertData.dropoff_locations = validateLocationIds(carData.dropoffLocations)
 
     // Insert the car
     const { data: carDataResult, error: carError } = await withSupabaseTimeout(
@@ -967,26 +1139,52 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       updated_at: new Date().toISOString(),
     }
 
-    // Add pickup_locations and dropoff_locations TEXT[] arrays if provided
-    // These are stored as arrays of location IDs (strings)
-    if (carData.pickupLocations && Array.isArray(carData.pickupLocations)) {
-      carUpdateData.pickup_locations = carData.pickupLocations.length > 0 
-        ? carData.pickupLocations.filter(id => id && id.trim()).map(id => id.trim())
-        : null
-    } else {
-      carUpdateData.pickup_locations = null
+    // Handle locations using junction table (car_locations)
+    // This provides referential integrity, company validation, and type checking
+    console.log('[updateCarAction] Processing locations via junction table:', {
+      hasPickupLocations: !!carData.pickupLocations,
+      pickupLocations: carData.pickupLocations,
+      hasDropoffLocations: !!carData.dropoffLocations,
+      dropoffLocations: carData.dropoffLocations,
+    })
+
+    let validatedPickupIds: string[] = []
+    let validatedDropoffIds: string[] = []
+
+    // Validate and filter location IDs if provided
+    if (carData.pickupLocations !== undefined) {
+      try {
+        validatedPickupIds = await validateAndFilterLocationIds(
+          supabase,
+          carData.pickupLocations,
+          existingCar.company_id,
+          'pickup'
+        )
+        console.log('[updateCarAction] Validated pickup locations:', validatedPickupIds)
+      } catch (error) {
+        console.error('[updateCarAction] Error validating pickup locations:', error)
+        return { error: error instanceof Error ? error.message : 'Failed to validate pickup locations' }
+      }
     }
 
-    if (carData.dropoffLocations && Array.isArray(carData.dropoffLocations)) {
-      carUpdateData.dropoff_locations = carData.dropoffLocations.length > 0
-        ? carData.dropoffLocations.filter(id => id && id.trim()).map(id => id.trim())
-        : null
-    } else {
-      carUpdateData.dropoff_locations = null
+    if (carData.dropoffLocations !== undefined) {
+      try {
+        validatedDropoffIds = await validateAndFilterLocationIds(
+          supabase,
+          carData.dropoffLocations,
+          existingCar.company_id,
+          'dropoff'
+        )
+        console.log('[updateCarAction] Validated dropoff locations:', validatedDropoffIds)
+      } catch (error) {
+        console.error('[updateCarAction] Error validating dropoff locations:', error)
+        return { error: error instanceof Error ? error.message : 'Failed to validate dropoff locations' }
+      }
     }
 
-    // Update the car - don't use select() as it can fail with relationships
-    // We'll fetch the car separately after update to ensure we get it
+    // Update car basic fields (DO NOT include pickup_locations/dropoff_locations in carUpdateData)
+    console.log('[updateCarAction] Executing UPDATE query for car:', carId)
+
     const { error: updateError } = await withSupabaseTimeout(
       supabase
         .from('cars')
@@ -997,6 +1195,12 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
     )
 
     if (updateError) {
+      console.error('[updateCarAction] Update error:', {
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+      })
       // Handle specific database errors
       if (updateError.code === '23505') { // Unique violation
         return { error: `A car with this license plate already exists` }
@@ -1007,8 +1211,24 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       return { error: `Failed to update car: ${updateError.message}` }
     }
 
-    // Always fetch the car separately after update to ensure we get the updated data
-    // This avoids issues with .select() returning null or coercion errors
+    // Update car_locations junction table atomically
+    // This replaces all existing location associations with the new ones
+    try {
+      await updateCarLocationsJunction(
+        supabase,
+        carId,
+        validatedPickupIds,
+        validatedDropoffIds
+      )
+      console.log('[updateCarAction] ✅ Junction table updated successfully')
+    } catch (error) {
+      console.error('[updateCarAction] Error updating junction table:', error)
+      // Car was updated but locations failed - this is a partial failure
+      return { error: error instanceof Error ? error.message : 'Car updated but failed to save locations. Please try again.' }
+    }
+
+    // Fetch the updated car (without location arrays)
+    console.log('[updateCarAction] Fetching updated car with locations...')
     const { data, error: fetchError } = await withSupabaseTimeout(
       supabase
         .from('cars')
@@ -1028,8 +1248,6 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
           status,
           image_url,
           features,
-          pickup_locations,
-          dropoff_locations,
           created_at,
           updated_at
         `)
@@ -1045,25 +1263,40 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
     }
 
     if (!data) {
-      // Car might have been deleted or RLS is blocking access
-      // Try one more time with a simpler query to verify car still exists
-      const { data: verifyData } = await supabase
-        .from('cars')
-        .select('id')
-        .eq('id', carId)
-        .maybeSingle()
-      
-      if (!verifyData) {
-        return { error: 'Car not found after update. It may have been deleted or you may not have permission to view it.' }
-      }
-      
-      // Car exists but we can't fetch full data - return error with more context
-      return { error: 'Car was updated but could not be retrieved. Please refresh the page.' }
+      return { error: 'Car not found after update. It may have been deleted or you may not have permission to view it.' }
     }
 
-    // Locations are now stored directly in the cars table as pickup_locations and dropoff_locations TEXT[] arrays
-    // Each array contains location IDs (UUIDs as strings) from the locations table
-    // The update above already handles setting these arrays
+    // Fetch locations from junction table
+    const { pickup: fetchedPickupIds, dropoff: fetchedDropoffIds } = await fetchCarLocationIds(supabase, carId)
+
+    console.log('[updateCarAction] Fetched locations from junction table:', {
+      pickup: fetchedPickupIds,
+      dropoff: fetchedDropoffIds,
+      pickupMatch: JSON.stringify(fetchedPickupIds.sort()) === JSON.stringify(validatedPickupIds.sort()),
+      dropoffMatch: JSON.stringify(fetchedDropoffIds.sort()) === JSON.stringify(validatedDropoffIds.sort()),
+    })
+
+    // Verify locations were saved correctly
+    const pickupMatch = JSON.stringify(fetchedPickupIds.sort()) === JSON.stringify(validatedPickupIds.sort())
+    const dropoffMatch = JSON.stringify(fetchedDropoffIds.sort()) === JSON.stringify(validatedDropoffIds.sort())
+
+    if (!pickupMatch || !dropoffMatch) {
+      console.error('[updateCarAction] ⚠️ Location mismatch after save!', {
+        expected: {
+          pickup: validatedPickupIds,
+          dropoff: validatedDropoffIds,
+        },
+        actual: {
+          pickup: fetchedPickupIds,
+          dropoff: fetchedDropoffIds,
+        },
+        pickupMatch,
+        dropoffMatch,
+      })
+      return { error: 'Car was updated but locations were not saved correctly. Please try again.' }
+    }
+
+    console.log('[updateCarAction] ✅ All locations verified - saved correctly!')
 
     // Transform the returned car data to match Car interface (camelCase)
     const transformedCar = {
@@ -1082,11 +1315,18 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       imageUrl: data.image_url || undefined,
       features: data.features || undefined,
       depositRequired: data.deposit_required ? Number(data.deposit_required) : undefined,
-      pickupLocations: Array.isArray(data.pickup_locations) ? data.pickup_locations : undefined,
-      dropoffLocations: Array.isArray(data.dropoff_locations) ? data.dropoff_locations : undefined,
+      pickupLocations: fetchedPickupIds.length > 0 ? fetchedPickupIds : undefined,
+      dropoffLocations: fetchedDropoffIds.length > 0 ? fetchedDropoffIds : undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     }
+
+    console.log('[updateCarAction] Transformed car before return:', {
+      hasPickupLocations: !!transformedCar.pickupLocations,
+      pickupLocations: transformedCar.pickupLocations,
+      hasDropoffLocations: !!transformedCar.dropoffLocations,
+      dropoffLocations: transformedCar.dropoffLocations,
+    })
 
     revalidatePath('/cars')
     return { success: true, message: 'Car updated successfully', data: transformedCar }

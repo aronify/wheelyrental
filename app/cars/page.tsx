@@ -140,6 +140,34 @@ export default async function CarsRoute() {
     sampleCar: dbCars?.[0] ? { id: dbCars[0].id, company_id: dbCars[0].company_id } : null
   })
 
+  // Fetch locations from junction table for all cars
+  let carLocationsMap: Record<string, { pickup: string[]; dropoff: string[] }> = {}
+  if (dbCars && dbCars.length > 0) {
+    const carIds = dbCars.map((car: any) => car.id)
+    const { data: carLocations } = await supabase
+      .from('car_locations')
+      .select('car_id, location_id, location_type')
+      .in('car_id', carIds)
+
+    // Group locations by car_id and type
+    for (const car of dbCars) {
+      const pickup: string[] = []
+      const dropoff: string[] = []
+      
+      for (const cl of carLocations || []) {
+        if (cl.car_id === car.id) {
+          if (cl.location_type === 'pickup') {
+            pickup.push(cl.location_id)
+          } else if (cl.location_type === 'dropoff') {
+            dropoff.push(cl.location_id)
+          }
+        }
+      }
+      
+      carLocationsMap[car.id] = { pickup, dropoff }
+    }
+  }
+
   // Convert snake_case to camelCase and add computed fields
   const cars = (dbCars || []).map((car: any) => ({
     id: car.id,
@@ -167,10 +195,14 @@ export default async function CarsRoute() {
     status: car.status, // 'active', 'maintenance', 'retired'
     imageUrl: car.image_url || '',
     features: car.features || [],
-    pickupLocation: undefined, // Locations are in company_locations table
-    dropoffLocation: undefined, // Locations are in company_locations table
-    pickupLocations: undefined, // Will be fetched from car_locations junction table if it exists
-    dropoffLocations: undefined, // Will be fetched from car_locations junction table if it exists
+    pickupLocation: undefined, // Deprecated - use pickupLocations array instead
+    dropoffLocation: undefined, // Deprecated - use dropoffLocations array instead
+    pickupLocations: carLocationsMap[car.id]?.pickup.length > 0 
+      ? carLocationsMap[car.id].pickup 
+      : undefined, // Array of location IDs from car_locations junction table
+    dropoffLocations: carLocationsMap[car.id]?.dropoff.length > 0
+      ? carLocationsMap[car.id].dropoff
+      : undefined, // Array of location IDs from car_locations junction table
     depositRequired: car.deposit_required ? Number(car.deposit_required) : undefined,
     createdAt: new Date(car.created_at),
     updatedAt: new Date(car.updated_at),

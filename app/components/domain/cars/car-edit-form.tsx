@@ -313,11 +313,28 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     setIsSubmitting(true)
     try {
       // Preserve original car status - status cannot be modified through the edit form
-      await onSubmit({ 
+      const submitData = { 
         ...formData, 
         imageUrl: imagePreviews[0],
         status: car.status // Always use original status, never allow modification
+      }
+      console.log('[EditCarForm] Submitting form data:', {
+        pickupLocations: submitData.pickupLocations,
+        dropoffLocations: submitData.dropoffLocations,
+        hasPickupLocations: !!submitData.pickupLocations,
+        hasDropoffLocations: !!submitData.dropoffLocations,
+        pickupLocationsLength: submitData.pickupLocations?.length,
+        dropoffLocationsLength: submitData.dropoffLocations?.length,
+        pickupLocationsType: typeof submitData.pickupLocations,
+        dropoffLocationsType: typeof submitData.dropoffLocations,
+        pickupIsArray: Array.isArray(submitData.pickupLocations),
+        dropoffIsArray: Array.isArray(submitData.dropoffLocations),
+        pickupFirstId: submitData.pickupLocations?.[0],
+        dropoffFirstId: submitData.dropoffLocations?.[0],
+        pickupFirstIdType: typeof submitData.pickupLocations?.[0],
+        dropoffFirstIdType: typeof submitData.dropoffLocations?.[0],
       })
+      await onSubmit(submitData)
     } finally {
       setIsSubmitting(false)
     }
