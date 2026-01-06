@@ -710,7 +710,7 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
 
     // Prepare data with proper types and defaults
     // All fields match exact schema requirements
-    const carInsertData = {
+    const carInsertData: any = {
       company_id: finalCompanyId, // Required - RLS will verify this matches JWT company_id
       make: carData.make.trim(), // Required, not null
       model: carData.model.trim(), // Required, not null
@@ -729,6 +729,24 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
       features: Array.isArray(carData.features) && carData.features.length > 0 
         ? carData.features.filter(f => f && f.trim()).map(f => f.trim()) 
         : null, // Optional text[] array, filter empty/null values
+    }
+
+    // Add pickup_locations and dropoff_locations TEXT[] arrays if provided
+    // These are stored as arrays of location IDs (UUIDs as strings)
+    if (carData.pickupLocations && Array.isArray(carData.pickupLocations)) {
+      carInsertData.pickup_locations = carData.pickupLocations.length > 0 
+        ? carData.pickupLocations.filter(id => id && id.trim()).map(id => id.trim())
+        : null
+    } else {
+      carInsertData.pickup_locations = null
+    }
+
+    if (carData.dropoffLocations && Array.isArray(carData.dropoffLocations)) {
+      carInsertData.dropoff_locations = carData.dropoffLocations.length > 0
+        ? carData.dropoffLocations.filter(id => id && id.trim()).map(id => id.trim())
+        : null
+    } else {
+      carInsertData.dropoff_locations = null
     }
 
     // Insert the car
@@ -752,6 +770,8 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
           status,
           image_url,
           features,
+          pickup_locations,
+          dropoff_locations,
           created_at,
           updated_at
         `)
@@ -795,50 +815,8 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
 
     const carId = carDataResult.id
 
-    // Note: Car locations are stored separately if car_locations junction table exists
-    // This is optional and won't fail the car creation if the table doesn't exist
-    // Locations are primarily used for bookings (pickup_location_id, dropoff_location_id)
-    if (carData.pickupLocations && carData.pickupLocations.length > 0) {
-      try {
-        const pickupLocationEntries = carData.pickupLocations.map(locationId => ({
-          car_id: carId,
-          location_id: locationId,
-          location_type: 'pickup' as const,
-        }))
-
-        const { error: pickupError } = await supabase
-          .from('car_locations')
-          .insert(pickupLocationEntries)
-
-        if (pickupError && pickupError.code !== '42P01') { // 42P01 = table does not exist
-          console.warn('[addCarAction] Error inserting pickup locations (non-critical):', pickupError.message)
-        }
-      } catch (error) {
-        // Table might not exist - that's okay, locations are optional
-        console.warn('[addCarAction] Car locations junction table may not exist (non-critical)')
-      }
-    }
-
-    if (carData.dropoffLocations && carData.dropoffLocations.length > 0) {
-      try {
-        const dropoffLocationEntries = carData.dropoffLocations.map(locationId => ({
-          car_id: carId,
-          location_id: locationId,
-          location_type: 'dropoff' as const,
-        }))
-
-        const { error: dropoffError } = await supabase
-          .from('car_locations')
-          .insert(dropoffLocationEntries)
-
-        if (dropoffError && dropoffError.code !== '42P01') { // 42P01 = table does not exist
-          console.warn('[addCarAction] Error inserting dropoff locations (non-critical):', dropoffError.message)
-        }
-      } catch (error) {
-        // Table might not exist - that's okay, locations are optional
-        console.warn('[addCarAction] Car locations junction table may not exist (non-critical)')
-      }
-    }
+    // Locations are now stored directly in the cars table as pickup_locations and dropoff_locations TEXT[] arrays
+    // Each array contains location IDs (UUIDs as strings) from the locations table
 
     // Transform the returned car data to match Car interface (camelCase)
     const transformedCar: Car = {
@@ -857,6 +835,8 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
       imageUrl: carDataResult.image_url || undefined,
       features: carDataResult.features || undefined,
       depositRequired: carDataResult.deposit_required ? Number(carDataResult.deposit_required) : undefined,
+      pickupLocations: Array.isArray(carDataResult.pickup_locations) ? carDataResult.pickup_locations : undefined,
+      dropoffLocations: Array.isArray(carDataResult.dropoff_locations) ? carDataResult.dropoff_locations : undefined,
       createdAt: new Date(carDataResult.created_at),
       updatedAt: new Date(carDataResult.updated_at),
     }
@@ -1081,60 +1061,9 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       return { error: 'Car was updated but could not be retrieved. Please refresh the page.' }
     }
 
-    // Delete existing car locations
-    const { error: deleteError } = await supabase
-      .from('car_locations')
-      .delete()
-      .eq('car_id', carId)
-
-    if (deleteError) {
-      console.error('Error deleting existing car locations:', deleteError)
-      // Don't fail the update if car_locations table doesn't exist
-      if (deleteError.code !== '42P01') { // 42P01 = table does not exist
-        console.warn('[updateCarAction] Car locations deletion failed (non-critical):', deleteError.message)
-      }
-    }
-
-    // Insert new car locations
-    if (carData.pickupLocations && carData.pickupLocations.length > 0) {
-      const pickupLocationEntries = carData.pickupLocations.map(locationId => ({
-        car_id: carId,
-        location_id: locationId,
-        location_type: 'pickup' as const,
-      }))
-
-      const { error: pickupError } = await supabase
-        .from('car_locations')
-        .insert(pickupLocationEntries)
-
-      if (pickupError) {
-        console.error('Error inserting pickup locations:', pickupError)
-        // Don't fail the update if car_locations table doesn't exist
-        if (pickupError.code !== '42P01') { // 42P01 = table does not exist
-          console.warn('[updateCarAction] Pickup locations insertion failed (non-critical):', pickupError.message)
-        }
-      }
-    }
-
-    if (carData.dropoffLocations && carData.dropoffLocations.length > 0) {
-      const dropoffLocationEntries = carData.dropoffLocations.map(locationId => ({
-        car_id: carId,
-        location_id: locationId,
-        location_type: 'dropoff' as const,
-      }))
-
-      const { error: dropoffError } = await supabase
-        .from('car_locations')
-        .insert(dropoffLocationEntries)
-
-      if (dropoffError) {
-        console.error('Error inserting dropoff locations:', dropoffError)
-        // Don't fail the update if car_locations table doesn't exist
-        if (dropoffError.code !== '42P01') { // 42P01 = table does not exist
-          console.warn('[updateCarAction] Dropoff locations insertion failed (non-critical):', dropoffError.message)
-        }
-      }
-    }
+    // Locations are now stored directly in the cars table as pickup_locations and dropoff_locations TEXT[] arrays
+    // Each array contains location IDs (UUIDs as strings) from the locations table
+    // The update above already handles setting these arrays
 
     // Transform the returned car data to match Car interface (camelCase)
     const transformedCar = {
