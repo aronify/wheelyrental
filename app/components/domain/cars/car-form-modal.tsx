@@ -6,6 +6,7 @@ import { Car, CarFormData, TransmissionType, FuelType, CarStatus } from '@/types
 import { X, Image as ImageIcon, Info, Settings, MapPin } from 'lucide-react'
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 import MultiSelectDropdown from '@/app/components/ui/dropdowns/multi-select-dropdown'
+import CityDropdown from '@/app/components/ui/dropdowns/city-dropdown'
 import { getLocationsAction, createLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
 
 interface CarFormModalProps {
@@ -200,6 +201,10 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   const handleSaveCustomLocation = async () => {
     if (!customLocationData.name.trim()) {
       setValidationErrors({ ...validationErrors, customLocation: 'Location name is required' })
+      return
+    }
+    if (!customLocationData.city) {
+      setValidationErrors({ ...validationErrors, customLocation: 'City is required' })
       return
     }
 
@@ -585,51 +590,54 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   return (
     <>
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="relative bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl w-full max-w-2xl sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] overflow-hidden border-2 border-blue-200">
+      <div className="flex min-h-screen items-start sm:items-center justify-center p-2 sm:p-4">
+        <div className="relative bg-gradient-to-br from-white to-gray-50 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-full sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl max-h-[100vh] sm:max-h-[90vh] overflow-hidden border-2 border-blue-200 flex flex-col">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+          <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
                   {mode === 'add' ? t.addCar || 'Add Vehicle' : t.editCar || 'Edit Vehicle'}
                 </h2>
-                <p className="text-blue-100 text-xs">
+                <p className="text-blue-100 text-xs sm:text-sm truncate">
                   {mode === 'add' ? t.addNewCarToFleet || 'Add a new car to your fleet' : car ? `${car.make} ${car.model} • ${car.licensePlate}` : ''}
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all flex-shrink-0 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Close"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 mt-4">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                      activeTab === tab.id
-                        ? 'bg-white text-blue-900 shadow-md'
-                        : 'bg-white/10 text-white hover:bg-white/20'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {tab.label}
-                  </button>
-                )
-              })}
+            {/* Tabs - Scrollable on mobile */}
+            <div className="mt-4 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
+              <div className="flex gap-2 min-w-max sm:min-w-0">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap touch-manipulation min-h-[44px] ${
+                        activeTab === tab.id
+                          ? 'bg-white text-blue-900 shadow-md'
+                          : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                      <span>{tab.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="px-4 sm:px-6 lg:px-8 py-5 lg:py-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          {/* Form - Scrollable content */}
+          <form onSubmit={handleSubmit} className="px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 overflow-y-auto flex-1">
             {/* Image Tab */}
             {activeTab === 'image' && (
                 <div className="space-y-6">
@@ -648,7 +656,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         <img
                           src={imagePreviews[0]}
                           alt="Car preview - Primary"
-                          className="w-full h-80 object-cover"
+                          className="w-full h-48 sm:h-64 lg:h-80 object-cover"
                         />
                         <button
                           type="button"
@@ -663,13 +671,13 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
 
                       {/* Additional Images Grid */}
                       {imagePreviews.length > 1 && (
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                           {imagePreviews.slice(1).map((preview, index) => (
                             <div key={index + 1} className="relative rounded-xl overflow-hidden border-2 border-gray-300 shadow-md group">
                               <img
                                 src={preview}
                                 alt={`Car preview ${index + 2}`}
-                                className="w-full h-32 object-cover"
+                                className="w-full h-24 sm:h-32 object-cover"
                               />
                               <button
                                 type="button"
@@ -688,7 +696,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                       {/* Add More Photos Button */}
                       <label
                         htmlFor="car-image-input"
-                        className="w-full px-6 py-3 border-2 border-blue-900 text-blue-900 rounded-xl font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full px-6 py-3.5 sm:py-3 border-2 border-blue-900 text-blue-900 rounded-xl font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 cursor-pointer touch-manipulation min-h-[48px] sm:min-h-[44px] text-base sm:text-sm"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -699,7 +707,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                   ) : (
                     <label
                       htmlFor="car-image-input"
-                      className={`flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all ${
+                      className={`flex flex-col items-center justify-center w-full h-64 sm:h-80 border-4 border-dashed rounded-xl sm:rounded-2xl cursor-pointer transition-all touch-manipulation ${
                         isDragging 
                           ? 'border-blue-900 bg-blue-50 scale-105' 
                           : 'border-gray-300 hover:border-blue-600 hover:bg-gray-50'
@@ -738,7 +746,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
             {activeTab === 'details' && (
               <div className="space-y-6">
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ overflow: 'visible' }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6" style={{ overflow: 'visible' }}>
                     {/* Make */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -754,7 +762,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, make: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
+                        className={`w-full px-4 sm:px-4 py-3.5 sm:py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[48px] sm:min-h-[44px] text-base touch-manipulation ${
                           validationErrors.make ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="e.g., Toyota, BMW, Mercedes"
@@ -779,7 +787,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, model: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
+                        className={`w-full px-4 sm:px-4 py-3.5 sm:py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[48px] sm:min-h-[44px] text-base touch-manipulation ${
                           validationErrors.model ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="e.g., Corolla, X5, E-Class"
@@ -806,7 +814,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, year: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
+                        className={`w-full px-4 sm:px-4 py-3.5 sm:py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[48px] sm:min-h-[44px] text-base touch-manipulation ${
                           validationErrors.year ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="2024"
@@ -831,7 +839,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, licensePlate: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 uppercase min-h-[44px] text-base sm:text-sm ${
+                        className={`w-full px-4 sm:px-4 py-3.5 sm:py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 uppercase min-h-[48px] sm:min-h-[44px] text-base touch-manipulation ${
                           validationErrors.licensePlate ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="TR-1234-AB"
@@ -860,7 +868,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                           }
                           setIsColorDropdownOpen(!isColorDropdownOpen)
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white flex items-center justify-between hover:border-blue-400 min-h-[44px] text-base sm:text-sm ${
+                        className={`w-full px-4 sm:px-4 py-3.5 sm:py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 bg-white flex items-center justify-between hover:border-blue-400 min-h-[48px] sm:min-h-[44px] text-base touch-manipulation ${
                           validationErrors.color ? 'border-red-500' : 'border-gray-300'
                         }`}
                       >
@@ -949,7 +957,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
             {/* Specs Tab */}
             {activeTab === 'specs' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {/* Transmission */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -1021,7 +1029,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             setValidationErrors({ ...validationErrors, seats: '' })
                           }
                         }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[44px] text-base sm:text-sm ${
+                        className={`w-full px-4 sm:px-4 py-3.5 sm:py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[48px] sm:min-h-[44px] text-base touch-manipulation ${
                           validationErrors.seats ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="5"
@@ -1043,13 +1051,13 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         value={newFeature}
                         onChange={(e) => setNewFeature(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddFeature())}
-                        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900"
+                        className="flex-1 px-4 sm:px-4 py-3.5 sm:py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 min-h-[48px] sm:min-h-[44px] text-base touch-manipulation"
                         placeholder="e.g., Air Conditioning, GPS, Bluetooth"
                       />
                       <button
                         type="button"
                         onClick={handleAddFeature}
-                        className="px-6 py-3 bg-blue-900 text-white font-semibold rounded-xl hover:bg-blue-800 transition-colors"
+                        className="px-5 sm:px-6 py-3.5 sm:py-3 bg-blue-900 text-white font-semibold rounded-xl hover:bg-blue-800 transition-colors touch-manipulation min-h-[48px] sm:min-h-[44px] text-base sm:text-sm whitespace-nowrap"
                       >
                         {t.add || 'Add'}
                       </button>
@@ -1150,84 +1158,105 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             </div>
                           )}
                           {showCustomLocationForm === 'pickup' && (
-                            <div className="mt-6 p-6 lg:p-8 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border-2 border-blue-300 rounded-2xl shadow-lg">
-                              <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-2 bg-blue-600 rounded-lg">
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
+                            <div className="mt-6 w-full max-w-4xl mx-auto p-8 lg:p-10 bg-white border-2 border-blue-200 rounded-2xl shadow-xl">
+                              <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-gray-100">
+                                <div className="flex items-center gap-4">
+                                  <div className="p-3 bg-blue-600 rounded-xl shadow-md">
+                                    <MapPin className="w-6 h-6 text-white" />
                                   </div>
                                   <div>
-                                    <h4 className="text-base font-bold text-gray-900">
-                                      {t.addCustomLocation || 'Add Custom Pickup Location'}
+                                    <h4 className="text-xl font-bold text-gray-900">
+                                      {t.addCustomLocation || 'Add New Pickup Location'}
                                     </h4>
-                                    <p className="text-xs text-gray-500 mt-0.5">Create a new location for vehicle pickup</p>
+                                    <p className="text-sm text-gray-600 mt-1">Create a custom location where customers can pick up this vehicle</p>
                                   </div>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={handleCancelCustomLocation}
-                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-lg transition-all"
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+                                  aria-label="Close"
                                 >
-                                  <X className="w-5 h-5" />
+                                  <X className="w-6 h-6" />
                                 </button>
                               </div>
-                              <div className="space-y-5">
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                                    {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.name}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
-                                    className={`w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white ${
-                                      validationErrors.customLocation ? 'border-red-500' : ''
-                                    }`}
-                                    placeholder={t.enterLocationName || 'Enter location name (e.g., Airport Terminal)'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                                    {t.address || 'Street Address'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.address}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
-                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
-                                    placeholder={t.enterAddress || 'Enter street address'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                                    {t.city || 'City'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.city}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, city: e.target.value })}
-                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
-                                    placeholder={t.enterCity || 'Enter city name'}
-                                  />
+                              <div className="space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                  <div className="lg:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-900 mb-3">
+                                      {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customLocationData.name}
+                                      onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
+                                      className={`w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation ${
+                                        validationErrors.customLocation ? 'border-red-500' : 'border-gray-300'
+                                      }`}
+                                      placeholder={t.enterLocationName || 'e.g., Airport Terminal, Downtown Office, Hotel Lobby'}
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">Give your location a clear, recognizable name</p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-3">
+                                      {t.city || 'City'} <span className="text-red-500">*</span>
+                                    </label>
+                                    <CityDropdown
+                                      value={customLocationData.city}
+                                      onChange={(city) => setCustomLocationData({ ...customLocationData, city })}
+                                      placeholder={t.enterCity || 'Select a city'}
+                                      className="w-full"
+                                      error={validationErrors.customLocation ? true : false}
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">Choose the city where this location is located</p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-3">
+                                      {t.address || 'Street Address'}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customLocationData.address}
+                                      onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
+                                      className="w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation"
+                                      placeholder={t.enterAddress || 'e.g., Rruga Durresit 123'}
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">Optional: Add the specific street address</p>
+                                  </div>
                                 </div>
                                 {validationErrors.customLocation && (
-                                  <p className="mt-1 text-sm text-red-600">{validationErrors.customLocation}</p>
+                                  <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                                    <p className="text-sm text-red-600 font-medium">{validationErrors.customLocation}</p>
+                                  </div>
                                 )}
-                                <div className="flex gap-4 pt-2">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t-2 border-gray-100">
                                   <button
                                     type="button"
                                     onClick={handleSaveCustomLocation}
-                                    disabled={isSavingCustomLocation || !customLocationData.name.trim()}
-                                    className="flex-1 px-6 py-4 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg"
+                                    disabled={isSavingCustomLocation || !customLocationData.name.trim() || !customLocationData.city}
+                                    className="flex-1 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px] sm:min-h-[44px]"
                                   >
-                                    {isSavingCustomLocation ? (t.saving || 'Saving...') : (t.save || 'Save Location')}
+                                    {isSavingCustomLocation ? (
+                                      <>
+                                        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        {t.saving || 'Saving...'}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        {t.save || 'Save Location'}
+                                      </>
+                                    )}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={handleCancelCustomLocation}
-                                    className="px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base"
+                                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base touch-manipulation min-h-[48px] sm:min-h-[44px]"
                                   >
                                     {t.cancel || 'Cancel'}
                                   </button>
@@ -1299,84 +1328,105 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                             </div>
                           )}
                           {showCustomLocationForm === 'dropoff' && (
-                            <div className="mt-6 p-6 lg:p-8 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border-2 border-blue-300 rounded-2xl shadow-lg">
-                              <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-2 bg-blue-600 rounded-lg">
-                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
+                            <div className="mt-6 w-full max-w-4xl mx-auto p-8 lg:p-10 bg-white border-2 border-green-200 rounded-2xl shadow-xl">
+                              <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-gray-100">
+                                <div className="flex items-center gap-4">
+                                  <div className="p-3 bg-green-600 rounded-xl shadow-md">
+                                    <MapPin className="w-6 h-6 text-white" />
                                   </div>
                                   <div>
-                                    <h4 className="text-base font-bold text-gray-900">
-                                      {t.addCustomLocation || 'Add Custom Dropoff Location'}
+                                    <h4 className="text-xl font-bold text-gray-900">
+                                      {t.addCustomLocation || 'Add New Dropoff Location'}
                                     </h4>
-                                    <p className="text-xs text-gray-500 mt-0.5">Create a new location for vehicle dropoff</p>
+                                    <p className="text-sm text-gray-600 mt-1">Create a custom location where customers can return this vehicle</p>
                                   </div>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={handleCancelCustomLocation}
-                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-lg transition-all"
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+                                  aria-label="Close"
                                 >
-                                  <X className="w-5 h-5" />
+                                  <X className="w-6 h-6" />
                                 </button>
                               </div>
-                              <div className="space-y-5">
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                                    {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.name}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
-                                    className={`w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white ${
-                                      validationErrors.customLocation ? 'border-red-500' : ''
-                                    }`}
-                                    placeholder={t.enterLocationName || 'Enter location name (e.g., Airport Terminal)'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                                    {t.address || 'Street Address'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.address}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
-                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
-                                    placeholder={t.enterAddress || 'Enter street address'}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                                    {t.city || 'City'}
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={customLocationData.city}
-                                    onChange={(e) => setCustomLocationData({ ...customLocationData, city: e.target.value })}
-                                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white"
-                                    placeholder={t.enterCity || 'Enter city name'}
-                                  />
+                              <div className="space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                  <div className="lg:col-span-2">
+                                    <label className="block text-sm font-bold text-gray-900 mb-3">
+                                      {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customLocationData.name}
+                                      onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
+                                      className={`w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation ${
+                                        validationErrors.customLocation ? 'border-red-500' : 'border-gray-300'
+                                      }`}
+                                      placeholder={t.enterLocationName || 'e.g., Airport Terminal, Downtown Office, Hotel Lobby'}
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">Give your location a clear, recognizable name</p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-3">
+                                      {t.city || 'City'} <span className="text-red-500">*</span>
+                                    </label>
+                                    <CityDropdown
+                                      value={customLocationData.city}
+                                      onChange={(city) => setCustomLocationData({ ...customLocationData, city })}
+                                      placeholder={t.enterCity || 'Select a city'}
+                                      className="w-full"
+                                      error={validationErrors.customLocation ? true : false}
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">Choose the city where this location is located</p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-3">
+                                      {t.address || 'Street Address'}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customLocationData.address}
+                                      onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
+                                      className="w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation"
+                                      placeholder={t.enterAddress || 'e.g., Rruga Durresit 123'}
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">Optional: Add the specific street address</p>
+                                  </div>
                                 </div>
                                 {validationErrors.customLocation && (
-                                  <p className="mt-1 text-sm text-red-600">{validationErrors.customLocation}</p>
+                                  <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                                    <p className="text-sm text-red-600 font-medium">{validationErrors.customLocation}</p>
+                                  </div>
                                 )}
-                                <div className="flex gap-4 pt-2">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t-2 border-gray-100">
                                   <button
                                     type="button"
                                     onClick={handleSaveCustomLocation}
-                                    disabled={isSavingCustomLocation || !customLocationData.name.trim()}
-                                    className="flex-1 px-6 py-4 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg"
+                                    disabled={isSavingCustomLocation || !customLocationData.name.trim() || !customLocationData.city}
+                                    className="flex-1 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px] sm:min-h-[44px]"
                                   >
-                                    {isSavingCustomLocation ? (t.saving || 'Saving...') : (t.save || 'Save Location')}
+                                    {isSavingCustomLocation ? (
+                                      <>
+                                        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        {t.saving || 'Saving...'}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        {t.save || 'Save Location'}
+                                      </>
+                                    )}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={handleCancelCustomLocation}
-                                    className="px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base"
+                                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base touch-manipulation min-h-[48px] sm:min-h-[44px]"
                                   >
                                     {t.cancel || 'Cancel'}
                                   </button>
@@ -1393,12 +1443,12 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
               )}
             </form>
 
-            {/* Footer */}
-            <div className="bg-white border-t-2 border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex justify-between gap-3">
+            {/* Footer - Sticky on mobile */}
+            <div className="bg-white border-t-2 border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-col sm:flex-row justify-between gap-3 flex-shrink-0 sticky bottom-0">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                className="w-full sm:w-auto px-6 py-3.5 sm:py-3 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px] text-base sm:text-sm"
               >
                 {t.cancel || 'Cancel'}
               </button>
@@ -1407,7 +1457,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                 type="button"
                 onClick={handleSaveClick}
                 disabled={isSubmitting}
-                className="px-6 sm:px-8 py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-base sm:text-sm"
               >
                 {isSubmitting ? (
                   <>

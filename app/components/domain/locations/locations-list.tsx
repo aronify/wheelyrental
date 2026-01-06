@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/i18n/language-context'
 import { getLocationsAction, createLocationAction, updateLocationAction, deleteLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
+import CityDropdown from '@/app/components/ui/dropdowns/city-dropdown'
 
 interface LocationItem {
   id: string
@@ -225,12 +226,11 @@ export default function LocationsPageRedesigned({ initialLocations }: LocationsP
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   City
                 </label>
-                <input
-                  type="text"
+                <CityDropdown
                   value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all"
-                  placeholder="City name"
+                  onChange={(city) => setFormData({ ...formData, city })}
+                  placeholder="Select a city"
+                  className="w-full"
                 />
               </div>
             </div>
