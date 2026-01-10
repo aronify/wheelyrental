@@ -478,6 +478,16 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                   </div>
                 </div>
 
+                {/* Extras Badge */}
+                {car.extras && car.extras.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-blue-900 mb-3 bg-blue-50 rounded-lg px-2.5 py-1.5 w-fit">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-semibold">{car.extras.length} extra{car.extras.length !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
+
                 {/* Price */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 pt-3 sm:pt-4 border-t border-gray-100">
                   <div>
@@ -566,6 +576,16 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                       {car.color}
                     </div>
                   </div>
+
+                  {/* Extras Badge - List View */}
+                  {car.extras && car.extras.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-blue-900 mb-3 bg-blue-50 rounded-lg px-2.5 py-1.5 w-fit">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="font-semibold">{car.extras.length} extra{car.extras.length !== 1 ? 's' : ''} available</span>
+                    </div>
+                  )}
 
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div className="flex items-baseline gap-2">

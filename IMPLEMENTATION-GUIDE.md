@@ -190,3 +190,4 @@ If issues occur:
 5. **Audit Trail**: `created_at`/`updated_at` per association
 6. **Scalability**: Efficient queries for "cars at location X"
 
+

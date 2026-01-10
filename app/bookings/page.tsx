@@ -3,7 +3,8 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import BookingsPageRedesigned from '@/app/components/domain/bookings/bookings-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
-import { ensureUserCompany, getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
+import NoCompanyAlert from '@/app/components/ui/alerts/no-company-alert'
+import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -44,89 +45,80 @@ export default async function BookingsRoute() {
     // Silently continue without profile data
   }
 
-  // Get user's company_id using helper (more reliable)
-  const companyId = await ensureUserCompany(user.id, user.email) || await getUserCompanyId(user.id)
+  // Get user's company ID - DO NOT create automatically
+  const companyId = await getUserCompanyId(user.id)
   
-  if (!companyId) {
-    // User has no company yet
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <DashboardHeader
-          userEmail={user.email || ''}
-          agencyName={profile?.agency_name}
-          agencyLogo={profile?.logo}
-        />
-        <QuickAccessMenu />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          <BookingsPageRedesigned initialBookings={[]} />
-        </main>
-      </div>
-    )
-  }
+  // Fetch bookings with car, customer, and location details from Supabase (only if company exists)
+  let bookings: any[] = []
+  let bookingsError = null
   
-  // Fetch bookings with car, customer, and location details from Supabase
-  // Bookings are company-scoped (bookings.company_id is required)
-  // RLS will automatically filter by company_id, but we keep explicit filter for clarity
-  const { data: bookings, error: bookingsError } = await supabase
-    .from('bookings')
-    .select(`
-      *,
-      car:cars(
-        id,
-        company_id,
-        make,
-        model,
-        year,
-        license_plate,
-        color,
-        transmission,
-        fuel_type,
-        seats,
-        daily_rate,
-        deposit_required,
-        status,
-        image_url,
-        features,
-        created_at,
-        updated_at
-      ),
-      customer:customers(
-        id,
-        user_id,
-        full_name,
-        phone
-      ),
-      pickup_location:locations!pickup_location_id(
-        id,
-        name,
-        address_line_1,
-        city
-      ),
-      dropoff_location:locations!dropoff_location_id(
-        id,
-        name,
-        address_line_1,
-        city
-      )
-    `)
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false })
-  
-  // Log errors for debugging
-  if (bookingsError) {
-    console.error('[BookingsPage] Error fetching bookings:', {
-      message: bookingsError.message,
-      code: bookingsError.code,
-      details: bookingsError.details,
-      hint: bookingsError.hint,
+  if (companyId) {
+    // Bookings are company-scoped (bookings.company_id is required)
+    // RLS will automatically filter by company_id, but we keep explicit filter for clarity
+    const result = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        car:cars(
+          id,
+          company_id,
+          make,
+          model,
+          year,
+          license_plate,
+          color,
+          transmission,
+          fuel_type,
+          seats,
+          daily_rate,
+          deposit_required,
+          status,
+          image_url,
+          features,
+          created_at,
+          updated_at
+        ),
+        customer:customers(
+          id,
+          user_id,
+          full_name,
+          phone
+        ),
+        pickup_location:locations!pickup_location_id(
+          id,
+          name,
+          address_line_1,
+          city
+        ),
+        dropoff_location:locations!dropoff_location_id(
+          id,
+          name,
+          address_line_1,
+          city
+        )
+      `)
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+    
+    bookings = result.data || []
+    bookingsError = result.error
+    
+    // Log errors for debugging
+    if (bookingsError) {
+      console.error('[BookingsPage] Error fetching bookings:', {
+        message: bookingsError.message,
+        code: bookingsError.code,
+        details: bookingsError.details,
+        hint: bookingsError.hint,
+        companyId
+      })
+    }
+    
+    console.log('[BookingsPage] Fetched bookings:', {
+      count: bookings?.length || 0,
       companyId
     })
   }
-  
-  console.log('[BookingsPage] Fetched bookings:', {
-    count: bookings?.length || 0,
-    companyId
-  })
 
   // Transform bookings data to match Booking interface
   const transformedBookings = (bookings || []).map((booking: any) => ({
@@ -208,6 +200,10 @@ export default async function BookingsRoute() {
       <QuickAccessMenu />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Show alert if no company - non-blocking */}
+        {!companyId && <NoCompanyAlert />}
+        
+        {/* Always show bookings page */}
         <BookingsPageRedesigned initialBookings={transformedBookings} />
       </main>
     </div>

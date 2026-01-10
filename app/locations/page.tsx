@@ -3,7 +3,8 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import LocationsPageRedesigned from '@/app/components/domain/locations/locations-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
-import { getUserCompanyId, ensureUserCompany, getUserCompany } from '@/lib/server/data/company-helpers'
+import NoCompanyAlert from '@/app/components/ui/alerts/no-company-alert'
+import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
 import { getLocationsAction } from '@/lib/server/data/cars-data-actions'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
@@ -46,13 +47,10 @@ export default async function LocationsRoute() {
     // Silently continue without profile data
   }
 
-  // Ensure user has a company (create if doesn't exist)
-  let companyId = await getUserCompanyId(user.id)
-  if (!companyId) {
-    companyId = await ensureUserCompany(user.id, user.email)
-  }
+  // Get user's company ID - DO NOT create automatically
+  const companyId = await getUserCompanyId(user.id)
 
-  // Fetch locations for the user's company
+  // Fetch locations for the user's company (only if company exists)
   let initialLocations: any[] = []
   if (companyId) {
     const locationsResult = await getLocationsAction()
@@ -64,7 +62,7 @@ export default async function LocationsRoute() {
         addressLine1: loc.addressLine1,
         isPickupLocation: loc.isPickupLocation,
         isDropoffLocation: loc.isDropoffLocation,
-        isHq: false, // Will be determined from data if needed
+        isHq: false, // Will be determined from data if needed,
       }))
     }
   }
@@ -78,6 +76,10 @@ export default async function LocationsRoute() {
       />
       <QuickAccessMenu />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Show alert if no company - non-blocking */}
+        {!companyId && <NoCompanyAlert />}
+        
+        {/* Always show locations page */}
         <LocationsPageRedesigned initialLocations={initialLocations} />
       </main>
     </div>

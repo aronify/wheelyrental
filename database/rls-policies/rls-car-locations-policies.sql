@@ -146,3 +146,4 @@ CREATE POLICY "car_locations_delete_policy" ON public.car_locations
 --
 -- ============================================================================
 
+

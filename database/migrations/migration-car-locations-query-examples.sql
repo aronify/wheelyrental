@@ -180,3 +180,4 @@ ORDER BY c.make, c.model;
 --    - Use is_active = true filter on locations table
 --    - Consider adding composite indexes if query patterns change
 
+

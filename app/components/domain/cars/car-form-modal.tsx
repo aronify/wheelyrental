@@ -2,12 +2,13 @@
 
 import { useState, FormEvent, useEffect, useRef } from 'react'
 import { useLanguage } from '@/lib/i18n/language-context'
-import { Car, CarFormData, TransmissionType, FuelType, CarStatus } from '@/types/car'
-import { X, Image as ImageIcon, Info, Settings, MapPin } from 'lucide-react'
+import { Car, CarFormData, TransmissionType, FuelType, CarStatus, Extra, ExtraUnit } from '@/types/car'
+import { X, Image as ImageIcon, Info, Settings, MapPin, DollarSign } from 'lucide-react'
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 import MultiSelectDropdown from '@/app/components/ui/dropdowns/multi-select-dropdown'
 import CityDropdown from '@/app/components/ui/dropdowns/city-dropdown'
 import { getLocationsAction, createLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
+import { getExtrasAction, createExtraAction } from '@/lib/server/data/extras-data-actions'
 
 interface CarFormModalProps {
   isOpen: boolean
@@ -20,7 +21,7 @@ interface CarFormModalProps {
 export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car, mode }: CarFormModalProps) {
   const { t } = useLanguage()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState<'image' | 'details' | 'specs' | 'locations'>('image')
+  const [activeTab, setActiveTab] = useState<'image' | 'details' | 'specs' | 'locations' | 'extras'>('image')
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
@@ -65,6 +66,20 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     city: '',
   })
   const [isSavingCustomLocation, setIsSavingCustomLocation] = useState(false)
+
+  // Extras state
+  const [availableExtras, setAvailableExtras] = useState<Extra[]>([])
+  const [isLoadingExtras, setIsLoadingExtras] = useState(false)
+  const [showNewExtraForm, setShowNewExtraForm] = useState(false)
+  const [newExtraData, setNewExtraData] = useState({
+    name: '',
+    description: '',
+    defaultPrice: 0,
+    unit: 'per_day' as ExtraUnit,
+  })
+  const [isSavingNewExtra, setIsSavingNewExtra] = useState(false)
+  const [selectedExtras, setSelectedExtras] = useState<Map<string, { price: number; isIncluded: boolean }>>(new Map())
+  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set())
 
   // Fetch locations from database (filtered by company_id server-side)
   const fetchLocations = async () => {
@@ -147,6 +162,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
   useEffect(() => {
     if (isOpen) {
       fetchLocations()
+      fetchExtras()
     }
   }, [isOpen])
 
@@ -269,6 +285,89 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     setValidationErrors({ ...validationErrors, customLocation: '' })
   }
 
+  // Fetch extras from database
+  const fetchExtras = async () => {
+    setIsLoadingExtras(true)
+    try {
+      const result = await getExtrasAction()
+      if (result.extras) {
+        setAvailableExtras(result.extras)
+      } else if (result.error) {
+        console.error('[CarForm] Error fetching extras:', result.error)
+      }
+    } catch (error) {
+      console.error('[CarForm] Exception fetching extras:', error)
+    } finally {
+      setIsLoadingExtras(false)
+    }
+  }
+
+  // Save new extra
+  const handleSaveNewExtra = async () => {
+    if (!newExtraData.name.trim()) {
+      setValidationErrors({ ...validationErrors, newExtra: 'Extra name is required' })
+      return
+    }
+    if (newExtraData.defaultPrice <= 0) {
+      setValidationErrors({ ...validationErrors, newExtra: 'Price must be greater than 0' })
+      return
+    }
+
+    setIsSavingNewExtra(true)
+    try {
+      const result = await createExtraAction(newExtraData)
+      if (result.extra) {
+        setAvailableExtras([...availableExtras, result.extra])
+        // Auto-select the new extra with default price
+        const newMap = new Map(selectedExtras)
+        newMap.set(result.extra.id, { price: result.extra.defaultPrice, isIncluded: false })
+        setSelectedExtras(newMap)
+        // Reset and close form
+        setShowNewExtraForm(false)
+        setNewExtraData({ name: '', description: '', defaultPrice: 0, unit: 'per_day' })
+        setValidationErrors({ ...validationErrors, newExtra: '' })
+      } else if (result.error) {
+        setValidationErrors({ ...validationErrors, newExtra: result.error })
+      }
+    } catch (error) {
+      console.error('Error saving new extra:', error)
+      setValidationErrors({ ...validationErrors, newExtra: 'Failed to save extra' })
+    } finally {
+      setIsSavingNewExtra(false)
+    }
+  }
+
+  // Toggle extra selection
+  const handleToggleExtra = (extraId: string, defaultPrice: number) => {
+    const newMap = new Map(selectedExtras)
+    if (newMap.has(extraId)) {
+      newMap.delete(extraId)
+    } else {
+      newMap.set(extraId, { price: defaultPrice, isIncluded: false })
+    }
+    setSelectedExtras(newMap)
+  }
+
+  // Update extra price
+  const handleUpdateExtraPrice = (extraId: string, price: number) => {
+    const newMap = new Map(selectedExtras)
+    const existing = newMap.get(extraId)
+    if (existing) {
+      newMap.set(extraId, { ...existing, price })
+      setSelectedExtras(newMap)
+    }
+  }
+
+  // Toggle extra included status
+  const handleToggleExtraIncluded = (extraId: string) => {
+    const newMap = new Map(selectedExtras)
+    const existing = newMap.get(extraId)
+    if (existing) {
+      newMap.set(extraId, { ...existing, isIncluded: !existing.isIncluded })
+      setSelectedExtras(newMap)
+    }
+  }
+
   const [formData, setFormData] = useState<CarFormData>({
     make: '',
     model: '',
@@ -285,6 +384,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     features: [],
     pickupLocations: [],
     dropoffLocations: [],
+    extras: [],
   })
 
   const [newFeature, setNewFeature] = useState('')
@@ -310,10 +410,19 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           features: car.features || [],
           pickupLocations: car.pickupLocations || [],
           dropoffLocations: car.dropoffLocations || [],
+          extras: car.extras || [],
         })
         setImagePreviews(car.imageUrl ? [car.imageUrl] : [])
+        // Load car extras into selectedExtras map
+        if (car.extras) {
+          const extrasMap = new Map()
+          car.extras.forEach(ce => {
+            extrasMap.set(ce.extraId, { price: ce.price, isIncluded: ce.isIncluded })
+          })
+          setSelectedExtras(extrasMap)
+        }
       } else {
-        // Adding new car - reset form
+        // Adding new car
         setFormData({
           make: '',
           model: '',
@@ -324,29 +433,89 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           fuelType: 'petrol',
           seats: 5,
           dailyRate: 0,
-          depositRequired: undefined,
+          depositRequired: 0,
           imageUrl: '',
-          status: 'active', // Always default to 'active' - system handles status automatically
+          status: 'active', // Default to active for new cars
           features: [],
           pickupLocations: [],
           dropoffLocations: [],
+          extras: [],
         })
         setImagePreviews([])
         setImageFiles([])
+        setImageError(null)
+        setSelectedExtras(new Map())
       }
-      setNewFeature('')
-      setImageError(null)
       setActiveTab('image')
-      setShowCustomLocationForm(null)
-      setCustomLocationData({ name: '', address: '', city: '' })
+      setValidationErrors({})
+      setCompletedSteps(new Set())
     }
   }, [isOpen, car])
 
-
+  // Handle status-aware form reset
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     // Prevent any form submission - only allow through explicit button click
     return false
+  }
+
+  // Validate current step/tab
+  const validateCurrentTab = (tab: typeof activeTab): boolean => {
+    const errors: Record<string, string> = {}
+    
+    if (tab === 'image') {
+      if (!imagePreviews.length || !imagePreviews[0]) {
+        errors.image = t.required || 'Please upload a car image'
+        setImageError(errors.image)
+      }
+    } else if (tab === 'details') {
+      if (!formData.make || formData.make.trim() === '') {
+        errors.make = t.make || 'Make is required'
+      }
+      if (!formData.model || formData.model.trim() === '') {
+        errors.model = t.model || 'Model is required'
+      }
+      if (!formData.year || formData.year < 1990 || formData.year > new Date().getFullYear() + 1) {
+        errors.year = t.year || 'Valid year is required'
+      }
+      if (!formData.licensePlate || formData.licensePlate.trim() === '') {
+        errors.licensePlate = t.licensePlate || 'License plate is required'
+      }
+      if (!formData.color || formData.color.trim() === '') {
+        errors.color = t.color || 'Color is required'
+      }
+      if (!formData.dailyRate || formData.dailyRate <= 0) {
+        errors.dailyRate = t.dailyRate || 'Daily rate must be greater than 0'
+      }
+    } else if (tab === 'specs') {
+      if (!formData.transmission) {
+        errors.transmission = t.transmission || 'Transmission is required'
+      }
+      if (!formData.fuelType) {
+        errors.fuelType = t.fuelType || 'Fuel type is required'
+      }
+      if (!formData.seats || formData.seats < 1 || formData.seats > 20) {
+        errors.seats = t.seats || 'Valid number of seats is required (1-20)'
+      }
+    } else if (tab === 'locations') {
+      if (!formData.pickupLocations || formData.pickupLocations.length === 0) {
+        errors.pickupLocations = 'At least one pickup location is required'
+      }
+      if (!formData.dropoffLocations || formData.dropoffLocations.length === 0) {
+        errors.dropoffLocations = 'At least one drop-off location is required'
+      }
+    }
+    // Extras tab is optional, no validation required
+    
+    setValidationErrors(errors)
+    
+    if (Object.keys(errors).length > 0) {
+      return false
+    }
+    
+    // Mark this step as completed
+    setCompletedSteps(prev => new Set([...prev, tab]))
+    return true
   }
 
   const validateForm = (): boolean => {
@@ -393,6 +562,14 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     if (!formData.seats || formData.seats < 1 || formData.seats > 20) {
       errors.seats = t.seats || 'Valid number of seats is required (1-20)'
     }
+
+    if (!formData.pickupLocations || formData.pickupLocations.length === 0) {
+      errors.pickupLocations = 'At least one pickup location is required'
+    }
+    
+    if (!formData.dropoffLocations || formData.dropoffLocations.length === 0) {
+      errors.dropoffLocations = 'At least one drop-off location is required'
+    }
     
     setValidationErrors(errors)
     
@@ -405,11 +582,43 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
         setActiveTab('details')
       } else if (errors.transmission || errors.fuelType || errors.seats) {
         setActiveTab('specs')
+      } else if (errors.pickupLocations || errors.dropoffLocations) {
+        setActiveTab('locations')
       }
       return false
     }
     
     return true
+  }
+
+  // Navigate to next tab with validation
+  const handleNextTab = () => {
+    if (!validateCurrentTab(activeTab)) {
+      return
+    }
+
+    const tabOrder: Array<typeof activeTab> = ['image', 'details', 'specs', 'locations', 'extras']
+    const currentIndex = tabOrder.indexOf(activeTab)
+    if (currentIndex < tabOrder.length - 1) {
+      setActiveTab(tabOrder[currentIndex + 1])
+    }
+  }
+
+  // Navigate to previous tab
+  const handlePreviousTab = () => {
+    const tabOrder: Array<typeof activeTab> = ['image', 'details', 'specs', 'locations', 'extras']
+    const currentIndex = tabOrder.indexOf(activeTab)
+    if (currentIndex > 0) {
+      setActiveTab(tabOrder[currentIndex - 1])
+    }
+  }
+
+  // Check if we can proceed (all required tabs completed)
+  const canSaveCar = (): boolean => {
+    return completedSteps.has('image') && 
+           completedSteps.has('details') && 
+           completedSteps.has('specs') && 
+           completedSteps.has('locations')
   }
 
   const handleSaveClick = async () => {
@@ -425,7 +634,18 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     setIsSubmitting(true)
     
     try {
-      await onSubmit({ ...formData, imageUrl: imagePreviews[0] })
+      // Convert selectedExtras Map to array format
+      const extrasArray = Array.from(selectedExtras.entries()).map(([extraId, { price, isIncluded }]) => ({
+        extraId,
+        price,
+        isIncluded,
+      }))
+
+      await onSubmit({ 
+        ...formData, 
+        imageUrl: imagePreviews[0],
+        extras: extrasArray,
+      })
       // Success - parent component will close modal
     } catch (error: unknown) {
       setImageError(error instanceof Error ? error.message : 'Failed to save car. Try using a smaller image.')
@@ -585,6 +805,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     { id: 'details' as const, label: t.details || 'Details', icon: Info },
     { id: 'specs' as const, label: t.specifications || 'Specs', icon: Settings },
     { id: 'locations' as const, label: t.locations || 'Locations', icon: MapPin },
+    { id: 'extras' as const, label: 'Extras', icon: DollarSign },
   ]
 
   return (
@@ -1441,6 +1662,253 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                     </div>
                   </div>
               )}
+
+            {/* Extras Tab */}
+            {activeTab === 'extras' && (
+              <div className="space-y-5">
+                {/* Section Header */}
+                <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
+                  <DollarSign className="w-6 h-6 text-blue-900" />
+                  <h3 className="text-lg font-bold text-gray-900">Car Extras</h3>
+                </div>
+
+                <p className="text-sm text-gray-600">
+                  Select optional extras that customers can add to their booking for additional charges.
+                </p>
+
+                {isLoadingExtras ? (
+                  <div className="flex items-center justify-center py-12">
+                    <svg className="animate-spin h-8 w-8 text-blue-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                ) : (
+                  <>
+                    {/* New Extra Form */}
+                    {showNewExtraForm ? (
+                      <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-500 rounded-2xl p-6 shadow-md">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                              <DollarSign className="w-5 h-5 text-green-600" />
+                              Create New Extra
+                            </h4>
+                            <p className="text-sm text-gray-600 mt-1">Add a new extra that can be offered with this and other vehicles</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowNewExtraForm(false)}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-bold text-gray-900 mb-2">
+                              Extra Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={newExtraData.name}
+                              onChange={(e) => setNewExtraData({ ...newExtraData, name: e.target.value })}
+                              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base"
+                              placeholder="e.g., GPS Navigation, Child Seat, Full Insurance"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-bold text-gray-900 mb-2">
+                              Description
+                            </label>
+                            <textarea
+                              value={newExtraData.description}
+                              onChange={(e) => setNewExtraData({ ...newExtraData, description: e.target.value })}
+                              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base"
+                              placeholder="Brief description of the extra"
+                              rows={2}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-bold text-gray-900 mb-2">
+                                Default Price (€) <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={newExtraData.defaultPrice}
+                                onChange={(e) => setNewExtraData({ ...newExtraData, defaultPrice: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base"
+                                placeholder="10.00"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold text-gray-900 mb-2">
+                                Billing Unit
+                              </label>
+                              <select
+                                value={newExtraData.unit}
+                                onChange={(e) => setNewExtraData({ ...newExtraData, unit: e.target.value as ExtraUnit })}
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base"
+                              >
+                                <option value="per_day">Per Day</option>
+                                <option value="per_booking">Per Booking</option>
+                                <option value="one_time">One Time</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {validationErrors.newExtra && (
+                            <div className="p-3 bg-red-50 border-2 border-red-200 rounded-xl">
+                              <p className="text-sm text-red-600 font-medium">{validationErrors.newExtra}</p>
+                            </div>
+                          )}
+
+                          <div className="flex gap-3 pt-4 border-t border-gray-200">
+                            <button
+                              type="button"
+                              onClick={handleSaveNewExtra}
+                              disabled={isSavingNewExtra}
+                              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                            >
+                              {isSavingNewExtra ? (
+                                <>
+                                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Save Extra
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowNewExtraForm(false)}
+                              className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowNewExtraForm(true)}
+                        className="w-full px-6 py-4 border-2 border-dashed border-blue-900 text-blue-900 rounded-xl font-semibold hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Create New Extra
+                      </button>
+                    )}
+
+                    {/* Available Extras List */}
+                    {availableExtras.length > 0 ? (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Available Extras</h4>
+                        {availableExtras.map((extra) => {
+                          const isSelected = selectedExtras.has(extra.id)
+                          const extraData = selectedExtras.get(extra.id)
+                          
+                          return (
+                            <div
+                              key={extra.id}
+                              className={`border-2 rounded-xl p-4 transition-all ${
+                                isSelected ? 'border-blue-900 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleExtra(extra.id, extra.defaultPrice)}
+                                  className="mt-1 w-5 h-5 text-blue-900 rounded focus:ring-blue-900"
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <h5 className="font-semibold text-gray-900">{extra.name}</h5>
+                                      {extra.description && (
+                                        <p className="text-sm text-gray-600 mt-1">{extra.description}</p>
+                                      )}
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Default: €{extra.defaultPrice.toFixed(2)} {extra.unit.replace('_', ' ')}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {isSelected && extraData && (
+                                    <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                            Price for this car (€)
+                                          </label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={extraData.price}
+                                            onChange={(e) => handleUpdateExtraPrice(extra.id, parseFloat(e.target.value) || 0)}
+                                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm"
+                                          />
+                                        </div>
+                                        <div className="flex items-end">
+                                          <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                              type="checkbox"
+                                              checked={extraData.isIncluded}
+                                              onChange={() => handleToggleExtraIncluded(extra.id)}
+                                              className="w-4 h-4 text-green-600 rounded focus:ring-green-600"
+                                            />
+                                            <span className="text-sm font-medium text-gray-700">
+                                              Included in base rate
+                                            </span>
+                                          </label>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 bg-gray-50 rounded-xl">
+                        <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-600 font-medium">No extras available yet</p>
+                        <p className="text-sm text-gray-500 mt-1">Create your first extra using the button above</p>
+                      </div>
+                    )}
+
+                    {selectedExtras.size > 0 && (
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                        <p className="text-sm font-semibold text-blue-900">
+                          {selectedExtras.size} extra{selectedExtras.size !== 1 ? 's' : ''} selected for this car
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             </form>
 
             {/* Footer - Sticky on mobile */}
@@ -1452,30 +1920,67 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
               >
                 {t.cancel || 'Cancel'}
               </button>
+
+              {/* Previous Button */}
+              {activeTab !== 'image' && (
+                <button
+                  type="button"
+                  onClick={handlePreviousTab}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[44px] text-base sm:text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  {t.previous || 'Previous'}
+                </button>
+              )}
               
-              <button
-                type="button"
-                onClick={handleSaveClick}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-base sm:text-sm"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {t.saving || 'Saving...'}
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {mode === 'add' ? (t.addCar || 'Add Vehicle') : (t.saveChanges || 'Save Changes')}
-                  </>
-                )}
-              </button>
+              {/* Next Button or Save Button */}
+              {activeTab !== 'extras' ? (
+                <button
+                  type="button"
+                  onClick={handleNextTab}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-base sm:text-sm"
+                >
+                  {t.next || 'Next'}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSaveClick}
+                  disabled={isSubmitting || !canSaveCar()}
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-3 bg-blue-900 text-white font-bold rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-base sm:text-sm"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {t.saving || 'Saving...'}
+                    </>
+                  ) : !canSaveCar() ? (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      {t.completeAllSteps || 'Complete all steps'}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {mode === 'add' ? (t.addCar || 'Add Vehicle') : (t.saveChanges || 'Save Changes')}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

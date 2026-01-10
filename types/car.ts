@@ -8,8 +8,30 @@
 export type CarStatus = 'active' | 'maintenance' | 'retired'
 export type TransmissionType = 'automatic' | 'manual'
 export type FuelType = 'petrol' | 'diesel' | 'electric' | 'hybrid'
+export type ExtraUnit = 'per_day' | 'per_booking' | 'one_time'
 
 import { Company } from './company'
+
+// Extras types
+export interface Extra {
+  id: string
+  companyId: string
+  name: string
+  description?: string
+  defaultPrice: number
+  unit: ExtraUnit
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CarExtra {
+  carId: string
+  extraId: string
+  price: number
+  isIncluded: boolean // true if included in base daily rate
+  extra?: Extra // Joined extra data
+}
 
 export interface Car {
   id: string
@@ -36,6 +58,8 @@ export interface Car {
   // Location arrays (for form compatibility)
   pickupLocations?: string[]
   dropoffLocations?: string[]
+  // Extras
+  extras?: CarExtra[]
 }
 
 export interface CarFormData {
@@ -60,6 +84,12 @@ export interface CarFormData {
   dropoffLocations?: string[]
   pickupLocation?: string // Legacy single location field
   dropoffLocation?: string // Legacy single location field
+  // Extras
+  extras?: {
+    extraId: string
+    price: number
+    isIncluded: boolean
+  }[]
 }
 
 /**

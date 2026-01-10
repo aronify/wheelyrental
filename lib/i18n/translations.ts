@@ -286,6 +286,10 @@ export interface LanguageDictionary {
   companyDataRequiredTitle: string;
   companyDataRequiredMessage: string;
   updateCompanyInfo: string;
+  noCompanyTitle: string;
+  noCompanyMessage: string;
+  completeProfileToStart: string;
+  goToProfile: string;
   active: string;
   found: string;
   statusPickedup: string;
@@ -342,11 +346,30 @@ export interface LanguageDictionary {
   provideMoreDetails: string;
   add: string;
   next: string;
+  previous: string;
+  completeAllSteps: string;
   vin: string;
   saving: string;
   saveChanges: string;
   addYourFirstCar: string;
   edit: string;
+
+  // Quick Start Guide
+  quickStartTitle: string;
+  quickStartSubtitle: string;
+  quickStartProfileTitle: string;
+  quickStartProfileDesc: string;
+  quickStartLocationsTitle: string;
+  quickStartLocationsDesc: string;
+  quickStartCarsTitle: string;
+  quickStartCarsDesc: string;
+  quickStartComplete: string;
+  quickStartCompleteMsg: string;
+  completeNow: string;
+  addLocations: string;
+  manage: string;
+  viewFleet: string;
+  dismiss: string;
   image: string;
   specifications: string;
   pricing: string;
@@ -410,6 +433,27 @@ export interface LanguageDictionary {
   loading: string;
   depositRequired: string;
   depositOptional: string;
+  
+  // Extras
+  extras: string;
+  carExtras: string;
+  createNewExtra: string;
+  extraName: string;
+  extraDescription: string;
+  defaultPrice: string;
+  billingUnit: string;
+  perBooking: string;
+  oneTime: string;
+  saveExtra: string;
+  availableExtras: string;
+  noExtrasYet: string;
+  createFirstExtra: string;
+  extrasSelected: string;
+  priceForThisCar: string;
+  includedInBaseRate: string;
+  selectExtras: string;
+  addExtraDescription: string;
+  removeExtra: string;
 }
 
 export const translations: Record<Language, LanguageDictionary> = {
@@ -691,6 +735,10 @@ export const translations: Record<Language, LanguageDictionary> = {
     companyDataRequiredTitle: "Complete Your Company Information",
     companyDataRequiredMessage: "Please add your company name, email, and phone number to continue using the dashboard.",
     updateCompanyInfo: "Update Company Info",
+    noCompanyTitle: "⚠️ Complete Your Profile First",
+    noCompanyMessage: "You need to complete your company information before you can add cars, locations, or manage bookings.",
+    completeProfileToStart: "Please fill out your profile to start using the platform.",
+    goToProfile: "Go to Profile",
     active: "Active",
     found: "found",
     statusPickedup: "Picked Up",
@@ -748,11 +796,30 @@ export const translations: Record<Language, LanguageDictionary> = {
     provideMoreDetails: "Provide More Details",
     add: "Add",
     next: "Next",
+    previous: "Previous",
+    completeAllSteps: "Complete all steps",
     vin: "VIN",
     saving: "Saving...",
     saveChanges: "Save Changes",
     addYourFirstCar: "Add your first car to get started",
     edit: "Edit",
+
+    // Quick Start Guide
+    quickStartTitle: "Quick Start Guide",
+    quickStartSubtitle: "steps completed",
+    quickStartProfileTitle: "Complete Your Profile",
+    quickStartProfileDesc: "Add your company details to get started",
+    quickStartLocationsTitle: "Add Pickup Locations",
+    quickStartLocationsDesc: "Set up where customers can get your cars",
+    quickStartCarsTitle: "Add Your First Vehicle",
+    quickStartCarsDesc: "List your cars to start receiving bookings",
+    quickStartComplete: "🎉 All Set!",
+    quickStartCompleteMsg: "Your profile is ready. You can now start receiving bookings!",
+    completeNow: "Complete Now",
+    addLocations: "Add Locations",
+    manage: "Manage",
+    viewFleet: "View Fleet",
+    dismiss: "Dismiss",
     image: "Photo",
     specifications: "Specs",
     pricing: "Pricing",
@@ -823,10 +890,31 @@ export const translations: Record<Language, LanguageDictionary> = {
     loading: "Loading...",
     depositRequired: "Deposit Required",
     depositOptional: "Optional: Amount required as deposit for this car",
+    
+    // Extras
+    extras: "Extras",
+    carExtras: "Car Extras",
+    createNewExtra: "Create New Extra",
+    extraName: "Extra Name",
+    extraDescription: "Description",
+    defaultPrice: "Default Price",
+    billingUnit: "Billing Unit",
+    perBooking: "Per Booking",
+    oneTime: "One Time",
+    saveExtra: "Save Extra",
+    availableExtras: "Available Extras",
+    noExtrasYet: "No extras available yet",
+    createFirstExtra: "Create your first extra using the button above",
+    extrasSelected: "extra(s) selected for this car",
+    priceForThisCar: "Price for this car",
+    includedInBaseRate: "Included in base rate",
+    selectExtras: "Select optional extras that customers can add to their booking for additional charges",
+    addExtraDescription: "Add a new extra that can be offered with this and other vehicles",
+    removeExtra: "Remove",
   },
   al: {
     allBookings: "Të gjitha rezervimet",
-    filterByStatus: "Filtro sipas statusit",
+    filterByStatus: "Filtro sipas gjendjes",
     filterByDate: "Filtro sipas datës",
     filterByRating: "Filtro sipas vlerësimit",
     statusPending: "Në pritje",
@@ -834,83 +922,84 @@ export const translations: Record<Language, LanguageDictionary> = {
     statusPickedUp: "E marrë",
     statusReturned: "E kthyer",
     statusCancelled: "E anuluar",
-    totalPrice: "Çmimi total",
-    customer: "Klienti",
-    car: "Mjeti",
+    totalPrice: "Çmimi gjithsej",
+    customer: "Klient",
+    car: "Makina",
     pickup: "Marrja",
     dropoff: "Dorëzimi",
     createdAt: "Krijuar më",
-    actions: "Veprimet",
-    markAsConfirmed: "Shëno si të konfirmuar",
-    markAsPickedUp: "Shëno si të marrë",
-    markAsReturned: "Shëno si të kthyer",
+    actions: "Veprime",
+    markAsConfirmed: "Konfirmo rezervimin",
+    markAsPickedUp: "Shëno si e marrë",
+    markAsReturned: "Shëno si e kthyer",
     cancelBooking: "Anulo rezervimin",
-    noResults: "S'ka rezultate",
-    searchByCustomerOrCar: "Kërko sipas klientit ose mjetit...",
-    bookings: "Rezervimet",
-    bookingsSubtitle: "Menaxho të gjitha rezervimet e makinave",
-    manageBookingsDescription: "Menaxho të gjitha prenotimet e tua",
+    noResults: "Nuk u gjet asnjë rezervim",
+    searchByCustomerOrCar: "Kërko sipas klientit ose makinës...",
+    bookings: "Rezervime",
+    bookingsSubtitle: "Menaxho të gjitha rezervimet",
+    manageBookingsDescription: "Kontrollo dhe përditëso rezervimet",
     view: "Shiko",
     all: "Të gjitha",
     from: "Nga",
     to: "Deri",
-    dealerName: "Tregtari",
+    dealerName: "Agjencia",
     dates: "Datat",
-    status: "Statusi",
+    status: "Gjendja",
     bookingDetails: "Detajet e rezervimit",
     close: "Mbyll",
-    success: "Sukses",
-    bookingUpdated: "Statusi i rezervimit u përditësua me sukses",
-    bookingTimeline: "Kronologjia e rezervimit",
+    success: "U krye",
+    bookingUpdated: "Rezervimi u përditësua me sukses",
+    bookingTimeline: "Ecuria e rezervimit",
 
     // Dashboard
-    dashboard: "Paneli",
-    welcomeBack: "Mirë se vini përsëri",
+    dashboard: "Paneli kryesor",
+    welcomeBack: "Mirë se u riktheve",
     overview: "Përmbledhje",
-    activeRentals: "Qiradhëniet aktive",
-    totalRevenue: "Të ardhurat totale",
-    pendingApprovals: "Në pritje të miratimit",
+    activeRentals: "Qira aktive",
+    totalRevenue: "Të ardhura gjithsej",
+    pendingApprovals: "Në pritje konfirmimi",
     recentBookings: "Rezervimet e fundit",
     viewAllBookings: "Shiko të gjitha rezervimet",
     logout: "Dil",
-    loggingOut: "Duke dalur...",
-    signOutAccount: "Dil nga llogaria jote",
+    loggingOut: "Duke dalë...",
+    signOutAccount: "Dil nga llogaria",
     account: "Llogaria",
     profile: "Profili",
     settings: "Cilësimet",
     viewOverview: "Shiko përmbledhjen",
     editProfileSettings: "Ndrysho profilin dhe cilësimet",
-    carManagement: "Menaxhimi i mjeteve",
-    analytics: "Analizat",
-    revenueOverTime: "Të ardhurat me kalimin e kohës",
+    carManagement: "Menaxhimi i makinave",
+    analytics: "Statistika",
+    revenueOverTime: "Të ardhurat me kohën",
     last6Months: "6 muajt e fundit",
-    bookingsTrend: "Tendenca e rezervimeve",
-    bookingsByStatus: "Rezervimet sipas statusit",
-    noDataAvailable: "Nuk ka të dhëna të disponueshme",
+    bookingsTrend: "Ecuria e rezervimeve",
+    bookingsByStatus: "Rezervime sipas gjendjes",
+    noDataAvailable: "Nuk ka të dhëna",
     vsLastMonth: "krahasuar me muajin e kaluar",
-    currentlyActive: "Aktualisht aktive",
-    awaitingConfirmation: "Në pritje të konfirmimit",
+    currentlyActive: "Aktive tani",
+    awaitingConfirmation: "Në pritje",
     thisMonth: "Këtë muaj",
-    allTime: "Gjithë koha",
-    allTimeDistribution: "Shpërndarja e gjithë kohës",
-    todayBookings: "Aktiviteti i sotëm",
-    monthlyBookings: "Rezervimet mujore",
-    monthlyRevenue: "Të ardhurat mujore",
+    allTime: "Gjithë kohës",
+    allTimeDistribution: "Shpërndarje e përgjithshme",
+    todayBookings: "Sot",
+    monthlyBookings: "Rezervime mujore",
+    monthlyRevenue: "Të ardhura mujore",
     back: "Kthehu",
     quickActions: "Veprime të shpejta",
     goTo: "Shko te",
     recentActivity: "Aktiviteti i fundit",
-    topPerformingCars: "Mjetet më të performuara",
-    upcomingBookings: "Rezervimet e ardhshme",
-    upcomingPickups: "Marrjet e ardhshme",
-    noUpcomingPickups: "Nuk ka marrje të ardhshme",
-    fleetStatus: "Statusi i flotës",
+    topPerformingCars: "Makinat më të përdorura",
+    upcomingBookings: "Rezervime në vazhdim",
+    upcomingPickups: "Marrje të afërta",
+    noUpcomingPickups: "Nuk ka marrje të planifikuara",
+    noBookingsYet: "Ende pa rezervime",
+    fleetStatus: "Gjendja e flotës",
     todaysSchedule: "Orari i sotëm",
-    revenue: "Të ardhurat",
+    revenue: "Të ardhura",
     fleet: "Flota",
-    activity: "Aktiviteti",
+    activity: "Aktivitet",
     viewAll: "Shiko të gjitha",
-    addNewCar: "Shto mjet të ri",
+    addNewCar: "Shto makinë",
     addBooking: "Shto rezervim",
     viewReports: "Shiko raportet",
     manageFleet: "Menaxho flotën",
@@ -921,57 +1010,56 @@ export const translations: Record<Language, LanguageDictionary> = {
     daysAgo: "ditë më parë",
     newBooking: "Rezervim i ri",
     bookingConfirmed: "Rezervimi u konfirmua",
-    carReturned: "Mjeti u kthye",
+    carReturned: "Makina u kthye",
     paymentReceived: "Pagesa u mor",
 
     // Cars
-    cars: "Automjetet",
-    carsSubtitle: "Menaxho flotën tënde të mjeteve",
-    addCar: "Shto mjet",
-    editCar: "Ndrysho mjetin",
-    deleteCar: "Fshi mjetin",
-    carDetails: "Detajet e mjetit",
+    cars: "Makina",
+    carsSubtitle: "Lista e makinave",
+    addCar: "Shto makinë",
+    editCar: "Ndrysho makinën",
+    deleteCar: "Fshi makinën",
+    carDetails: "Detajet e makinës",
     brand: "Marka",
     model: "Modeli",
     year: "Viti",
     plateNumber: "Targa",
     color: "Ngjyra",
-    selectColor: "Zgjidh një ngjyrë",
-    transmission: "Transmisioni",
-    fuelType: "Lloji i karburantit",
-    seats: "Ulëset",
-    dailyRate: "Çmimi ditor",
-    mileage: "Kilometrazhi",
+    selectColor: "Zgjidh ngjyrën",
+    transmission: "Kambio",
+    fuelType: "Karburanti",
+    seats: "Vendet",
+    dailyRate: "Çmimi në ditë",
+    mileage: "Kilometra",
     description: "Përshkrimi",
-    features: "Karakteristikat",
-    carName: "Emri i mjetit",
-    automatic: "Automatik",
-    manual: "Manual",
+    features: "Veçori",
+    carName: "Emri i makinës",
+    automatic: "Automatike",
+    manual: "Manuale",
     petrol: "Benzinë",
     diesel: "Naftë",
-    electric: "Elektrik",
-    hybrid: "Hibrid",
-    statusAvailable: "I disponueshëm",
-    statusRented: "I qiraxhuar",
-    statusMaintenance: "Në mirëmbajtje",
-    statusInactive: "Jo aktiv",
-    statusActive: "Aktiv",
-    statusRetired: "I tërhequr",
-    totalCars: "Mjetet totale",
-    availableCars: "Mjetet e disponueshme",
+    electric: "Elektrike",
+    hybrid: "Hibride",
+    statusAvailable: "E lirë",
+    statusRented: "Me qira",
+    statusMaintenance: "Në servis",
+    statusInactive: "Jo aktive",
+    statusActive: "Aktive",
+    statusRetired: "Jashtë përdorimit",
+    totalCars: "Gjithsej makina",
+    availableCars: "Makina të lira",
     confirmDelete: "Konfirmo fshirjen",
-    confirmDeleteMessage:
-      "Jeni të sigurt që dëshironi të fshini këtë mjet? Ky veprim nuk mund të anullohet.",
+    confirmDeleteMessage: "Je i sigurt që dëshiron ta fshish këtë makinë?",
     cancel: "Anulo",
     delete: "Fshi",
     save: "Ruaj",
     update: "Përditëso",
-    required: "I detyrueshëm",
-    searchCars: "Kërko mjete...",
-    noCarsFound: "Nuk u gjetën mjete",
-    carAdded: "Mjeti u shtua me sukses",
-    carUpdated: "Mjeti u përditësua me sukses",
-    carDeleted: "Mjeti u fshi me sukses",
+    required: "E detyrueshme",
+    searchCars: "Kërko makina...",
+    noCarsFound: "Nuk u gjet asnjë makinë",
+    carAdded: "Makina u shtua",
+    carUpdated: "Makina u përditësua",
+    carDeleted: "Makina u fshi",
     perDay: "në ditë",
     km: "km",
 
@@ -1017,7 +1105,6 @@ export const translations: Record<Language, LanguageDictionary> = {
     sortByLastBooking: "Rezervimi i fundit",
     viewDetails: "Shiko detajet",
     bookingHistory: "Historia e rezervimeve",
-    noBookingsYet: "Ende pa rezervime",
     topCustomers: "Klientët kryesorë",
     recentCustomers: "Klientët e fundit",
     lifetimeValue: "Vlera totale",
@@ -1102,6 +1189,10 @@ export const translations: Record<Language, LanguageDictionary> = {
     companyDataRequiredTitle: "Plotësoni Informacionin e Kompanisë",
     companyDataRequiredMessage: "Ju lutemi shtoni emrin e kompanisë, email dhe numrin e telefonit për të vazhduar përdorimin e panelit.",
     updateCompanyInfo: "Përditëso Informacionin e Kompanisë",
+    noCompanyTitle: "⚠️ Plotëso Profilin Tënd Fillimisht",
+    noCompanyMessage: "Duhet të plotësosh informacionin e kompanisë para se të shtosh makina, lokacione ose të menaxhosh rezervimet.",
+    completeProfileToStart: "Të lutemi plotëso profilin tënd për të filluar përdorimin e platformës.",
+    goToProfile: "Shko te Profili",
     active: "Aktiv",
     found: "u gjetën",
     statusPickedup: "Marrë",
@@ -1160,11 +1251,30 @@ export const translations: Record<Language, LanguageDictionary> = {
     provideMoreDetails: "Specifikimet dhe karakteristikat",
     add: "Shto",
     next: "Tjetra",
+    previous: "Kthehu",
+    completeAllSteps: "Plotëso të gjitha hapat",
     vin: "VIN",
     saving: "Duke ruajtur...",
     saveChanges: "Ruaj Ndryshimet",
     addYourFirstCar: "Shto mjetin tënd të parë për të filluar",
     edit: "Redakto",
+
+    // Quick Start Guide
+    quickStartTitle: "Udhëzues i Shpejtë",
+    quickStartSubtitle: "hapa të plotësuar",
+    quickStartProfileTitle: "Plotëso Profilin",
+    quickStartProfileDesc: "Shto detajet e kompanisë për të filluar",
+    quickStartLocationsTitle: "Shto Vendndodhje Marrjeje",
+    quickStartLocationsDesc: "Cakto ku klientët mund të marrin makinat",
+    quickStartCarsTitle: "Shto Mjetin e Parë",
+    quickStartCarsDesc: "Shto makinat për të filluar rezervimet",
+    quickStartComplete: "🎉 Gati!",
+    quickStartCompleteMsg: "Profili juaj është gati. Mund të filloni të merrni rezervime!",
+    completeNow: "Plotëso Tani",
+    addLocations: "Shto Vendndodhje",
+    manage: "Menaxho",
+    viewFleet: "Shiko Flotën",
+    dismiss: "Mbyll",
     image: "Foto",
     specifications: "Specifikimet",
     pricing: "Çmimi",
@@ -1237,5 +1347,26 @@ export const translations: Record<Language, LanguageDictionary> = {
     loading: "Duke ngarkuar...",
     depositRequired: "Depozita e Kërkuar",
     depositOptional: "Opsionale: Shuma e kërkuar si depozitë për këtë mjet",
+    
+    // Extras
+    extras: "Shërbimet Shtesë",
+    carExtras: "Shërbimet Shtesë të Makinës",
+    createNewExtra: "Krijo Shërbim të Ri",
+    extraName: "Emri i Shërbimit",
+    extraDescription: "Përshkrimi",
+    defaultPrice: "Çmimi Bazë",
+    billingUnit: "Njësia e Faturimit",
+    perBooking: "Për Rezervim",
+    oneTime: "Një Herë",
+    saveExtra: "Ruaj Shërbimin",
+    availableExtras: "Shërbimet e Disponueshme",
+    noExtrasYet: "Nuk ka shërbime shtesë akoma",
+    createFirstExtra: "Krijo shërbimin tënd të parë duke përdorur butonin më sipër",
+    extrasSelected: "shërbim(e) shtesë të zgjedhura për këtë makinë",
+    priceForThisCar: "Çmimi për këtë makinë",
+    includedInBaseRate: "E përfshirë në çmimin bazë",
+    selectExtras: "Zgjidhni shërbimet shtesë opsionale që klientët mund të shtojnë në rezervimin e tyre për tarifë shtesë",
+    addExtraDescription: "Shto një shërbim të ri që mund të ofrohet me këtë dhe mjete të tjera",
+    removeExtra: "Hiq",
   },
 };

@@ -205,3 +205,4 @@ The schema integrates with:
 - `database/rls-policies/rls-security-policies.sql` - RLS policies
 - `lib/server/data/cars-data-actions.ts` - Application code using the table
 
+

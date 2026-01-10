@@ -14,134 +14,17 @@ interface BookingsPageRedesignedProps {
 
 type ViewFilter = 'all' | 'pending' | 'today' | 'upcoming'
 
-const MOCK_BOOKINGS: any[] = [
-  {
-    id: 'mock-booking-1',
-    status: 'pending',
-    startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-    endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
-    totalPrice: 450,
-    pickupLocation: 'Airport Terminal 1',
-    car: {
-      imageUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400',
-      make: 'BMW',
-      model: 'X5',
-      year: 2023
-    },
-    customer: {
-      firstName: 'Emma',
-      lastName: 'Thompson',
-      email: 'emma.thompson@example.com',
-      phone: '+355 69 123 4567'
-    }
-  },
-  {
-    id: 'mock-booking-2',
-    status: 'confirmed',
-    startDate: new Date(),
-    endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    totalPrice: 320,
-    pickupLocation: 'City Center Office',
-    car: {
-      imageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400',
-      make: 'Mercedes-Benz',
-      model: 'C-Class',
-      year: 2024
-    },
-    customer: {
-      firstName: 'Michael',
-      lastName: 'Chen',
-      email: 'michael.chen@example.com',
-      phone: '+355 69 234 5678'
-    }
-  },
-  {
-    id: 'mock-booking-3',
-    status: 'picked_up',
-    startDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    totalPrice: 280,
-    pickupLocation: 'Hotel Grand Plaza',
-    car: {
-      imageUrl: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0ad6?w=400',
-      make: 'Audi',
-      model: 'A4',
-      year: 2023
-    },
-    customer: {
-      firstName: 'Sophia',
-      lastName: 'Rodriguez',
-      email: 'sophia.rodriguez@example.com',
-      phone: '+355 69 345 6789'
-    }
-  },
-  {
-    id: 'mock-booking-4',
-    status: 'confirmed',
-    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-    totalPrice: 540,
-    pickupLocation: 'Train Station',
-    car: {
-      imageUrl: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0ad6?w=400',
-      make: 'Tesla',
-      model: 'Model 3',
-      year: 2024
-    },
-    customer: {
-      firstName: 'James',
-      lastName: 'Wilson',
-      email: 'james.wilson@example.com',
-      phone: '+355 69 456 7890'
-    }
-  },
-  {
-    id: 'mock-booking-5',
-    status: 'returned',
-    startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    endDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    totalPrice: 380,
-    pickupLocation: 'Airport Terminal 2',
-    car: {
-      imageUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400',
-      make: 'Toyota',
-      model: 'Camry',
-      year: 2023
-    },
-    customer: {
-      firstName: 'Olivia',
-      lastName: 'Martinez',
-      email: 'olivia.martinez@example.com',
-      phone: '+355 69 567 8901'
-    }
-  },
-  {
-    id: 'mock-booking-6',
-    status: 'pending',
-    startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-    endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
-    totalPrice: 250,
-    pickupLocation: 'Downtown Office',
-    car: {
-      imageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400',
-      make: 'Honda',
-      model: 'Civic',
-      year: 2023
-    },
-    customer: {
-      firstName: 'Daniel',
-      lastName: 'Kim',
-      email: 'daniel.kim@example.com',
-      phone: '+355 69 678 9012'
-    }
-  }
-]
+// Helper function to safely render location (handles both string and object formats)
+const getLocationName = (location: string | { id: string; name: string } | undefined): string => {
+  if (!location) return '';
+  if (typeof location === 'string') return location;
+  return location.name || '';
+}
 
 export default function BookingsPageRedesigned({ initialBookings }: BookingsPageRedesignedProps) {
   const { t } = useLanguage()
-  // Combine real bookings with mock bookings
-  const allBookings = [...initialBookings, ...MOCK_BOOKINGS]
-  const [bookings, setBookings] = useState<any[]>(allBookings)
+  // Use only real bookings from database (no mock data)
+  const [bookings, setBookings] = useState<any[]>(initialBookings)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>('all')
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all')
@@ -565,7 +448,9 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                         {booking.pickupLocation && (
                           <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                             <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
-                            <span className="text-xs truncate">{booking.pickupLocation}</span>
+                            <span className="text-xs truncate">
+                              {getLocationName(booking.pickupLocation)}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -915,7 +800,9 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.pickupLocation || 'Pickup'}</p>
-                                    <p className="text-sm font-medium text-gray-900">{selectedBooking.pickupLocation}</p>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {getLocationName(selectedBooking.pickupLocation)}
+                                    </p>
                                   </div>
                                 </div>
                               )}
@@ -926,7 +813,9 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.dropoffLocation || 'Dropoff'}</p>
-                                    <p className="text-sm font-medium text-gray-900">{selectedBooking.dropoffLocation}</p>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {getLocationName(selectedBooking.dropoffLocation)}
+                                    </p>
                                   </div>
                                 </div>
                               )}

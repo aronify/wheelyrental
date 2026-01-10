@@ -38,3 +38,4 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon;
 -- company-based access control when enabled.
 -- ============================================================================
 
+

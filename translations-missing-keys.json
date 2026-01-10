@@ -1,0 +1,294 @@
+{
+  "comment": "This file contains ALL missing translation keys found in the codebase. Add these to lib/i18n/translations.ts",
+  
+  "validation": {
+    "validation_pickup_location_required": {
+      "en": "At least one pickup location is required",
+      "al": "Kërkohet të paktën një vendndodhje marrjeje"
+    },
+    "validation_dropoff_location_required": {
+      "en": "At least one drop-off location is required",
+      "al": "Kërkohet të paktën një vendndodhje dorëzimi"
+    },
+    "validation_location_name_required": {
+      "en": "Location name is required",
+      "al": "Emri i vendndodhjes është i detyrueshëm"
+    },
+    "validation_city_required": {
+      "en": "City is required",
+      "al": "Qyteti është i detyrueshëm"
+    },
+    "validation_extra_name_required": {
+      "en": "Extra name is required",
+      "al": "Emri i shërbimit shtesë është i detyrueshëm"
+    },
+    "validation_price_greater_than_zero": {
+      "en": "Price must be greater than 0",
+      "al": "Çmimi duhet të jetë më i madh se 0"
+    },
+    "validation_year_required": {
+      "en": "Valid year is required",
+      "al": "Kërkohet vit i vlefshëm"
+    },
+    "validation_seats_range": {
+      "en": "Valid number of seats is required (1-20)",
+      "al": "Kërkohet numër i vlefshëm ulësish (1-20)"
+    },
+    "validation_daily_rate_required": {
+      "en": "Daily rate must be greater than 0",
+      "al": "Çmimi ditor duhet të jetë më i madh se 0"
+    }
+  },
+  
+  "error_messages": {
+    "error_image_too_large": {
+      "en": "Image is too large. Please use an image smaller than 10MB.",
+      "al": "Imazhi është shumë i madh. Ju lutemi përdorni një imazh më të vogël se 10MB."
+    },
+    "error_image_save_failed": {
+      "en": "Failed to save car. Try using a smaller image.",
+      "al": "Dështoi ruajtja e mjetit. Provo me një imazh më të vogël."
+    },
+    "error_image_compression_failed": {
+      "en": "Image is still too large after compression. Please use a smaller image.",
+      "al": "Imazhi është ende shumë i madh pas kompresimit. Ju lutemi përdorni një imazh më të vogël."
+    },
+    "error_image_load_failed": {
+      "en": "Failed to load image. Please try another file.",
+      "al": "Dështoi ngarkimi i imazhit. Ju lutemi provoni një skedar tjetër."
+    },
+    "error_image_read_failed": {
+      "en": "Failed to read image file. Please try again.",
+      "al": "Dështoi leximi i skedarit të imazhit. Ju lutemi provoni përsëri."
+    },
+    "error_location_create_failed": {
+      "en": "Failed to create location",
+      "al": "Dështoi krijimi i vendndodhjes"
+    },
+    "error_location_save_failed": {
+      "en": "Failed to save custom location",
+      "al": "Dështoi ruajtja e vendndodhjes së personalizuar"
+    },
+    "error_extra_save_failed": {
+      "en": "Failed to save extra",
+      "al": "Dështoi ruajtja e shërbimit shtesë"
+    },
+    "error_locations_load_failed": {
+      "en": "Failed to load locations",
+      "al": "Dështoi ngarkimi i vendndodhjeve"
+    },
+    "error_permission_denied": {
+      "en": "Permission error. Please run database/rls-policies/fix-jwt-rls-defensive-complete.sql",
+      "al": "Gabim leje. Ju lutemi ekzekutoni database/rls-policies/fix-jwt-rls-defensive-complete.sql"
+    }
+  },
+  
+  "placeholders": {
+    "placeholder_make_example": {
+      "en": "e.g., Toyota, BMW, Mercedes",
+      "al": "p.sh., Toyota, BMW, Mercedes"
+    },
+    "placeholder_model_example": {
+      "en": "e.g., Corolla, X5, E-Class",
+      "al": "p.sh., Corolla, X5, E-Class"
+    },
+    "placeholder_year": {
+      "en": "2024",
+      "al": "2024"
+    },
+    "placeholder_license_plate": {
+      "en": "TR-1234-AB",
+      "al": "TR-1234-AB"
+    },
+    "placeholder_price": {
+      "en": "50.00",
+      "al": "50.00"
+    },
+    "placeholder_deposit": {
+      "en": "0.00",
+      "al": "0.00"
+    },
+    "placeholder_features_example": {
+      "en": "e.g., Air Conditioning, GPS, Bluetooth",
+      "al": "p.sh., Ajër i Ftohtë, GPS, Bluetooth"
+    },
+    "placeholder_seats": {
+      "en": "5",
+      "al": "5"
+    },
+    "placeholder_location_name_example": {
+      "en": "e.g., Airport Terminal, Downtown Office, Hotel Lobby",
+      "al": "p.sh., Terminali i Aeroportit, Zyra Qendrore, Hoxhalli i Hotelit"
+    },
+    "placeholder_street_address": {
+      "en": "Street address",
+      "al": "Adresa e rrugës"
+    },
+    "placeholder_agency_name": {
+      "en": "Enter your agency name",
+      "al": "Shkruani emrin e agjencisë"
+    },
+    "placeholder_agency_description": {
+      "en": "Describe your rental agency, services, and what makes you special...",
+      "al": "Përshkruani agjencinë tuaj të qirasë, shërbimet dhe çfarë ju bën të veçantë..."
+    },
+    "placeholder_email": {
+      "en": "contact@agency.com",
+      "al": "kontakt@agjencia.com"
+    },
+    "placeholder_phone": {
+      "en": "+355 69 123 4567",
+      "al": "+355 69 123 4567"
+    },
+    "placeholder_postal_code": {
+      "en": "1001",
+      "al": "1001"
+    },
+    "placeholder_tax_id": {
+      "en": "Tax ID / Registration Number",
+      "al": "Numri i Tatimit / Numri i Regjistrimit"
+    },
+    "placeholder_extra_name_example": {
+      "en": "e.g., GPS Navigation, Child Seat, Full Insurance",
+      "al": "p.sh., GPS, Karrige për Fëmijë, Siguri me Mbulim të Plotë"
+    },
+    "placeholder_extra_description": {
+      "en": "Brief description of the extra",
+      "al": "Përshkrim i shkurtër i shërbimit shtesë"
+    },
+    "placeholder_search_cities": {
+      "en": "Search cities...",
+      "al": "Kërko qytete..."
+    }
+  },
+  
+  "aria_labels": {
+    "aria_close": {
+      "en": "Close",
+      "al": "Mbyll"
+    },
+    "aria_close_modal": {
+      "en": "Close modal",
+      "al": "Mbyll modalin"
+    },
+    "aria_remove_item": {
+      "en": "Remove {label}",
+      "al": "Hiq {label}"
+    },
+    "aria_switch_language": {
+      "en": "Switch to {language}",
+      "al": "Kalo në {language}"
+    },
+    "aria_switch_to_albanian": {
+      "en": "Switch to Albanian",
+      "al": "Kalo në Shqip"
+    },
+    "aria_switch_to_english": {
+      "en": "Switch to English",
+      "al": "Kalo në Anglisht"
+    },
+    "aria_open_menu": {
+      "en": "Open menu",
+      "al": "Hap menunë"
+    },
+    "aria_close_menu": {
+      "en": "Close menu",
+      "al": "Mbyll menunë"
+    },
+    "aria_user_menu": {
+      "en": "User menu",
+      "al": "Menuja e përdoruesit"
+    },
+    "aria_main_navigation": {
+      "en": "Main navigation",
+      "al": "Navigimi kryesor"
+    },
+    "aria_breadcrumb": {
+      "en": "Breadcrumb",
+      "al": "Rruga e navigimit"
+    }
+  },
+  
+  "success_messages": {
+    "success_profile_updated": {
+      "en": "Profile updated successfully!",
+      "al": "Profili u përditësua me sukses!"
+    },
+    "success_location_created": {
+      "en": "Location created successfully",
+      "al": "Vendndodhja u krijua me sukses"
+    },
+    "success_extra_created": {
+      "en": "Extra created successfully",
+      "al": "Shërbimi shtesë u krijua me sukses"
+    }
+  },
+  
+  "helper_text": {
+    "helper_upload_multiple_photos": {
+      "en": "Upload multiple photos - first will be primary",
+      "al": "Ngarko foto të shumta - e para do të jetë kryesore"
+    },
+    "helper_image_auto_compressed": {
+      "en": "Images are automatically compressed",
+      "al": "Imazhet kompresohen automatikisht"
+    },
+    "helper_select_color": {
+      "en": "Select a color",
+      "al": "Zgjidh një ngjyrë"
+    }
+  },
+  
+  "empty_states": {
+    "empty_no_pickup_locations": {
+      "en": "No pickup locations",
+      "al": "Nuk ka vendndodhje marrjeje"
+    },
+    "empty_no_dropoff_locations": {
+      "en": "No dropoff locations",
+      "al": "Nuk ka vendndodhje dorëzimi"
+    },
+    "empty_no_locations_available": {
+      "en": "No locations available. Add your first location to get started.",
+      "al": "Nuk ka vendndodhje të disponueshme. Shtoni vendndodhjen tuaj të parë për të filluar."
+    }
+  },
+  
+  "buttons": {
+    "button_save_location": {
+      "en": "Save Location",
+      "al": "Ruaj Vendndodhjen"
+    },
+    "button_add_vehicle": {
+      "en": "Add Vehicle",
+      "al": "Shto Mjet"
+    },
+    "button_optional": {
+      "en": "(Optional)",
+      "al": "(Opsionale)"
+    }
+  },
+  
+  "tabs": {
+    "tab_image": {
+      "en": "Photo",
+      "al": "Foto"
+    },
+    "tab_details": {
+      "en": "Details",
+      "al": "Detajet"
+    },
+    "tab_specs": {
+      "en": "Specs",
+      "al": "Specifikimet"
+    },
+    "tab_locations": {
+      "en": "Locations",
+      "al": "Vendndodhjet"
+    },
+    "tab_extras": {
+      "en": "Extras",
+      "al": "Shërbimet Shtesë"
+    }
+  }
+}

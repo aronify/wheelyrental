@@ -3,8 +3,10 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import CarsPageRedesigned from '@/app/components/domain/cars/cars-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
-import CompanyDataPrompt from '@/app/components/ui/alerts/company-data-prompt'
-import { ensureUserCompany, companyHasMinimalData, getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
+import QuickStartGuide from '@/app/components/ui/onboarding/quick-start-guide'
+import NoCompanyAlert from '@/app/components/ui/alerts/no-company-alert'
+import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
+import { getOnboardingStatus } from '@/lib/server/data/quick-start-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -46,30 +48,21 @@ export default async function CarsRoute() {
     // Silently continue without profile data
   }
 
-  // Ensure user has a company (create if doesn't exist)
-  const companyId = await ensureUserCompany(user.id, user.email)
+  // Get user's company ID - DO NOT create automatically
+  const companyId = await getUserCompanyId(user.id)
   
-  // Check if company has minimal required data
-  const hasMinimalData = companyId ? await companyHasMinimalData(companyId) : false
-  
-  if (!companyId) {
-    // If company creation failed, still show page but with error state
-    console.error('Failed to create or retrieve company for user')
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <DashboardHeader 
-          userEmail={user.email || ''} 
-          agencyName={profileData?.agency_name}
-          agencyLogo={profileData?.logo}
-        />
-        <QuickAccessMenu />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          <CompanyDataPrompt hasMinimalData={false} />
-          <CarsPageRedesigned initialCars={[]} />
-        </main>
-      </div>
-    )
-  }
+  // Check onboarding status for Quick Start Guide (only if company exists)
+  const onboardingStatus = companyId 
+    ? await getOnboardingStatus(companyId)
+    : {
+        isComplete: false,
+        progress: 0,
+        steps: {
+          profileComplete: false,
+          hasLocations: false,
+          hasCars: false,
+        }
+      }
   
   // Fetch cars from Supabase with company information
   // RLS will automatically filter by company_id (JWT-based with fallback)
@@ -221,7 +214,20 @@ export default async function CarsRoute() {
       <QuickAccessMenu />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <CompanyDataPrompt hasMinimalData={hasMinimalData} />
+        {/* Show alert if no company - non-blocking */}
+        {!companyId && <NoCompanyAlert />}
+        
+        {/* Show Quick Start Guide if company exists */}
+        {companyId && (
+          <QuickStartGuide 
+            profileComplete={onboardingStatus.steps.profileComplete}
+            hasLocations={onboardingStatus.steps.hasLocations}
+            hasCars={onboardingStatus.steps.hasCars}
+            progress={onboardingStatus.progress}
+          />
+        )}
+        
+        {/* Always show cars page */}
         <CarsPageRedesigned initialCars={cars} />
       </main>
     </div>

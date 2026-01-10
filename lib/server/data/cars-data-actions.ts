@@ -5,6 +5,7 @@ import { CarFormData, Car } from '@/types/car'
 import { revalidatePath } from 'next/cache'
 import { getUserCompanyId } from './company-helpers'
 import { withTimeout, withSupabaseTimeout, TIMEOUTS, TimeoutError } from '@/lib/utils/timeout'
+import { updateCarExtrasAction } from './extras-data-actions'
 
 export interface Location {
   id: string
@@ -990,6 +991,17 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
     // Locations are now stored directly in the cars table as pickup_locations and dropoff_locations TEXT[] arrays
     // Each array contains location IDs (UUIDs as strings) from the locations table
 
+    // Save car extras if provided
+    if (carData.extras && Array.isArray(carData.extras) && carData.extras.length > 0) {
+      console.log('[addCarAction] Saving car extras:', { carId, extrasCount: carData.extras.length })
+      const extrasResult = await updateCarExtrasAction(carId, carData.extras)
+      if (extrasResult.error) {
+        console.error('[addCarAction] Failed to save extras:', extrasResult.error)
+        // Don't fail the entire operation if extras fail, just log it
+        // The car has been created successfully
+      }
+    }
+
     // Transform the returned car data to match Car interface (camelCase)
     const transformedCar: Car = {
       id: carDataResult.id,
@@ -1327,6 +1339,17 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       hasDropoffLocations: !!transformedCar.dropoffLocations,
       dropoffLocations: transformedCar.dropoffLocations,
     })
+
+    // Save car extras if provided
+    if (carData.extras) {
+      console.log('[updateCarAction] Saving car extras:', { carId, extrasCount: carData.extras.length })
+      const extrasResult = await updateCarExtrasAction(carId, carData.extras)
+      if (extrasResult.error) {
+        console.error('[updateCarAction] Failed to save extras:', extrasResult.error)
+        // Don't fail the entire operation if extras fail, just log it
+        // The car has been updated successfully
+      }
+    }
 
     revalidatePath('/cars')
     return { success: true, message: 'Car updated successfully', data: transformedCar }

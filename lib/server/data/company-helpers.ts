@@ -27,15 +27,11 @@ export async function getUserCompanyId(userId?: string): Promise<string | null> 
     return company.id
   }
   
-  // Fallback: Get company_id from any car owned by the user
-  // This assumes all cars belong to the same company for a user
-  const { data: car } = await supabase
-    .from('cars')
-    .select('company_id')
-    .limit(1)
-    .maybeSingle()
-  
-  return car?.company_id || null
+  // ⚠️ SECURITY: Do NOT fallback to cars without user filtering
+  // This would return ANY car's company_id, causing cross-company data leakage
+  // Users MUST have owner_id set in companies table
+  console.error('[SECURITY] No company found for user via owner_id:', userId)
+  return null
 }
 
 /**

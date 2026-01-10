@@ -133,3 +133,4 @@ CREATE TRIGGER validate_car_location_company_trigger
 -- GROUP BY c.id, c.make, c.model, c.pickup_locations, c.dropoff_locations
 -- ORDER BY c.id;
 
+

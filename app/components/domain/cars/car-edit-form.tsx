@@ -2,12 +2,13 @@
 
 import { useState, FormEvent, useEffect, useRef } from 'react'
 import { useLanguage } from '@/lib/i18n/language-context'
-import { Car, CarFormData, TransmissionType, FuelType, CarStatus } from '@/types/car'
+import { Car, CarFormData, TransmissionType, FuelType, CarStatus, Extra, ExtraUnit, CarExtra } from '@/types/car'
 import { X, Save, Image as ImageIcon, Info, Settings, DollarSign, CheckCircle, MapPin } from 'lucide-react'
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 import MultiSelectDropdown from '@/app/components/ui/dropdowns/multi-select-dropdown'
 import CityDropdown from '@/app/components/ui/dropdowns/city-dropdown'
 import { getLocationsAction, createLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
+import { getExtrasAction, createExtraAction } from '@/lib/server/data/extras-data-actions'
 
 interface EditCarFormProps {
   isOpen: boolean
@@ -19,7 +20,7 @@ interface EditCarFormProps {
 export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarFormProps) {
   const { t } = useLanguage()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState<'image' | 'details' | 'specs' | 'pricing' | 'locations'>('image')
+  const [activeTab, setActiveTab] = useState<'image' | 'details' | 'specs' | 'pricing' | 'locations' | 'extras'>('image')
   const [imagePreviews, setImagePreviews] = useState<string[]>(car.imageUrl ? [car.imageUrl] : [])
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
@@ -65,6 +66,20 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
   })
   const [isSavingCustomLocation, setIsSavingCustomLocation] = useState(false)
 
+  // Extras state
+  const [availableExtras, setAvailableExtras] = useState<Extra[]>([])
+  const [isLoadingExtras, setIsLoadingExtras] = useState(false)
+  const [showNewExtraForm, setShowNewExtraForm] = useState(false)
+  const [newExtraData, setNewExtraData] = useState({
+    name: '',
+    description: '',
+    defaultPrice: 0,
+    unit: 'per_day' as ExtraUnit,
+  })
+  const [isSavingNewExtra, setIsSavingNewExtra] = useState(false)
+  const [selectedExtras, setSelectedExtras] = useState<Map<string, { price: number; isIncluded: boolean }>>(new Map())
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+
   // Fetch locations from database (filtered by company_id server-side)
   const fetchLocations = async () => {
     setIsLoadingLocations(true)
@@ -85,8 +100,40 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
   useEffect(() => {
     if (isOpen) {
       fetchLocations()
+      fetchExtras()
     }
   }, [isOpen])
+
+  // Fetch extras from database
+  const fetchExtras = async () => {
+    setIsLoadingExtras(true)
+    try {
+      const result = await getExtrasAction()
+      if (result.extras) {
+        setAvailableExtras(result.extras)
+      } else if (result.error) {
+        console.error('Error fetching extras:', result.error)
+      }
+    } catch (error) {
+      console.error('Error fetching extras:', error)
+    } finally {
+      setIsLoadingExtras(false)
+    }
+  }
+
+  // Initialize selected extras from car data
+  useEffect(() => {
+    if (car.extras && car.extras.length > 0) {
+      const extrasMap = new Map<string, { price: number; isIncluded: boolean }>()
+      car.extras.forEach(carExtra => {
+        extrasMap.set(carExtra.extraId, {
+          price: carExtra.price,
+          isIncluded: carExtra.isIncluded || false
+        })
+      })
+      setSelectedExtras(extrasMap)
+    }
+  }, [car.extras])
 
   // Prepare location options for dropdowns
   // Filter: Only locations where is_pickup = true (server already filtered by company_id)
@@ -178,6 +225,78 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
   const handleCancelCustomLocation = () => {
     setShowCustomLocationForm(null)
     setCustomLocationData({ name: '', address: '', city: '' })
+  }
+
+  // Extras handlers
+  const handleToggleExtra = (extraId: string, defaultPrice: number) => {
+    const newMap = new Map(selectedExtras)
+    if (newMap.has(extraId)) {
+      newMap.delete(extraId)
+      setHasChanges(true)
+    } else {
+      newMap.set(extraId, { price: defaultPrice, isIncluded: false })
+      setHasChanges(true)
+    }
+    setSelectedExtras(newMap)
+  }
+
+  const handleUpdateExtraPrice = (extraId: string, price: number) => {
+    const newMap = new Map(selectedExtras)
+    const existing = newMap.get(extraId)
+    if (existing) {
+      newMap.set(extraId, { ...existing, price })
+      setSelectedExtras(newMap)
+      setHasChanges(true)
+    }
+  }
+
+  const handleToggleExtraIncluded = (extraId: string) => {
+    const newMap = new Map(selectedExtras)
+    const existing = newMap.get(extraId)
+    if (existing) {
+      newMap.set(extraId, { ...existing, isIncluded: !existing.isIncluded })
+      setSelectedExtras(newMap)
+      setHasChanges(true)
+    }
+  }
+
+  const handleSaveNewExtra = async () => {
+    if (!newExtraData.name || newExtraData.defaultPrice <= 0) {
+      alert(t.required || 'Please fill in all required fields')
+      return
+    }
+
+    setIsSavingNewExtra(true)
+    try {
+      const result = await createExtraAction({
+        name: newExtraData.name,
+        description: newExtraData.description || '',
+        defaultPrice: newExtraData.defaultPrice,
+        unit: newExtraData.unit,
+        isActive: true,
+      })
+
+      if (result.extra) {
+        setAvailableExtras(prev => [...prev, result.extra!])
+        setShowNewExtraForm(false)
+        setNewExtraData({ name: '', description: '', defaultPrice: 0, unit: 'per_day' })
+        
+        // Auto-select the newly created extra
+        setSelectedExtras(prev => {
+          const newMap = new Map(prev)
+          newMap.set(result.extra!.id, { price: result.extra!.defaultPrice, isIncluded: false })
+          return newMap
+        })
+        setHasChanges(true)
+      } else if (result.error) {
+        alert(result.error)
+      }
+    } catch (error) {
+      console.error('Error creating extra:', error)
+      alert('Failed to create extra')
+    } finally {
+      setIsSavingNewExtra(false)
+    }
   }
 
   const [formData, setFormData] = useState<CarFormData>({
@@ -312,11 +431,19 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     
     setIsSubmitting(true)
     try {
+      // Convert selected extras to CarExtra format
+      const carExtras = Array.from(selectedExtras.entries()).map(([extraId, data]) => ({
+        extraId,
+        price: data.price,
+        isIncluded: data.isIncluded,
+      }))
+
       // Preserve original car status - status cannot be modified through the edit form
       const submitData = { 
         ...formData, 
         imageUrl: imagePreviews[0],
-        status: car.status // Always use original status, never allow modification
+        status: car.status, // Always use original status, never allow modification
+        carExtras // Add extras to submission
       }
       console.log('[EditCarForm] Submitting form data:', {
         pickupLocations: submitData.pickupLocations,
@@ -332,6 +459,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
         pickupFirstId: submitData.pickupLocations?.[0],
         dropoffFirstId: submitData.dropoffLocations?.[0],
         pickupFirstIdType: typeof submitData.pickupLocations?.[0],
+        extrasCount: carExtras.length,
         dropoffFirstIdType: typeof submitData.dropoffLocations?.[0],
       })
       await onSubmit(submitData)
@@ -364,6 +492,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     { id: 'specs' as const, label: t.specifications || 'Specs', icon: Settings },
     { id: 'pricing' as const, label: t.pricing || 'Pricing', icon: DollarSign },
     { id: 'locations' as const, label: t.locations || 'Locations', icon: MapPin },
+    { id: 'extras' as const, label: t.extras || 'Extras', icon: DollarSign },
   ]
 
   return (
@@ -393,23 +522,23 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
             {/* Tabs - Scrollable on mobile */}
             <div className="mt-4 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
               <div className="flex gap-2 min-w-max sm:min-w-0">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap touch-manipulation min-h-[44px] ${
-                        activeTab === tab.id
-                          ? 'bg-white text-blue-900 shadow-md'
-                          : 'bg-white/10 text-white hover:bg-white/20'
-                      }`}
-                    >
+                      activeTab === tab.id
+                        ? 'bg-white text-blue-900 shadow-md'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
                       <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                       <span>{tab.label}</span>
-                    </button>
-                  )
-                })}
+                  </button>
+                )
+              })}
               </div>
             </div>
           </div>
@@ -848,16 +977,16 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{t.locations || 'Locations'}</h3>
                   <p className="text-sm text-gray-600">Select pickup and dropoff locations for this vehicle</p>
-                </div>
+                    </div>
 
-                {/* Grid Layout: Wider on large screens for better horizontal extension */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
-                  {/* Pickup Location Field */}
-                  <div className="flex flex-col">
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
-                      {t.pickupLocations || 'PICKUP LOCATIONS'}
-                    </label>
-                    {isLoadingLocations ? (
+                    {/* Grid Layout: Wider on large screens for better horizontal extension */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
+                      {/* Pickup Location Field */}
+                      <div className="flex flex-col">
+                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
+                          {t.pickupLocations || 'PICKUP LOCATIONS'}
+                        </label>
+                        {isLoadingLocations ? (
                       <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 flex items-center justify-center gap-2 min-h-[44px]">
                         <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -892,66 +1021,66 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                           </svg>
                           {t.addLocation || 'Add Location'}
                         </button>
-                      </div>
-                    ) : (
+                          </div>
+                        ) : (
                       <div className="space-y-2">
-                        <MultiSelectDropdown
-                          values={formData.pickupLocations || []}
-                          onChange={(values) => handleLocationChange(values, 'pickup')}
-                          options={pickupLocationOptions}
-                          placeholder={t.pickupLocation || 'Select pickup locations'}
+                              <MultiSelectDropdown
+                                values={formData.pickupLocations || []}
+                                onChange={(values) => handleLocationChange(values, 'pickup')}
+                                options={pickupLocationOptions}
+                                placeholder={t.pickupLocation || 'Select pickup locations'}
                           disabled={isLoadingLocations || pickupLocationOptions.length === 0}
-                          icon={
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          }
-                        />
-                      </div>
+                                icon={
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                }
+                              />
+                            </div>
                     )}
-                    {showCustomLocationForm === 'pickup' && (
+                            {showCustomLocationForm === 'pickup' && (
                       <div className="mt-6 w-full max-w-4xl mx-auto p-8 lg:p-10 bg-white border-2 border-blue-200 rounded-2xl shadow-xl">
                         <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-gray-100">
                           <div className="flex items-center gap-4">
                             <div className="p-3 bg-blue-600 rounded-xl shadow-md">
                               <MapPin className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
+                                    </div>
+                                    <div>
                               <h4 className="text-xl font-bold text-gray-900">
                                 {t.addCustomLocation || 'Add New Pickup Location'}
-                              </h4>
+                                      </h4>
                               <p className="text-sm text-gray-600 mt-1">Create a custom location where customers can pick up this vehicle</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleCancelCustomLocation}
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelCustomLocation}
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
                             aria-label="Close"
-                          >
+                                  >
                             <X className="w-6 h-6" />
-                          </button>
-                        </div>
+                                  </button>
+                                </div>
                         <div className="space-y-6">
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="lg:col-span-2">
                               <label className="block text-sm font-bold text-gray-900 mb-3">
-                                {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                value={customLocationData.name}
-                                onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
+                                      {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customLocationData.name}
+                                      onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
                                 className="w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation border-gray-300"
                                 placeholder={t.enterLocationName || 'e.g., Airport Terminal, Downtown Office, Hotel Lobby'}
-                              />
+                                    />
                               <p className="mt-2 text-xs text-gray-500">Give your location a clear, recognizable name</p>
-                            </div>
-                            <div>
+                                  </div>
+                                  <div>
                               <label className="block text-sm font-bold text-gray-900 mb-3">
                                 {t.city || 'City'} <span className="text-red-500">*</span>
-                              </label>
+                                    </label>
                               <CityDropdown
                                 value={customLocationData.city}
                                 onChange={(city) => setCustomLocationData({ ...customLocationData, city })}
@@ -959,25 +1088,25 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                                 className="w-full"
                               />
                               <p className="mt-2 text-xs text-gray-500">Choose the city where this location is located</p>
-                            </div>
-                            <div>
+                                  </div>
+                                  <div>
                               <label className="block text-sm font-bold text-gray-900 mb-3">
                                 {t.address || 'Street Address'}
-                              </label>
-                              <input
-                                type="text"
+                                    </label>
+                                    <input
+                                      type="text"
                                 value={customLocationData.address}
                                 onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
                                 className="w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation"
                                 placeholder={t.enterAddress || 'e.g., Rruga Durresit 123'}
                               />
                               <p className="mt-2 text-xs text-gray-500">Optional: Add the specific street address</p>
-                            </div>
+                                  </div>
                           </div>
                           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t-2 border-gray-100">
-                            <button
-                              type="button"
-                              onClick={handleSaveCustomLocation}
+                                    <button
+                                      type="button"
+                                      onClick={handleSaveCustomLocation}
                               disabled={isSavingCustomLocation || !customLocationData.name.trim() || !customLocationData.city}
                               className="flex-1 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px] sm:min-h-[44px]"
                             >
@@ -997,29 +1126,29 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                                   {t.save || 'Save Location'}
                                 </>
                               )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleCancelCustomLocation}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelCustomLocation}
                               className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base touch-manipulation min-h-[48px] sm:min-h-[44px]"
-                            >
-                              {t.cancel || 'Cancel'}
-                            </button>
-                          </div>
-                        </div>
+                                    >
+                                      {t.cancel || 'Cancel'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                        )}
+                        <p className="mt-1 text-xs text-gray-500">
+                          {t.selectMultipleLocations || 'You can select multiple locations'}
+                        </p>
                       </div>
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      {t.selectMultipleLocations || 'You can select multiple locations'}
-                    </p>
-                  </div>
 
-                  {/* Dropoff Location Field */}
-                  <div className="flex flex-col">
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
-                      {t.dropoffLocations || 'DROPOFF LOCATIONS'}
-                    </label>
-                    {isLoadingLocations ? (
+                      {/* Dropoff Location Field */}
+                      <div className="flex flex-col">
+                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">
+                          {t.dropoffLocations || 'DROPOFF LOCATIONS'}
+                        </label>
+                        {isLoadingLocations ? (
                       <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 flex items-center justify-center gap-2 min-h-[44px]">
                         <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1054,66 +1183,66 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                           </svg>
                           {t.addLocation || 'Add Location'}
                         </button>
-                      </div>
-                    ) : (
+                          </div>
+                        ) : (
                       <div className="space-y-2">
-                        <MultiSelectDropdown
-                          values={formData.dropoffLocations || []}
-                          onChange={(values) => handleLocationChange(values, 'dropoff')}
-                          options={dropoffLocationOptions}
-                          placeholder={t.dropoffLocation || 'Select dropoff locations'}
+                              <MultiSelectDropdown
+                                values={formData.dropoffLocations || []}
+                                onChange={(values) => handleLocationChange(values, 'dropoff')}
+                                options={dropoffLocationOptions}
+                                placeholder={t.dropoffLocation || 'Select dropoff locations'}
                           disabled={isLoadingLocations || dropoffLocationOptions.length === 0}
-                          icon={
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          }
-                        />
-                      </div>
+                                icon={
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                }
+                              />
+                            </div>
                     )}
-                    {showCustomLocationForm === 'dropoff' && (
+                            {showCustomLocationForm === 'dropoff' && (
                       <div className="mt-6 w-full max-w-4xl mx-auto p-8 lg:p-10 bg-white border-2 border-green-200 rounded-2xl shadow-xl">
                         <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-gray-100">
                           <div className="flex items-center gap-4">
                             <div className="p-3 bg-green-600 rounded-xl shadow-md">
                               <MapPin className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
+                                    </div>
+                                    <div>
                               <h4 className="text-xl font-bold text-gray-900">
                                 {t.addCustomLocation || 'Add New Dropoff Location'}
-                              </h4>
+                                      </h4>
                               <p className="text-sm text-gray-600 mt-1">Create a custom location where customers can return this vehicle</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleCancelCustomLocation}
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelCustomLocation}
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
                             aria-label="Close"
-                          >
+                                  >
                             <X className="w-6 h-6" />
-                          </button>
-                        </div>
+                                  </button>
+                                </div>
                         <div className="space-y-6">
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="lg:col-span-2">
                               <label className="block text-sm font-bold text-gray-900 mb-3">
-                                {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                value={customLocationData.name}
-                                onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
+                                      {t.locationName || 'Location Name'} <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={customLocationData.name}
+                                      onChange={(e) => setCustomLocationData({ ...customLocationData, name: e.target.value })}
                                 className="w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation border-gray-300"
                                 placeholder={t.enterLocationName || 'e.g., Airport Terminal, Downtown Office, Hotel Lobby'}
-                              />
+                                    />
                               <p className="mt-2 text-xs text-gray-500">Give your location a clear, recognizable name</p>
-                            </div>
-                            <div>
+                                  </div>
+                                  <div>
                               <label className="block text-sm font-bold text-gray-900 mb-3">
                                 {t.city || 'City'} <span className="text-red-500">*</span>
-                              </label>
+                                    </label>
                               <CityDropdown
                                 value={customLocationData.city}
                                 onChange={(city) => setCustomLocationData({ ...customLocationData, city })}
@@ -1121,25 +1250,25 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                                 className="w-full"
                               />
                               <p className="mt-2 text-xs text-gray-500">Choose the city where this location is located</p>
-                            </div>
-                            <div>
+                                  </div>
+                                  <div>
                               <label className="block text-sm font-bold text-gray-900 mb-3">
                                 {t.address || 'Street Address'}
-                              </label>
-                              <input
-                                type="text"
+                                    </label>
+                                    <input
+                                      type="text"
                                 value={customLocationData.address}
                                 onChange={(e) => setCustomLocationData({ ...customLocationData, address: e.target.value })}
                                 className="w-full px-4 sm:px-5 py-3.5 sm:py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base bg-white min-h-[48px] sm:min-h-[44px] touch-manipulation"
                                 placeholder={t.enterAddress || 'e.g., Rruga Durresit 123'}
                               />
                               <p className="mt-2 text-xs text-gray-500">Optional: Add the specific street address</p>
-                            </div>
+                                  </div>
                           </div>
                           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t-2 border-gray-100">
-                            <button
-                              type="button"
-                              onClick={handleSaveCustomLocation}
+                                    <button
+                                      type="button"
+                                      onClick={handleSaveCustomLocation}
                               disabled={isSavingCustomLocation || !customLocationData.name.trim() || !customLocationData.city}
                               className="flex-1 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md hover:shadow-lg flex items-center justify-center gap-2 touch-manipulation min-h-[48px] sm:min-h-[44px]"
                             >
@@ -1159,23 +1288,272 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                                   {t.save || 'Save Location'}
                                 </>
                               )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelCustomLocation}
+                              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base touch-manipulation min-h-[48px] sm:min-h-[44px]"
+                                    >
+                                      {t.cancel || 'Cancel'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                        )}
+                        <p className="mt-1 text-xs text-gray-500">
+                          {t.selectMultipleLocations || 'You can select multiple locations'}
+                        </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Extras Tab */}
+            {activeTab === 'extras' && (
+              <div className="space-y-4 sm:space-y-5">
+                {/* Section Header */}
+                <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
+                  <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-blue-900" />
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900">{t.carExtras || 'Shërbimet Shtesë të Makinës'}</h3>
+                </div>
+                
+                <p className="text-xs sm:text-sm text-gray-600">
+                  {t.selectExtras || 'Zgjidhni shërbimet shtesë opsionale që klientët mund të shtojnë në rezervimin e tyre për tarifë shtesë'}
+                </p>
+
+                {isLoadingExtras ? (
+                  <div className="flex items-center justify-center py-8 sm:py-12">
+                    <svg className="animate-spin h-6 w-6 sm:h-8 sm:w-8 text-blue-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                ) : (
+                  <>
+                    {/* New Extra Form */}
+                    {showNewExtraForm ? (
+                      <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-md">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                              {t.createNewExtra || 'Krijo Shërbim të Ri'}
+                            </h4>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">{t.addExtraDescription || 'Shto një shërbim të ri që mund të ofrohet me këtë dhe mjete të tjera'}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowNewExtraForm(false)}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation flex-shrink-0 ml-2"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-3 sm:space-y-4">
+                  <div>
+                            <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                              {t.extraName || 'Emri i Shërbimit'} <span className="text-red-500">*</span>
+                    </label>
+                            <input
+                              type="text"
+                              value={newExtraData.name}
+                              onChange={(e) => setNewExtraData({ ...newExtraData, name: e.target.value })}
+                              className="w-full px-3 sm:px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base min-h-[48px] sm:min-h-[44px] touch-manipulation"
+                              placeholder="p.sh., GPS, Karrige për Fëmijë, Siguri me Mbulim të Plotë"
+                    />
+                  </div>
+
+                  <div>
+                            <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                              {t.extraDescription || 'Përshkrimi'}
+                    </label>
+                            <textarea
+                              value={newExtraData.description}
+                              onChange={(e) => setNewExtraData({ ...newExtraData, description: e.target.value })}
+                              className="w-full px-3 sm:px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base touch-manipulation"
+                              placeholder={t.extraDescription}
+                              rows={2}
+                    />
+                  </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                              <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                                {t.defaultPrice || 'Çmimi Bazë'} (€) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                                min="0"
+                                step="0.01"
+                                value={newExtraData.defaultPrice}
+                                onChange={(e) => setNewExtraData({ ...newExtraData, defaultPrice: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-3 sm:px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-900 text-base min-h-[48px] sm:min-h-[44px] touch-manipulation"
+                                placeholder="10.00"
+                              />
+                </div>
+
+                <div>
+                              <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                                {t.billingUnit || 'Njësia e Faturimit'}
+                  </label>
+                              <CustomDropdown
+                                value={newExtraData.unit}
+                                onChange={(value) => setNewExtraData({ ...newExtraData, unit: value as ExtraUnit })}
+                                options={[
+                                  { value: 'per_day', label: t.perDay || 'Për Ditë' },
+                                  { value: 'per_booking', label: t.perBooking || 'Për Rezervim' },
+                                  { value: 'one_time', label: t.oneTime || 'Një Herë' },
+                                ]}
+                                placeholder={t.billingUnit}
+                                className="w-full"
+                              />
+                  </div>
+                </div>
+
+                          {validationErrors.newExtra && (
+                            <div className="p-3 bg-red-50 border-2 border-red-200 rounded-xl">
+                              <p className="text-xs sm:text-sm text-red-600 font-medium">{validationErrors.newExtra}</p>
+              </div>
+            )}
+
+                          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+                            <button
+                              type="button"
+                              onClick={handleSaveNewExtra}
+                              disabled={isSavingNewExtra}
+                              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base sm:text-sm"
+                            >
+                              {isSavingNewExtra ? (
+                                <>
+                                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  {t.saving || 'Duke ruajtur...'}
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  {t.saveExtra || 'Ruaj Shërbimin'}
+                                </>
+                              )}
                             </button>
                             <button
                               type="button"
-                              onClick={handleCancelCustomLocation}
-                              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all text-base touch-manipulation min-h-[48px] sm:min-h-[44px]"
+                              onClick={() => setShowNewExtraForm(false)}
+                              className="w-full sm:w-auto px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all min-h-[48px] sm:min-h-[44px] touch-manipulation text-base sm:text-sm"
                             >
-                              {t.cancel || 'Cancel'}
+                              {t.cancel || 'Anulo'}
                             </button>
-                          </div>
+                </div>
                         </div>
                       </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowNewExtraForm(true)}
+                        className="w-full px-6 py-3.5 sm:py-4 border-2 border-dashed border-blue-900 text-blue-900 rounded-xl font-semibold hover:bg-blue-50 transition-all flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[44px] touch-manipulation text-base sm:text-sm"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        {t.createNewExtra || 'Krijo Shërbim të Ri'}
+                      </button>
                     )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      {t.selectMultipleLocations || 'You can select multiple locations'}
-                    </p>
+
+                    {/* Available Extras List */}
+                    {availableExtras.length > 0 ? (
+                      <div className="space-y-3">
+                        <h4 className="text-sm sm:text-base font-semibold text-gray-900">{t.availableExtras || 'Shërbimet e Disponueshme'}</h4>
+                        {availableExtras.map((extra) => {
+                          const isSelected = selectedExtras.has(extra.id)
+                          const extraData = selectedExtras.get(extra.id)
+                          
+                          return (
+                            <div
+                              key={extra.id}
+                              className={`border-2 rounded-xl p-3 sm:p-4 transition-all ${
+                                isSelected ? 'border-blue-900 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                    <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleExtra(extra.id, extra.defaultPrice)}
+                                  className="mt-1 w-5 h-5 text-blue-900 rounded focus:ring-blue-900 touch-manipulation min-w-[20px] min-h-[20px] flex-shrink-0"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className="text-sm sm:text-base font-semibold text-gray-900 break-words">{extra.name}</h5>
+                                      {extra.description && (
+                                        <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">{extra.description}</p>
+                                      )}
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        {t.defaultPrice || 'Çmimi Bazë'}: €{extra.defaultPrice.toFixed(2)} {extra.unit === 'per_day' ? (t.perDay || 'Për Ditë') : extra.unit === 'per_booking' ? (t.perBooking || 'Për Rezervim') : (t.oneTime || 'Një Herë')}
+                                      </p>
                   </div>
                 </div>
+
+                                  {isSelected && extraData && (
+                                    <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                        <div>
+                                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                            {t.priceForThisCar || 'Çmimi për këtë makinë'} (€)
+                  </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                                            value={extraData.price}
+                                            onChange={(e) => handleUpdateExtraPrice(extra.id, parseFloat(e.target.value) || 0)}
+                                            className="w-full px-3 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm min-h-[44px] sm:min-h-[40px] touch-manipulation"
+                    />
+                  </div>
+                                        <div className="flex items-end">
+                                          <label className="flex items-center gap-2 cursor-pointer touch-manipulation min-h-[44px]">
+                                            <input
+                                              type="checkbox"
+                                              checked={extraData.isIncluded}
+                                              onChange={() => handleToggleExtraIncluded(extra.id)}
+                                              className="w-4 h-4 text-green-600 rounded focus:ring-green-600 min-w-[16px] min-h-[16px] flex-shrink-0"
+                                            />
+                                            <span className="text-xs sm:text-sm font-medium text-gray-700">
+                                              {t.includedInBaseRate || 'E përfshirë në çmimin bazë'}
+                                            </span>
+                                          </label>
+                </div>
+                    </div>
+                    </div>
+                                  )}
+                    </div>
+                  </div>
+                </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-xl">
+                        <DollarSign className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                        <p className="text-sm sm:text-base text-gray-600 font-medium">{t.noExtrasYet || 'Nuk ka shërbime shtesë akoma'}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1 px-4">{t.createFirstExtra || 'Krijo shërbimin tënd të parë duke përdorur butonin më sipër'}</p>
+                      </div>
+                    )}
+
+                    {selectedExtras.size > 0 && (
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 sm:p-4">
+                        <p className="text-xs sm:text-sm font-semibold text-blue-900">
+                          {selectedExtras.size} {t.extrasSelected || 'shërbim(e) shtesë të zgjedhura për këtë makinë'}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </form>

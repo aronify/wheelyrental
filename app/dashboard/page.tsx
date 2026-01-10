@@ -3,10 +3,12 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import DashboardContent from '@/app/components/domain/dashboard/dashboard-content'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
-import CompanyDataPrompt from '@/app/components/ui/alerts/company-data-prompt'
+import QuickStartGuide from '@/app/components/ui/onboarding/quick-start-guide'
+import NoCompanyAlert from '@/app/components/ui/alerts/no-company-alert'
 import RoleAssignmentHandler from '@/app/components/ui/auth/role-assignment-handler'
 import { Booking } from '@/types/booking'
-import { getUserCompanyId, companyHasMinimalData, getUserCompany } from '@/lib/server/data/company-helpers'
+import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
+import { getOnboardingStatus } from '@/lib/server/data/quick-start-helpers'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -65,11 +67,18 @@ export default async function DashboardPage() {
   // Get user's company ID (read-only, no side effects)
   const companyId = await getUserCompanyId(user.id)
   
-  // If no company exists, show prompt but don't create during render
-  // Company creation should happen via server action when user fills the form
-  
-  // Check if company has minimal required data
-  const hasMinimalData = companyId ? await companyHasMinimalData(companyId) : false
+  // Check onboarding status for Quick Start Guide
+  const onboardingStatus = companyId 
+    ? await getOnboardingStatus(companyId)
+    : {
+        isComplete: false,
+        progress: 0,
+        steps: {
+          profileComplete: false,
+          hasLocations: false,
+          hasCars: false,
+        }
+      }
   
   // Fetch bookings with car and customer details from Supabase
   // Bookings are company-scoped (bookings.company_id is required)
@@ -220,7 +229,20 @@ export default async function DashboardPage() {
       />
       <QuickAccessMenu />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <CompanyDataPrompt hasMinimalData={hasMinimalData} />
+        {/* Show alert if no company - non-blocking */}
+        {!companyId && <NoCompanyAlert />}
+        
+        {/* Show Quick Start Guide if company exists */}
+        {companyId && (
+          <QuickStartGuide 
+            profileComplete={onboardingStatus.steps.profileComplete}
+            hasLocations={onboardingStatus.steps.hasLocations}
+            hasCars={onboardingStatus.steps.hasCars}
+            progress={onboardingStatus.progress}
+          />
+        )}
+        
+        {/* Always show dashboard content */}
         <DashboardContent 
           userEmail={user.email || ''}
           agencyName={profileData?.agency_name}

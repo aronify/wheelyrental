@@ -112,3 +112,4 @@ If you still get errors after granting permissions:
    ALTER TABLE public.car_locations ENABLE ROW LEVEL SECURITY;
    ```
 
+

@@ -105,3 +105,4 @@ ALTER TABLE public.car_locations ENABLE ROW LEVEL SECURITY;
 -- FROM pg_constraint 
 -- WHERE conrelid = 'public.car_locations'::regclass;
 
+
