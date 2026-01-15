@@ -1342,13 +1342,25 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
 
     // Save car extras if provided
     if (carData.extras) {
-      console.log('[updateCarAction] Saving car extras:', { carId, extrasCount: carData.extras.length })
+      console.log('[updateCarAction] Saving car extras:', { 
+        carId, 
+        extrasCount: carData.extras.length,
+        extras: carData.extras
+      })
       const extrasResult = await updateCarExtrasAction(carId, carData.extras)
       if (extrasResult.error) {
         console.error('[updateCarAction] Failed to save extras:', extrasResult.error)
         // Don't fail the entire operation if extras fail, just log it
         // The car has been updated successfully
+      } else {
+        console.log('[updateCarAction] ✅ Extras saved successfully')
       }
+    } else {
+      console.log('[updateCarAction] No extras provided in carData:', {
+        hasExtras: !!carData.extras,
+        extrasType: typeof carData.extras,
+        carDataKeys: Object.keys(carData)
+      })
     }
 
     revalidatePath('/cars')

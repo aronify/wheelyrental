@@ -5,12 +5,22 @@ This directory contains all database-related SQL scripts organized by purpose.
 ## Directory Structure
 
 ### `migrations/`
-Database schema migrations and initial setup scripts.
+Core database schema migrations and setup scripts.
+
+**Schema Migrations:**
 - `migration-add-companies.sql` - Initial companies table setup
 - `migration-enhance-companies-table.sql` - Companies table enhancements
 - `migration-add-deposit-and-multiple-locations.sql` - Car deposits and locations
+- `migration-create-car-locations-junction.sql` - Car-locations junction table
+- `migration-create-car-extras.sql` - Car extras and extras tables
+
+**Schema References:**
 - `supabase-schema.sql` - Complete schema reference
 - `supabase-storage.sql` - Storage bucket setup
+
+**RLS Policy Fixes:**
+- `fix-car-locations-rls-policies.sql` - RLS policies for car_locations table
+- `fix-car-extras-rls-policies.sql` - RLS policies for car_extras table
 
 ### `rls-policies/`
 Row Level Security (RLS) policies and security configurations.
@@ -18,6 +28,7 @@ Row Level Security (RLS) policies and security configurations.
 - `fix-locations-rls-final-working.sql` - Locations table RLS policies
 - `standardize-jwt-rls-all-tables.sql` - Standardizes RLS across all tables
 - `rls-security-policies.sql` - Comprehensive RLS security policies
+- `rls-car-locations-policies.sql` - Car locations RLS policies
 - `verify-rls-complete.sql` - RLS validation script
 - `fix-company-update-owner-id.sql` - Company owner ID update utility
 - `fix-hq-location-name-format.sql` - HQ location name formatting
@@ -34,13 +45,13 @@ Sample/dummy data for testing and development.
 - `sample-bookings-data.sql` - Sample booking records
 - `add-payout-requests.sql` - Sample payout requests
 
-
 ## Usage
 
 **For Production Setup:**
-1. Run migrations in order
+1. Run migrations in order (migration-*.sql files)
 2. Apply RLS policies: `rls-policies/fix-jwt-rls-defensive-complete.sql`
-3. Apply utilities: `utilities/enforce-one-user-one-company.sql`, `utilities/enforce-phone-write-once.sql`
+3. Apply RLS fixes if needed: `migrations/fix-car-locations-rls-policies.sql`, `migrations/fix-car-extras-rls-policies.sql`
+4. Apply utilities: `utilities/enforce-one-user-one-company.sql`, `utilities/enforce-phone-write-once.sql`
 
 **For Development:**
 - Use sample data scripts to populate test data
@@ -49,8 +60,4 @@ Sample/dummy data for testing and development.
 
 - Always backup your database before running scripts
 - RLS policies are production-ready and should remain enabled
-- Debug scripts are for diagnostic purposes only
-
-
-
-
+- Run migrations in the order they are listed above

@@ -432,7 +432,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     setIsSubmitting(true)
     try {
       // Convert selected extras to CarExtra format
-      const carExtras = Array.from(selectedExtras.entries()).map(([extraId, data]) => ({
+      const extrasArray = Array.from(selectedExtras.entries()).map(([extraId, data]) => ({
         extraId,
         price: data.price,
         isIncluded: data.isIncluded,
@@ -443,7 +443,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
         ...formData, 
         imageUrl: imagePreviews[0],
         status: car.status, // Always use original status, never allow modification
-        carExtras // Add extras to submission
+        extras: extrasArray // FIXED: Changed from carExtras to extras to match server action
       }
       console.log('[EditCarForm] Submitting form data:', {
         pickupLocations: submitData.pickupLocations,
@@ -459,7 +459,8 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
         pickupFirstId: submitData.pickupLocations?.[0],
         dropoffFirstId: submitData.dropoffLocations?.[0],
         pickupFirstIdType: typeof submitData.pickupLocations?.[0],
-        extrasCount: carExtras.length,
+        extrasCount: extrasArray.length,
+        extras: extrasArray,
         dropoffFirstIdType: typeof submitData.dropoffLocations?.[0],
       })
       await onSubmit(submitData)
@@ -1604,4 +1605,6 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     </div>
   )
 }
+
+
 

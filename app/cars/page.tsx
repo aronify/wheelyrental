@@ -161,6 +161,34 @@ export default async function CarsRoute() {
     }
   }
 
+  // Fetch extras from junction table for all cars
+  let carExtrasMap: Record<string, Array<{ carId: string; extraId: string; price: number; isIncluded: boolean }>> = {}
+  if (dbCars && dbCars.length > 0) {
+    const carIds = dbCars.map((car: any) => car.id)
+    const { data: carExtras } = await supabase
+      .from('car_extras')
+      .select('car_id, extra_id, price, is_included')
+      .in('car_id', carIds)
+
+    // Group extras by car_id
+    for (const car of dbCars) {
+      const extras: Array<{ carId: string; extraId: string; price: number; isIncluded: boolean }> = []
+      
+      for (const ce of carExtras || []) {
+        if (ce.car_id === car.id) {
+          extras.push({
+            carId: car.id, // Required by CarExtra interface
+            extraId: ce.extra_id,
+            price: parseFloat(ce.price) || 0,
+            isIncluded: ce.is_included || false,
+          })
+        }
+      }
+      
+      carExtrasMap[car.id] = extras
+    }
+  }
+
   // Convert snake_case to camelCase and add computed fields
   const cars = (dbCars || []).map((car: any) => ({
     id: car.id,
@@ -199,6 +227,8 @@ export default async function CarsRoute() {
     depositRequired: car.deposit_required ? Number(car.deposit_required) : undefined,
     createdAt: new Date(car.created_at),
     updatedAt: new Date(car.updated_at),
+    // Extras from junction table
+    extras: carExtrasMap[car.id] || [],
     // Computed fields
     isVerified: false, // Companies table doesn't have is_verified column
     companyName: car.company?.name,
