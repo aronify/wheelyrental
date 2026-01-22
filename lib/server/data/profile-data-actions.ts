@@ -99,23 +99,10 @@ export async function updateProfileAction(
 
       companyId = company?.id || null
       
-      // If no company from members, try to find any company for this user
+      // If no company found via owner_id, use helper function as fallback
       if (!companyId) {
-        
-        // Try to get company_id from cars table - with timeout
-        const { data: userCar } = await withSupabaseTimeout(
-          supabase
-            .from('cars')
-            .select('company_id')
-            .eq('company_id', user.id) // This is wrong - should be checking if user owns the car
-            .limit(1)
-            .maybeSingle(),
-          TIMEOUTS.QUERY,
-          'Failed to retrieve company information. Please try again.'
-        )
-        
-        companyId = userCar?.company_id || null
-        
+        const { getUserCompanyId } = await import('@/lib/server/data/company-helpers')
+        companyId = await getUserCompanyId(user.id)
       }
       
       

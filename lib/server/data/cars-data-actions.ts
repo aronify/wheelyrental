@@ -358,14 +358,11 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
     }
 
     // Fetch locations for the user's company
-    // Security: RLS policies (locations_select_company) automatically filter by company_id
-    // RLS uses companies.owner_id = auth.uid() to enforce company scoping
-    // We still filter by is_active for business logic, but RLS handles security
+    // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
+    // No manual filtering needed - RLS handles all access control
+    // We only filter by is_active for business logic
     console.log('[getLocationsAction] Querying locations (RLS will filter by company)')
-    console.log('[getLocationsAction] Current user:', user.id, 'Company ID:', companyId)
     
-    // NOTE: RLS policy automatically filters by company_id, so we don't need .eq('company_id', companyId)
-    // However, we keep it for explicit clarity and as a safety measure
     const result = await withSupabaseTimeout<{
       id: string
       name: string
@@ -404,7 +401,6 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
         code: error.code,
         details: error.details,
         hint: error.hint,
-        companyId: companyId,
         userId: user.id
       })
       

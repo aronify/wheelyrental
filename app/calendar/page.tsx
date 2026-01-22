@@ -65,8 +65,8 @@ export default async function CalendarRoute() {
   }
   
   // Fetch bookings with car, customer, and location details from Supabase
-  // Bookings are company-scoped (bookings.company_id is required)
-  // RLS will automatically filter by company_id, but we keep explicit filter for clarity
+  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
+  // No manual filtering needed - RLS handles all access control
   const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
     .select(`
@@ -97,7 +97,6 @@ export default async function CalendarRoute() {
         city
       )
     `)
-    .eq('company_id', companyId)
     .order('start_ts', { ascending: true })
   
   // Log errors for debugging
@@ -106,14 +105,12 @@ export default async function CalendarRoute() {
       message: bookingsError.message,
       code: bookingsError.code,
       details: bookingsError.details,
-      hint: bookingsError.hint,
-      companyId
+      hint: bookingsError.hint
     })
   }
   
   console.log('[CalendarPage] Fetched bookings:', {
-    count: bookings?.length || 0,
-    companyId
+    count: bookings?.length || 0
   })
 
   return (

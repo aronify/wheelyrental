@@ -48,77 +48,66 @@ export default async function BookingsRoute() {
   // Get user's company ID - DO NOT create automatically
   const companyId = await getUserCompanyId(user.id)
   
-  // Fetch bookings with car, customer, and location details from Supabase (only if company exists)
-  let bookings: any[] = []
-  let bookingsError = null
+  // Fetch bookings with car, customer, and location details from Supabase
+  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
+  // No manual filtering needed - RLS handles all access control
+  const { data: bookings, error: bookingsError } = await supabase
+    .from('bookings')
+    .select(`
+      *,
+      car:cars(
+        id,
+        company_id,
+        make,
+        model,
+        year,
+        license_plate,
+        color,
+        transmission,
+        fuel_type,
+        seats,
+        daily_rate,
+        deposit_required,
+        status,
+        image_url,
+        features,
+        created_at,
+        updated_at
+      ),
+      customer:customers(
+        id,
+        user_id,
+        full_name,
+        phone
+      ),
+      pickup_location:locations!pickup_location_id(
+        id,
+        name,
+        address_line_1,
+        city
+      ),
+      dropoff_location:locations!dropoff_location_id(
+        id,
+        name,
+        address_line_1,
+        city
+      )
+    `)
+    .order('created_at', { ascending: false })
   
-  if (companyId) {
-    // Bookings are company-scoped (bookings.company_id is required)
-    // RLS will automatically filter by company_id, but we keep explicit filter for clarity
-    const result = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        car:cars(
-          id,
-          company_id,
-          make,
-          model,
-          year,
-          license_plate,
-          color,
-          transmission,
-          fuel_type,
-          seats,
-          daily_rate,
-          deposit_required,
-          status,
-          image_url,
-          features,
-          created_at,
-          updated_at
-        ),
-        customer:customers(
-          id,
-          user_id,
-          full_name,
-          phone
-        ),
-        pickup_location:locations!pickup_location_id(
-          id,
-          name,
-          address_line_1,
-          city
-        ),
-        dropoff_location:locations!dropoff_location_id(
-          id,
-          name,
-          address_line_1,
-          city
-        )
-      `)
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false })
-    
-    bookings = result.data || []
-    bookingsError = result.error
-    
-    // Log errors for debugging
-    if (bookingsError) {
-      console.error('[BookingsPage] Error fetching bookings:', {
-        message: bookingsError.message,
-        code: bookingsError.code,
-        details: bookingsError.details,
-        hint: bookingsError.hint,
-        companyId
-      })
-    }
-    
-    console.log('[BookingsPage] Fetched bookings:', {
-      count: bookings?.length || 0,
-      companyId
+  // Log errors for debugging
+  if (bookingsError) {
+    console.error('[BookingsPage] Error fetching bookings:', {
+      message: bookingsError.message,
+      code: bookingsError.code,
+      details: bookingsError.details,
+      hint: bookingsError.hint
     })
   }
+  
+  console.log('[BookingsPage] Fetched bookings:', {
+    count: bookings?.length || 0
+  })
 
   // Transform bookings data to match Booking interface
   const transformedBookings = (bookings || []).map((booking: any) => ({

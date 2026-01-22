@@ -65,9 +65,9 @@ export default async function CarsRoute() {
       }
   
   // Fetch cars from Supabase with company information
-  // RLS will automatically filter by company_id (JWT-based with fallback)
-  // Try without explicit filter first (RLS handles it)
-  let { data: dbCars, error: carsError } = await supabase
+  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
+  // No manual filtering needed - RLS handles all access control
+  const { data: dbCars, error: carsError } = await supabase
     .from('cars')
     .select(`
       *,
@@ -81,39 +81,6 @@ export default async function CarsRoute() {
     `)
     .order('created_at', { ascending: false })
   
-  // If query failed or returned no results, try with explicit company_id filter as fallback
-  if (carsError || !dbCars || dbCars.length === 0) {
-    console.warn('[CarsPage] Initial query failed or empty, trying with explicit company_id filter:', {
-      error: carsError?.message,
-      count: dbCars?.length || 0,
-      companyId
-    })
-    
-    // Retry with explicit filter (this might work if RLS is too restrictive)
-    const retryResult = await supabase
-      .from('cars')
-      .select(`
-        *,
-        company:companies(
-          id,
-          name,
-          email,
-          phone,
-          website
-        )
-      `)
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false })
-    
-    if (!retryResult.error && retryResult.data) {
-      dbCars = retryResult.data
-      carsError = retryResult.error
-      console.log('[CarsPage] Retry with explicit filter succeeded:', retryResult.data.length)
-    } else {
-      console.error('[CarsPage] Retry also failed:', retryResult.error)
-    }
-  }
-  
   // Log any errors for debugging
   if (carsError) {
     console.error('[CarsPage] Error fetching cars:', {
@@ -121,15 +88,13 @@ export default async function CarsRoute() {
       code: carsError.code,
       details: carsError.details,
       hint: carsError.hint,
-      companyId,
-      rlsIssue: carsError.code === '42501' ? 'RLS might be blocking query' : 'Other error'
+      rlsIssue: carsError.code === '42501' ? 'RLS blocked query - check RLS policies' : 'Other error'
     })
   }
   
   // Debug: Log what we got
   console.log('[CarsPage] Fetched cars:', {
     count: dbCars?.length || 0,
-    companyId,
     sampleCar: dbCars?.[0] ? { id: dbCars[0].id, company_id: dbCars[0].company_id } : null
   })
 

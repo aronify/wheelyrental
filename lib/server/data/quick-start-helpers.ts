@@ -56,21 +56,21 @@ export async function getOnboardingStatus(companyId: string): Promise<Onboarding
   )
 
   // Step 2: Check if company has at least one active location
+  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
   const { data: locations, count: locationCount } = await supabase
     .from('locations')
     .select('id', { count: 'exact', head: false })
-    .eq('company_id', companyId)
-    .eq('is_active', true)
+    .eq('is_active', true) // Business logic filter only
     .limit(1)
 
   const hasLocations = (locationCount ?? 0) > 0
 
   // Step 3: Check if company has at least one active car
+  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
   const { data: cars, count: carCount } = await supabase
     .from('cars')
     .select('id', { count: 'exact', head: false })
-    .eq('company_id', companyId)
-    .eq('status', 'active')
+    .eq('status', 'active') // Business logic filter only
     .limit(1)
 
   const hasCars = (carCount ?? 0) > 0

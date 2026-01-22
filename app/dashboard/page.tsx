@@ -81,18 +81,15 @@ export default async function DashboardPage() {
       }
   
   // Fetch bookings with car and customer details from Supabase
-  // Bookings are company-scoped (bookings.company_id is required)
+  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
+  // No manual filtering needed - RLS handles all access control
   let dbBookings = null
   try {
-    if (!companyId) {
-      dbBookings = []
-    } else {
-      // First, fetch bookings
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false })
+    // First, fetch bookings - RLS will automatically filter to user's company
+    const { data: bookingsData, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('created_at', { ascending: false })
     
     if (bookingsError) {
       console.error('Error fetching bookings:', {
@@ -103,7 +100,7 @@ export default async function DashboardPage() {
       })
       dbBookings = []
     } else if (bookingsData && bookingsData.length > 0) {
-      // Fetch related cars and customers
+      // Fetch related cars and customers - RLS will automatically filter these too
       const carIds = [...new Set(bookingsData.map((b: any) => b.car_id).filter(Boolean))]
       const customerIds = [...new Set(bookingsData.map((b: any) => b.customer_id).filter(Boolean))]
       
@@ -140,7 +137,6 @@ export default async function DashboardPage() {
       }))
     } else {
       dbBookings = []
-    }
     }
   } catch (err: any) {
     console.error('Unexpected error fetching bookings:', {

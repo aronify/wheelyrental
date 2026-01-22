@@ -67,17 +67,13 @@ export async function getExtrasAction(): Promise<{ extras?: Extra[], error?: str
       return { error: 'Not authenticated' }
     }
 
-    const companyId = await getUserCompanyId(user.id)
-    if (!companyId) {
-      return { error: 'Company ID not found. Please create a company first.' }
-    }
-
+    // RLS automatically filters extras by company_id based on auth.uid() and companies.owner_id
+    // No manual filtering needed - RLS handles all access control
     const { data, error } = await withSupabaseTimeout(
       supabase
         .from('extras')
         .select('*')
-        .eq('company_id', companyId)
-        .eq('is_active', true)
+        .eq('is_active', true) // Business logic filter only
         .order('name', { ascending: true }),
       TIMEOUTS.QUERY,
       'Failed to fetch extras. Please try again.'

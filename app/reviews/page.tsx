@@ -69,7 +69,8 @@ export default async function ReviewsPage() {
   }
 
   // Fetch reviews for the company's cars
-  // Reviews are company-scoped and read-only
+  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
+  // No manual filtering needed - RLS handles all access control
   const { data: dbReviews, error: reviewsError } = await supabase
     .from('reviews')
     .select(`
@@ -97,8 +98,7 @@ export default async function ReviewsPage() {
         status
       )
     `)
-    .eq('company_id', companyId)
-    .eq('is_visible', true)
+    .eq('is_visible', true) // Business logic filter only
     .order('created_at', { ascending: false })
 
   if (reviewsError) {
