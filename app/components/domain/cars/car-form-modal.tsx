@@ -641,9 +641,11 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
         isIncluded,
       }))
 
+      // Send File object if available, otherwise send base64 for backward compatibility
       await onSubmit({ 
         ...formData, 
-        imageUrl: imagePreviews[0],
+        imageFile: imageFiles[0] || undefined, // Send File object (preferred)
+        imageUrl: imagePreviews[0] || undefined, // Fallback to base64 for legacy support
         extras: extrasArray,
       })
       // Success - parent component will close modal

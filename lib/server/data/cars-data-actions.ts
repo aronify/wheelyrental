@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { getUserCompanyId } from './company-helpers'
 import { withTimeout, withSupabaseTimeout, TIMEOUTS, TimeoutError } from '@/lib/utils/timeout'
 import { updateCarExtrasAction } from './extras-data-actions'
+import { uploadCarImage, deleteCarImage } from './image-upload-helpers'
 
 export interface Location {
   id: string
@@ -883,7 +884,7 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
         ? parseFloat(carData.depositRequired.toFixed(2)) 
         : null, // Optional, must be >= 0 if provided (check constraint)
       status: (carData.status || 'active') as 'active' | 'maintenance' | 'retired', // Required, default 'active', check constraint
-      image_url: carData.imageUrl?.trim() || null, // Optional (nullable)
+      image_url: null, // Will be set after image upload
       features: Array.isArray(carData.features) && carData.features.length > 0 
         ? carData.features.filter(f => f && f.trim()).map(f => f.trim()) 
         : null, // Optional text[] array, filter empty/null values
@@ -917,6 +918,32 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
 
     carInsertData.pickup_locations = validateLocationIds(carData.pickupLocations)
     carInsertData.dropoff_locations = validateLocationIds(carData.dropoffLocations)
+
+    // Handle image upload if provided
+    let imageUrl: string | null = null
+    // Note: File objects can't be serialized through server actions, so we check for base64
+    // If imageFile is provided, it will be in FormData format (future enhancement)
+    if (carData.imageUrl && carData.imageUrl.startsWith('data:image')) {
+      // Legacy: base64 image - convert to File and upload
+      try {
+        const response = await fetch(carData.imageUrl)
+        const blob = await response.blob()
+        const file = new File([blob], 'car-image.jpg', { type: 'image/jpeg' })
+        const uploadResult = await uploadCarImage(file)
+        if (uploadResult.error) {
+          return { error: `Failed to upload image: ${uploadResult.error}` }
+        }
+        imageUrl = uploadResult.url || null
+      } catch (error) {
+        console.error('[addCarAction] Error converting base64 to file:', error)
+        return { error: 'Failed to process image. Please try again.' }
+      }
+    } else if (carData.imageUrl && !carData.imageUrl.startsWith('data:image')) {
+      // Already a URL (from storage), use it directly
+      imageUrl = carData.imageUrl.trim()
+    }
+
+    carInsertData.image_url = imageUrl
 
     // Insert the car
     const { data: carDataResult, error: carError } = await withSupabaseTimeout(
@@ -1124,6 +1151,45 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       }
     }
 
+    // Handle image upload if provided
+    let imageUrl: string | null | undefined = undefined // undefined means don't update, null means clear
+    const oldImageUrl = existingCar.image_url
+    
+    // Note: File objects can't be serialized through server actions, so we use base64
+    // The form sends base64, which we convert to File and upload to storage
+    if (carData.imageUrl && carData.imageUrl.startsWith('data:image')) {
+      // Legacy: base64 image - convert to File and upload
+      try {
+        const response = await fetch(carData.imageUrl)
+        const blob = await response.blob()
+        const file = new File([blob], 'car-image.jpg', { type: 'image/jpeg' })
+        const uploadResult = await uploadCarImage(file, carId)
+        if (uploadResult.error) {
+          return { error: `Failed to upload image: ${uploadResult.error}` }
+        }
+        imageUrl = uploadResult.url || null
+        
+        // Delete old image if it exists and is from storage
+        if (oldImageUrl && !oldImageUrl.startsWith('data:image')) {
+          await deleteCarImage(oldImageUrl)
+        }
+      } catch (error) {
+        console.error('[updateCarAction] Error converting base64 to file:', error)
+        return { error: 'Failed to process image. Please try again.' }
+      }
+    } else if (carData.imageUrl === null || carData.imageUrl === '') {
+      // Explicitly clearing the image
+      imageUrl = null
+      // Delete old image if it exists and is from storage
+      if (oldImageUrl && !oldImageUrl.startsWith('data:image')) {
+        await deleteCarImage(oldImageUrl)
+      }
+    } else if (carData.imageUrl && !carData.imageUrl.startsWith('data:image')) {
+      // Already a URL (from storage), use it directly (no change)
+      imageUrl = carData.imageUrl.trim()
+    }
+    // If imageUrl is undefined, we don't update the image field
+
     // Prepare update data with proper types
     // Also include pickup_locations and dropoff_locations TEXT[] arrays if provided
     const carUpdateData: any = {
@@ -1140,11 +1206,15 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
         ? parseFloat(carData.depositRequired.toFixed(2)) 
         : null, // Optional, ensure numeric(10,2) or null
       status: (carData.status || 'active') as 'active' | 'maintenance' | 'retired', // Default to 'active'
-      image_url: carData.imageUrl?.trim() || null, // Optional, convert empty string to null
       features: Array.isArray(carData.features) && carData.features.length > 0 
         ? carData.features.filter(f => f?.trim()).map(f => f.trim()) 
         : null, // Optional array, filter empty strings
       updated_at: new Date().toISOString(),
+    }
+    
+    // Only update image_url if we have a new value
+    if (imageUrl !== undefined) {
+      carUpdateData.image_url = imageUrl
     }
 
     // Handle locations using junction table (car_locations)

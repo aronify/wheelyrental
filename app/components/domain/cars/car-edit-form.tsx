@@ -441,7 +441,8 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
       // Preserve original car status - status cannot be modified through the edit form
       const submitData = { 
         ...formData, 
-        imageUrl: imagePreviews[0],
+        imageFile: imageFiles[0] || undefined, // Send File object (preferred)
+        imageUrl: imagePreviews[0] || undefined, // Fallback to base64 for legacy support
         status: car.status, // Always use original status, never allow modification
         extras: extrasArray // FIXED: Changed from carExtras to extras to match server action
       }

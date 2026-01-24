@@ -72,7 +72,8 @@ export interface CarFormData {
   fuelType: FuelType
   seats: number
   dailyRate: number
-  imageUrl?: string
+  imageUrl?: string // URL from storage or base64 (legacy)
+  imageFile?: File // File object for upload (preferred)
   status: CarStatus // 'active', 'maintenance', 'retired'
   features?: string[]
   depositRequired?: number
