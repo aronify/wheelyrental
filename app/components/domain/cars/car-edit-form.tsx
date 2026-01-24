@@ -316,6 +316,7 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
     pickupLocations: car.pickupLocations || [],
     dropoffLocations: car.dropoffLocations || [],
   })
+  const [dailyRateFocused, setDailyRateFocused] = useState(false)
 
   // Image compression function
   const compressImage = (file: File): Promise<string> => {
@@ -916,8 +917,35 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-3xl font-bold text-blue-900">€</span>
                     <input
                       type="number"
-                      value={formData.dailyRate}
-                      onChange={(e) => handleInputChange('dailyRate', parseFloat(e.target.value))}
+                      value={formData.dailyRate === 0 && dailyRateFocused ? '' : formData.dailyRate}
+                      onFocus={() => {
+                        setDailyRateFocused(true)
+                        // Clear the field if it's 0 when focused
+                        if (formData.dailyRate === 0) {
+                          // Input will show empty due to value prop
+                        }
+                      }}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        // Allow empty string while typing
+                        if (value === '') {
+                          handleInputChange('dailyRate', 0)
+                        } else {
+                          const numValue = parseFloat(value)
+                          // Only update if it's a valid number
+                          if (!isNaN(numValue)) {
+                            handleInputChange('dailyRate', numValue)
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setDailyRateFocused(false)
+                        // Ensure value is at least 0 on blur if empty or invalid
+                        const value = e.target.value
+                        if (value === '' || isNaN(parseFloat(value)) || parseFloat(value) < 0) {
+                          handleInputChange('dailyRate', 0)
+                        }
+                      }}
                       min="0"
                       step="0.01"
                       placeholder="50.00"

@@ -386,6 +386,7 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     dropoffLocations: [],
     extras: [],
   })
+  const [dailyRateFocused, setDailyRateFocused] = useState(false)
 
   const [newFeature, setNewFeature] = useState('')
 
@@ -1135,11 +1136,36 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         required
                         min="0"
                         step="0.01"
-                        value={formData.dailyRate}
+                        value={formData.dailyRate === 0 && dailyRateFocused ? '' : formData.dailyRate}
+                        onFocus={() => {
+                          setDailyRateFocused(true)
+                          // Clear the field if it's 0 when focused
+                          if (formData.dailyRate === 0) {
+                            // Input will show empty due to value prop
+                          }
+                        }}
                         onChange={(e) => {
-                          setFormData({ ...formData, dailyRate: parseFloat(e.target.value) || 0 })
+                          const value = e.target.value
+                          // Allow empty string while typing
+                          if (value === '') {
+                            setFormData({ ...formData, dailyRate: 0 })
+                          } else {
+                            const numValue = parseFloat(value)
+                            // Only update if it's a valid number
+                            if (!isNaN(numValue)) {
+                              setFormData({ ...formData, dailyRate: numValue })
+                            }
+                          }
                           if (validationErrors.dailyRate) {
                             setValidationErrors({ ...validationErrors, dailyRate: '' })
+                          }
+                        }}
+                        onBlur={(e) => {
+                          setDailyRateFocused(false)
+                          // Ensure value is at least 0 on blur if empty or invalid
+                          const value = e.target.value
+                          if (value === '' || isNaN(parseFloat(value)) || parseFloat(value) < 0) {
+                            setFormData({ ...formData, dailyRate: 0 })
                           }
                         }}
                         className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 ${
