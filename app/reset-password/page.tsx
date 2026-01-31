@@ -38,7 +38,7 @@ export default async function ResetPasswordPage({
   // This allows the form to show and handle the error client-side if needed
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8 font-urbanist">
       <div className="max-w-md w-full space-y-6">
         {/* Logo/Brand Section */}
         <div className="text-center mb-6">

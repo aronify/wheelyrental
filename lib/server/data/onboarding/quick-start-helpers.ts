@@ -1,8 +1,6 @@
 /**
  * Quick Start Guide Helpers
- * 
- * Utilities to determine onboarding completion status
- * for new partners on the WheelyPartner platform.
+ * Utilities to determine onboarding completion status for new partners.
  */
 
 import { createServerComponentClient } from '@/lib/supabase/client'
@@ -11,7 +9,7 @@ export interface OnboardingStatus {
   isComplete: boolean
   completedSteps: string[]
   totalSteps: number
-  progress: number // 0-100
+  progress: number
   steps: {
     profileComplete: boolean
     hasLocations: boolean
@@ -19,10 +17,6 @@ export interface OnboardingStatus {
   }
 }
 
-/**
- * Check comprehensive onboarding status for a company
- * Returns detailed progress information for the Quick Start Guide
- */
 export async function getOnboardingStatus(companyId: string): Promise<OnboardingStatus> {
   if (!companyId) {
     return {
@@ -39,8 +33,7 @@ export async function getOnboardingStatus(companyId: string): Promise<Onboarding
   }
 
   const supabase = await createServerComponentClient()
-  
-  // Step 1: Check if company profile has essential information
+
   const { data: company } = await supabase
     .from('companies')
     .select('name, email, phone, address, city')
@@ -55,27 +48,22 @@ export async function getOnboardingStatus(companyId: string): Promise<Onboarding
     company?.city?.trim()
   )
 
-  // Step 2: Check if company has at least one active location
-  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
   const { data: locations, count: locationCount } = await supabase
     .from('locations')
     .select('id', { count: 'exact', head: false })
-    .eq('is_active', true) // Business logic filter only
+    .eq('is_active', true)
     .limit(1)
 
   const hasLocations = (locationCount ?? 0) > 0
 
-  // Step 3: Check if company has at least one active car
-  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
   const { data: cars, count: carCount } = await supabase
     .from('cars')
     .select('id', { count: 'exact', head: false })
-    .eq('status', 'active') // Business logic filter only
+    .eq('status', 'active')
     .limit(1)
 
   const hasCars = (carCount ?? 0) > 0
 
-  // Calculate progress
   const completedSteps: string[] = []
   if (profileComplete) completedSteps.push('profile')
   if (hasLocations) completedSteps.push('locations')
@@ -98,12 +86,8 @@ export async function getOnboardingStatus(companyId: string): Promise<Onboarding
   }
 }
 
-/**
- * Simple check if onboarding is complete (for quick conditional rendering)
- */
 export async function isOnboardingComplete(companyId: string): Promise<boolean> {
   if (!companyId) return false
-  
   const status = await getOnboardingStatus(companyId)
   return status.isComplete
 }

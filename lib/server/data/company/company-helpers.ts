@@ -14,29 +14,24 @@ export async function getUserCompanyId(userId?: string): Promise<string | null> 
   }
 
   const supabase = await createServerComponentClient()
-  
-  // First, try to get from companies table using owner_id
+
   const { data: company } = await supabase
     .from('companies')
     .select('id')
     .eq('owner_id', userId)
     .limit(1)
     .maybeSingle()
-  
+
   if (company?.id) {
     return company.id
   }
-  
-  // ⚠️ SECURITY: Do NOT fallback to cars without user filtering
-  // This would return ANY car's company_id, causing cross-company data leakage
-  // Users MUST have owner_id set in companies table
+
   console.error('[SECURITY] No company found for user via owner_id:', userId)
   return null
 }
 
 /**
  * Ensure a company exists for the user, creating one if it doesn't exist
- * Returns the company_id
  */
 export async function ensureUserCompany(userId: string, userEmail?: string | null): Promise<string | null> {
   if (!userId) {
@@ -44,15 +39,12 @@ export async function ensureUserCompany(userId: string, userEmail?: string | nul
   }
 
   const supabase = await createServerComponentClient()
-  
-  // Check if user already has a company
   const existingCompanyId = await getUserCompanyId(userId)
   if (existingCompanyId) {
     return existingCompanyId
   }
 
-  // Create a new company for the user
-  const companyName = userEmail 
+  const companyName = userEmail
     ? `Company for ${userEmail.split('@')[0]}`
     : `Company for User ${userId.substring(0, 8)}`
 
@@ -62,7 +54,7 @@ export async function ensureUserCompany(userId: string, userEmail?: string | nul
       name: companyName,
       legal_name: companyName,
       email: userEmail || null,
-      owner_id: userId, // Set owner_id directly on insert
+      owner_id: userId,
       verification_status: 'pending',
       timezone: 'UTC',
       currency: 'USD',
@@ -76,64 +68,54 @@ export async function ensureUserCompany(userId: string, userEmail?: string | nul
     return null
   }
 
-  const companyId = newCompany.id
-
-  // owner_id is already set on insert, so no need to update
-  // Just return the company ID
-  return companyId
+  return newCompany.id
 }
 
 /**
  * Check if company has minimal required data (name, email, phone)
- * Returns true if company has at least name, email, and phone filled in
  */
 export async function companyHasMinimalData(companyId: string): Promise<boolean> {
-  if (!companyId) {
-    return false
-  }
+  if (!companyId) return false
 
   const supabase = await createServerComponentClient()
-  
   const { data: company } = await supabase
     .from('companies')
     .select('name, email, phone')
     .eq('id', companyId)
     .single()
 
-  if (!company) {
-    return false
-  }
-
-  // Check if all three required fields are filled
-  return !!(
-    company.name?.trim() &&
-    company.email?.trim() &&
-    company.phone?.trim()
-  )
+  if (!company) return false
+  return !!(company.name?.trim() && company.email?.trim() && company.phone?.trim())
 }
 
 /**
- * Get company data for the authenticated user
+ * Get company by ID (single query). Use when you already have companyId.
  */
-export async function getUserCompany(userId: string) {
-  const companyId = await getUserCompanyId(userId)
+export async function getCompanyById(companyId: string) {
   if (!companyId) return null
-  
   const supabase = await createServerComponentClient()
   const { data: company } = await supabase
     .from('companies')
     .select('*')
     .eq('id', companyId)
     .single()
-  
   return company
 }
 
 /**
- * Verify user has access to a company (for RLS and access control)
+ * Get company data for the authenticated user.
+ * Pass companyId when already known to avoid an extra getUserCompanyId round-trip.
+ */
+export async function getUserCompany(userId: string, companyId?: string | null) {
+  const id = companyId ?? (await getUserCompanyId(userId))
+  if (!id) return null
+  return getCompanyById(id)
+}
+
+/**
+ * Verify user has access to a company
  */
 export async function userHasCompanyAccess(userId: string, companyId: string): Promise<boolean> {
   const userCompanyId = await getUserCompanyId(userId)
   return userCompanyId === companyId
 }
-

@@ -10,44 +10,77 @@ interface DashboardContentProps {
   userEmail: string
   bookings: Booking[]
   agencyName?: string
+  availableBalance?: number
+  pendingPayoutAmount?: number
+  balanceLoading?: boolean
+  todayReservations?: number
+  monthlyReservations?: number
+  monthlyEarnings?: number
 }
 
-export default function DashboardContent({ userEmail, bookings, agencyName }: DashboardContentProps) {
+export default function DashboardContent({
+  userEmail,
+  bookings,
+  agencyName,
+  availableBalance = 0,
+  pendingPayoutAmount = 0,
+  balanceLoading = false,
+  todayReservations,
+  monthlyReservations,
+  monthlyEarnings,
+}: DashboardContentProps) {
   const { t } = useLanguage()
 
-  // Calculate statistics with error handling
+  // Stats: use server-provided metrics when present; otherwise derive from bookings (same definitions)
   const stats = useMemo(() => {
     try {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    
-    const totalBookings = bookings.length
-    const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'picked_up').length
-    const pendingBookings = bookings.filter(b => b.status === 'pending').length
-    
-    const todayBookings = bookings.filter((b: any) => {
-      const pickupDate = b.startTs ? new Date(b.startTs) : new Date()
-      const dropoffDate = b.endTs ? new Date(b.endTs) : new Date()
-      return (pickupDate >= today && pickupDate < new Date(today.getTime() + 86400000)) ||
-             (dropoffDate >= today && dropoffDate < new Date(today.getTime() + 86400000))
-    }).length
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const validStatuses = ['confirmed', 'returned', 'picked_up'] as const
 
-    const thisMonthBookings = bookings.filter((b: any) => {
-      const pickupDate = new Date((b as any).pickupDate || (b as any).pickup_date || (b as any).startDate || (b as any).startDateTime || b.pickup_date || b.startDate || b.startDateTime)
-      return pickupDate >= thisMonth
-    }).length
+      const totalBookings = bookings.length
+      const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'picked_up').length
+      const pendingBookings = bookings.filter(b => b.status === 'pending').length
 
-    const totalRevenue = bookings
-      .filter(b => b.status === 'confirmed' || b.status === 'picked_up' || b.status === 'returned')
-      .reduce((sum, b) => sum + (b.totalPrice || 0), 0)
+      const todayBookings =
+        todayReservations ??
+        bookings.filter((b) => {
+          if (b.status === 'cancelled') return false
+          if (!validStatuses.includes(b.status as typeof validStatuses[number])) return false
+          const start = b.startTs ? new Date(b.startTs) : null
+          const created = b.createdAt ? new Date(b.createdAt) : null
+          const dayEnd = new Date(today.getTime() + 86400000 - 1)
+          const inRange = (d: Date) => d >= today && d <= dayEnd
+          return (start && inRange(start)) || (created && inRange(created))
+        }).length
 
-    const thisMonthRevenue = bookings
-      .filter(b => {
-        const pickupDate = new Date((b as any).pickupDate || (b as any).pickup_date || (b as any).startDate || (b as any).startDateTime)
-        return pickupDate >= thisMonth && (b.status === 'confirmed' || b.status === 'picked_up' || b.status === 'returned')
-      })
-      .reduce((sum, b) => sum + (b.totalPrice || 0), 0)
+      const thisMonthBookings =
+        monthlyReservations ??
+        bookings.filter((b) => {
+          if (b.status === 'cancelled') return false
+          if (!validStatuses.includes(b.status as typeof validStatuses[number])) return false
+          const start = b.startTs ? new Date(b.startTs) : null
+          const created = b.createdAt ? new Date(b.createdAt) : null
+          const monthEnd = new Date(thisMonth.getFullYear(), thisMonth.getMonth() + 1, 0, 23, 59, 59, 999)
+          const inMonth = (d: Date) => d >= thisMonth && d <= monthEnd
+          return (start && inMonth(start)) || (created && inMonth(created))
+        }).length
+
+      const totalRevenue = bookings
+        .filter(b => b.status === 'confirmed' || b.status === 'picked_up' || b.status === 'returned')
+        .reduce((sum, b) => sum + (b.totalPrice || 0), 0)
+
+      const monthEnd = new Date(thisMonth.getFullYear(), thisMonth.getMonth() + 1, 0, 23, 59, 59, 999)
+      const thisMonthRevenue =
+        monthlyEarnings ??
+        bookings
+          .filter((b) => {
+            if (b.status !== 'returned') return false
+            const completedAt = b.updatedAt ? new Date(b.updatedAt) : (b.endTs ? new Date(b.endTs) : null)
+            return completedAt && completedAt >= thisMonth && completedAt <= monthEnd
+          })
+          .reduce((sum, b) => sum + (b.totalPrice || 0), 0)
 
       return {
         totalBookings,
@@ -58,12 +91,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
         totalRevenue,
         thisMonthRevenue,
       }
-    } catch (error: any) {
-      console.error('[DashboardContent] Error calculating stats:', {
-        message: error?.message,
-        stack: error?.stack,
-      })
-      // Return safe defaults
+    } catch (error: unknown) {
+      console.error('[DashboardContent] Error calculating stats:', error)
       return {
         totalBookings: 0,
         confirmedBookings: 0,
@@ -74,7 +103,7 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
         thisMonthRevenue: 0,
       }
     }
-  }, [bookings])
+  }, [bookings, todayReservations, monthlyReservations, monthlyEarnings])
 
   // Get recent bookings with error handling
   const recentBookings = useMemo(() => {
@@ -312,13 +341,41 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0">
-      <div className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          <div className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in" style={{ animationDelay: '0ms' }}>
+    <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0 min-w-0 w-full">
+      <div className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8 min-w-0">
+        {/* Metrics Grid: Balance + KPIs (same card system) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
+          {/* Available balance – passive KPI, no embedded CTA */}
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            {balanceLoading ? (
+              <>
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gray-100 rounded-lg sm:rounded-xl animate-pulse" />
+                </div>
+                <div className="h-8 sm:h-9 bg-gray-100 rounded animate-pulse mb-1 w-24" />
+                <div className="h-4 bg-gray-100 rounded animate-pulse w-28" />
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gray-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 sm:w-7 sm:h-7 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">€{availableBalance.toFixed(2)}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Available balance</p>
+                {pendingPayoutAmount > 0 && (
+                  <p className="text-xs text-gray-500 mt-1.5">Pending: €{pendingPayoutAmount.toFixed(2)}</p>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                 <svg className="w-5 h-5 sm:w-7 sm:h-7 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
@@ -331,9 +388,9 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
             <p className="text-xs sm:text-sm text-gray-600">{t.totalBookings}</p>
           </div>
 
-          <div className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in" style={{ animationDelay: '100ms' }}>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-orange-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-orange-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                 <svg className="w-5 h-5 sm:w-7 sm:h-7 text-orange-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -343,12 +400,12 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
               </span>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.todayBookings}</p>
-            <p className="text-xs sm:text-sm text-gray-600">{t.todayBookings || "Today's Activity"}</p>
+            <p className="text-xs sm:text-sm text-gray-600">{t.todayBookings ?? "Today's Reservations"}</p>
           </div>
 
-          <div className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in" style={{ animationDelay: '200ms' }}>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                 <svg className="w-5 h-5 sm:w-7 sm:h-7 text-purple-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -358,12 +415,12 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
               </span>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.thisMonthBookings}</p>
-            <p className="text-xs sm:text-sm text-gray-600">{t.monthlyBookings || 'Monthly Bookings'}</p>
+            <p className="text-xs sm:text-sm text-gray-600">{t.monthlyBookings ?? 'Monthly Reservations'}</p>
           </div>
 
-          <div className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in" style={{ animationDelay: '300ms' }}>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                 <svg className="w-5 h-5 sm:w-7 sm:h-7 text-green-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -373,7 +430,7 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
               </span>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">€{stats.thisMonthRevenue.toFixed(0)}</p>
-            <p className="text-xs sm:text-sm text-gray-600">{t.monthlyRevenue || 'Monthly Revenue'}</p>
+            <p className="text-xs sm:text-sm text-gray-600">{t.monthlyRevenue ?? 'Monthly Earnings'}</p>
           </div>
         </div>
 
@@ -438,7 +495,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                   <p className="text-xs sm:text-sm text-gray-600">{t.last6Months || 'Last 6 months'}</p>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
+              <div className="w-full min-h-[180px] xs:min-h-[200px] sm:min-h-[250px] overflow-hidden">
+                <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={revenueChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
@@ -469,7 +527,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                     activeDot={{ r: 7 }}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             {/* Bookings Status Pie Chart */}
@@ -487,7 +546,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                 </div>
               </div>
               {statusChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
+                <div className="w-full min-h-[180px] xs:min-h-[200px] sm:min-h-[250px] overflow-hidden">
+                  <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
                     <Pie
                       data={statusChartData}
@@ -512,7 +572,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                       }}
                     />
                   </PieChart>
-                </ResponsiveContainer>
+                  </ResponsiveContainer>
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-[250px] text-gray-400">
                   <p>{t.noDataAvailable || 'No data available'}</p>
@@ -534,7 +595,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                 <p className="text-xs sm:text-sm text-gray-600">{t.last6Months || 'Last 6 months'}</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={220} className="sm:h-[280px]">
+            <div className="w-full min-h-[200px] sm:min-h-[280px] overflow-hidden">
+              <ResponsiveContainer width="100%" height={220}>
               <BarChart data={bookingsChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis 
@@ -563,7 +625,8 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                   maxBarSize={60}
                 />
               </BarChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
@@ -606,10 +669,10 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm sm:text-base text-gray-900 truncate">
-                        {booking.customer?.firstName} {booking.customer?.lastName}
+                        {[booking.customer?.firstName, booking.customer?.lastName].filter(Boolean).join(' ') || booking.customer?.name || '—'}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-600 truncate">
-                        {booking.car?.make} {booking.car?.model}
+                        {booking.car?.make && booking.car?.model ? `${booking.car.make} ${booking.car.model}` : booking.car?.make || booking.car?.model || '—'}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {formatDate(booking.startTs)} - {formatDate(booking.endTs)}
@@ -669,10 +732,10 @@ export default function DashboardContent({ userEmail, bookings, agencyName }: Da
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm sm:text-base text-gray-900 truncate">
-                        {booking.customer?.firstName} {booking.customer?.lastName}
+                        {[booking.customer?.firstName, booking.customer?.lastName].filter(Boolean).join(' ') || booking.customer?.name || '—'}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-600 truncate">
-                        {booking.car?.make} {booking.car?.model}
+                        {booking.car?.make && booking.car?.model ? `${booking.car.make} ${booking.car.model}` : booking.car?.make || booking.car?.model || '—'}
                       </p>
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -25,16 +25,14 @@ export default function LoginForm() {
         setError(result.error)
         setIsLoading(false)
       } else if (result.success) {
-        // Fast redirect - no delay
         window.location.href = '/dashboard'
-        return // Exit early
+        return
       }
-    } catch (err: any) {
-      const errorMessage = err?.message?.toLowerCase() || ''
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message?.toLowerCase() || '' : ''
       const errorString = String(err).toLowerCase()
-      const errorName = err?.name?.toLowerCase() || ''
-      
-      // Check for connection errors
+      const errorName = err instanceof Error ? err.name?.toLowerCase() || '' : ''
+
       if (
         errorMessage.includes('network') ||
         errorMessage.includes('connection') ||
@@ -48,7 +46,7 @@ export default function LoginForm() {
       ) {
         setError('Nuk mund të krijohet lidhja me bazën e të dhënave. Ju lutem kontrolloni lidhjen tuaj me internetin dhe provoni përsëri.')
       } else {
-        setError(err?.message || 'Ndodhi një gabim i papritur. Ju lutem provoni përsëri.')
+        setError(err instanceof Error ? err.message : 'Ndodhi një gabim i papritur. Ju lutem provoni përsëri.')
       }
       setIsLoading(false)
     }

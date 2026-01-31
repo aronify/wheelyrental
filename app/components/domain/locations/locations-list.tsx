@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/i18n/language-context'
-import { getLocationsAction, createLocationAction, updateLocationAction, deleteLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
+import { getLocationsAction, createLocationAction, updateLocationAction, deleteLocationAction, type Location } from '@/lib/server/data/cars'
 import CityDropdown from '@/app/components/ui/dropdowns/city-dropdown'
 
 interface LocationItem {

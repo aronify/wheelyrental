@@ -4,24 +4,22 @@ import { createServerActionClient } from '@/lib/supabase/client'
 
 /**
  * Server action to handle user logout
- * 
+ *
  * Note: redirect() cannot be used in server actions.
  * The client should handle the redirect after this action succeeds.
  */
 export async function logoutAction() {
   try {
     const supabase = await createServerActionClient()
-    
-    // Sign out the user
+
     const { error } = await supabase.auth.signOut()
-    
+
     if (error) {
       return {
         error: 'Failed to logout. Please try again.',
       }
     }
-    
-    // Return success - client will handle redirect
+
     return {
       success: true,
     }
@@ -31,5 +29,3 @@ export async function logoutAction() {
     }
   }
 }
-
-

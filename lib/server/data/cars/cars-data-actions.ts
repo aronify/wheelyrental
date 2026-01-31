@@ -3,10 +3,10 @@
 import { createServerActionClient } from '@/lib/supabase/client'
 import { CarFormData, Car } from '@/types/car'
 import { revalidatePath } from 'next/cache'
-import { getUserCompanyId } from './company-helpers'
+import { getUserCompanyId } from '@/lib/server/data/company'
 import { withTimeout, withSupabaseTimeout, TIMEOUTS, TimeoutError } from '@/lib/utils/timeout'
 import { updateCarExtrasAction } from './extras-data-actions'
-import { uploadCarImage, deleteCarImage } from './image-upload-helpers'
+import { uploadCarImage, uploadCarImages, deleteCarImage } from './image-upload-helpers'
 
 export interface Location {
   id: string
@@ -114,12 +114,6 @@ async function updateCarLocationsJunction(
   pickupLocationIds: string[],
   dropoffLocationIds: string[]
 ): Promise<void> {
-  console.log('[updateCarLocationsJunction] Updating junction table:', {
-    carId,
-    pickupCount: pickupLocationIds.length,
-    dropoffCount: dropoffLocationIds.length,
-  })
-
   // Delete existing entries for this car
   const { error: deleteError } = await supabase
     .from('car_locations')
@@ -151,7 +145,6 @@ async function updateCarLocationsJunction(
   }
 
   if (newEntries.length === 0) {
-    console.log('[updateCarLocationsJunction] No locations to insert')
     return
   }
 
@@ -164,8 +157,6 @@ async function updateCarLocationsJunction(
     console.error('[updateCarLocationsJunction] Error inserting new entries:', insertError)
     throw new Error(`Failed to save locations: ${insertError.message}`)
   }
-
-  console.log('[updateCarLocationsJunction] Successfully updated junction table')
 }
 
 /**
@@ -207,8 +198,6 @@ async function fetchCarLocationIds(
  */
 async function ensureHqLocation(supabase: any, companyId: string): Promise<void> {
   try {
-    console.log('[ensureHqLocation] Checking for HQ location, company_id:', companyId)
-    
     // Check if HQ location already exists (using unique index: idx_company_locations_hq_unique)
     // RLS will automatically filter to user's company locations
     const { data: existingHq, error: checkError } = await supabase
@@ -225,11 +214,8 @@ async function ensureHqLocation(supabase: any, companyId: string): Promise<void>
     }
 
     if (existingHq) {
-      console.log('[ensureHqLocation] HQ location already exists:', existingHq.id, existingHq.name)
       return // HQ location exists, nothing to do
     }
-
-    console.log('[ensureHqLocation] No HQ location found, creating new one...')
 
     // Get company name
     const { data: company, error: companyError } = await supabase
@@ -245,8 +231,7 @@ async function ensureHqLocation(supabase: any, companyId: string): Promise<void>
 
     // Create HQ location - matches exact schema
     const hqLocationName = `HQ - ${company.name}`
-    console.log('[ensureHqLocation] Creating HQ location:', hqLocationName)
-    
+
     const { data: newHq, error: createError } = await supabase
       .from('locations')
       .insert({
@@ -283,9 +268,6 @@ async function ensureHqLocation(supabase: any, companyId: string): Promise<void>
       return
     }
 
-    if (newHq) {
-      console.log('[ensureHqLocation] ✅ Successfully created HQ location:', newHq.id, newHq.name)
-    }
   } catch (error) {
     console.error('[ensureHqLocation] Unexpected error:', error)
   }
@@ -293,7 +275,6 @@ async function ensureHqLocation(supabase: any, companyId: string): Promise<void>
 
 /**
  * Fetch all active locations from the database for the current user's company
- * DEBUG: Added comprehensive logging to identify why locations aren't showing
  */
 export async function getLocationsAction(): Promise<{ locations?: Location[], error?: string, debug?: any }> {
   try {
@@ -304,8 +285,6 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
       console.error('[getLocationsAction] Not authenticated:', authError)
       return { error: 'Not authenticated' }
     }
-
-    console.log('[getLocationsAction] User authenticated:', user.id)
 
     // Get user's company_id - CRITICAL: Must resolve before querying
     // Try direct query first (more reliable in server actions)
@@ -320,14 +299,11 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
       .maybeSingle()
     
     companyId = company?.id || null
-    
-    // Method 2: Fallback to helper function
+
     if (!companyId) {
       companyId = await getUserCompanyId(user.id)
     }
-    
-    console.log('[getLocationsAction] Company ID resolved:', companyId, 'method:', company ? 'direct' : 'helper')
-    
+
     if (!companyId) {
       console.error('[getLocationsAction] No company_id found for user:', user.id)
       // Try to get from cars as last resort
@@ -338,8 +314,7 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
         .maybeSingle()
       
       companyId = car?.company_id || null
-      console.log('[getLocationsAction] Company ID from cars fallback:', companyId)
-      
+
       if (!companyId) {
         return { 
           error: 'Company ID is required. Please create a company first.',
@@ -348,13 +323,9 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
       }
     }
 
-    // Ensure HQ location exists for the company (idempotent - only creates if missing)
-    // NOTE: This runs BEFORE the query to ensure HQ exists
-    console.log('[getLocationsAction] Ensuring HQ location exists for company_id:', companyId)
     try {
       await ensureHqLocation(supabase, companyId)
     } catch (hqError) {
-      // Log but don't fail - HQ creation is best-effort
       console.warn('[getLocationsAction] HQ location creation failed (non-critical):', hqError)
     }
 
@@ -362,8 +333,6 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
     // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
     // No manual filtering needed - RLS handles all access control
     // We only filter by is_active for business logic
-    console.log('[getLocationsAction] Querying locations (RLS will filter by company)')
-    
     const result = await withSupabaseTimeout<{
       id: string
       name: string
@@ -385,16 +354,6 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
       'Failed to fetch locations. The request timed out. Please try again.'
     )
     const { data, error, count } = result
-    
-    // RLS will automatically filter to only locations where:
-    // EXISTS (SELECT 1 FROM companies WHERE id = locations.company_id AND owner_id = auth.uid())
-
-    console.log('[getLocationsAction] Query result:', { 
-      dataCount: data?.length || 0, 
-      count, 
-      error: error?.message,
-      sampleLocation: data?.[0]
-    })
 
     if (error) {
       console.error('[getLocationsAction] ❌ Supabase query error:', {
@@ -426,13 +385,8 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
     }
 
     if (!data || data.length === 0) {
-      console.warn('[getLocationsAction] ⚠️ No locations found for company_id:', companyId)
-      console.warn('[getLocationsAction] This might indicate:')
-      console.warn('  1. No locations exist for this company')
-      console.warn('  2. All locations have is_active = false')
-      console.warn('  3. RLS policies are blocking access')
-      console.warn('  4. Company ID mismatch')
-      
+      console.warn('[getLocationsAction] No locations found for company_id:', companyId)
+
       return { 
         locations: [],
         debug: { 
@@ -447,32 +401,16 @@ export async function getLocationsAction(): Promise<{ locations?: Location[], er
     // Map database fields to Location interface
     // CRITICAL: Ensure boolean fields are properly mapped
     const locations: Location[] = (data || []).map((loc: any) => {
-      const mapped = {
+      return {
         id: loc.id,
         name: loc.name,
         city: loc.city || undefined,
         addressLine1: loc.address_line_1 || undefined,
-        isPickupLocation: Boolean(loc.is_pickup), // Ensure boolean conversion
-        isDropoffLocation: Boolean(loc.is_dropoff), // Ensure boolean conversion
+        isPickupLocation: Boolean(loc.is_pickup),
+        isDropoffLocation: Boolean(loc.is_dropoff),
       }
-      console.log('[getLocationsAction] Mapped location:', {
-        id: mapped.id,
-        name: mapped.name,
-        isPickup: mapped.isPickupLocation,
-        isDropoff: mapped.isDropoffLocation,
-        rawIsPickup: loc.is_pickup,
-        rawIsDropoff: loc.is_dropoff,
-      })
-      return mapped
     })
 
-    console.log('[getLocationsAction] ✅ Mapped locations:', {
-      total: locations.length,
-      pickupCount: locations.filter(l => l.isPickupLocation).length,
-      dropoffCount: locations.filter(l => l.isDropoffLocation).length,
-      allLocations: locations.map(l => ({ id: l.id, name: l.name, isPickup: l.isPickupLocation, isDropoff: l.isDropoffLocation }))
-    })
-    
     return { locations }
   } catch (error: unknown) {
     console.error('[getLocationsAction] Unexpected error:', error)
@@ -587,15 +525,6 @@ export async function createLocationAction(locationData: CreateLocationData): Pr
       }
       return { error: `Failed to create location: ${error.message}${error.hint ? ` (Hint: ${error.hint})` : ''}` }
     }
-
-    // Verify the data returned matches what we sent
-    console.log('[createLocationAction] Location created:', {
-      id: data.id,
-      name: data.name,
-      db_is_pickup: data.is_pickup,
-      db_is_dropoff: data.is_dropoff,
-      note: 'All locations are set as both pickup and dropoff'
-    })
 
     const location: Location = {
       id: data.id,
@@ -919,12 +848,75 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
     carInsertData.pickup_locations = validateLocationIds(carData.pickupLocations)
     carInsertData.dropoff_locations = validateLocationIds(carData.dropoffLocations)
 
-    // Handle image upload if provided
+    // Handle multiple image uploads
     let imageUrl: string | null = null
-    // Note: File objects can't be serialized through server actions, so we check for base64
-    // If imageFile is provided, it will be in FormData format (future enhancement)
-    if (carData.imageUrl && carData.imageUrl.startsWith('data:image')) {
-      // Legacy: base64 image - convert to File and upload
+    
+    // Check if we have multiple images (new approach)
+    if (carData.imageUrls && Array.isArray(carData.imageUrls) && carData.imageUrls.length > 0) {
+      // Multiple base64 images - convert and upload all
+      try {
+        const files: File[] = []
+        const conversionErrors: string[] = []
+        
+        // Convert all base64 images to files
+        for (let i = 0; i < carData.imageUrls.length; i++) {
+          const base64Url = carData.imageUrls[i]
+          try {
+            if (base64Url.startsWith('data:image')) {
+              const response = await fetch(base64Url)
+              if (!response.ok) {
+                conversionErrors.push(`Image ${i + 1}: Failed to fetch`)
+                continue
+              }
+              const blob = await response.blob()
+              const file = new File([blob], `car-image-${Date.now()}-${i}.jpg`, { type: 'image/jpeg' })
+              files.push(file)
+            } else if (base64Url && !base64Url.startsWith('data:image')) {
+              // Already a URL, keep it
+              if (!imageUrl) {
+                imageUrl = base64Url
+              } else {
+                imageUrl = imageUrl + ',' + base64Url
+              }
+            }
+          } catch (error) {
+            console.error(`[addCarAction] Error converting image ${i + 1}:`, error)
+            conversionErrors.push(`Image ${i + 1}: ${error instanceof Error ? error.message : 'Conversion failed'}`)
+          }
+        }
+        
+        // Upload files that were successfully converted
+        if (files.length > 0) {
+          const uploadResult = await uploadCarImages(files)
+          if (uploadResult.error && (!uploadResult.urls || uploadResult.urls.length === 0)) {
+            // All uploads failed
+            return { error: `Failed to upload images: ${uploadResult.error}` }
+          }
+          if (uploadResult.urls && uploadResult.urls.length > 0) {
+            // Combine uploaded URLs with existing URLs
+            const uploadedUrls = uploadResult.urls.join(',')
+            imageUrl = imageUrl ? `${imageUrl},${uploadedUrls}` : uploadedUrls
+          }
+        }
+        
+        // Warn if some images failed but at least one succeeded
+        if (conversionErrors.length > 0 && imageUrl) {
+          console.warn('[addCarAction] Some images failed to convert:', conversionErrors)
+          // Don't fail - at least some images were uploaded
+        }
+        
+        // If no images were uploaded at all
+        if (!imageUrl && files.length === 0) {
+          return { error: 'Failed to process any images. Please check your image files and try again.' }
+        }
+      } catch (error) {
+        console.error('[addCarAction] Error processing multiple images:', error)
+        return { error: `Failed to process images: ${error instanceof Error ? error.message : 'Unknown error'}` }
+      }
+    } 
+    // Legacy: single image support
+    else if (carData.imageUrl && carData.imageUrl.startsWith('data:image')) {
+      // Single base64 image - convert to File and upload
       try {
         const response = await fetch(carData.imageUrl)
         const blob = await response.blob()
@@ -1016,7 +1008,6 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
 
     // Save car extras if provided
     if (carData.extras && Array.isArray(carData.extras) && carData.extras.length > 0) {
-      console.log('[addCarAction] Saving car extras:', { carId, extrasCount: carData.extras.length })
       const extrasResult = await updateCarExtrasAction(carId, carData.extras)
       if (extrasResult.error) {
         console.error('[addCarAction] Failed to save extras:', extrasResult.error)
@@ -1039,7 +1030,8 @@ export async function addCarAction(carData: CarFormData, companyId?: string): Pr
       seats: carDataResult.seats,
       dailyRate: Number(carDataResult.daily_rate),
       status: carDataResult.status as 'active' | 'maintenance' | 'retired',
-      imageUrl: carDataResult.image_url || undefined,
+      imageUrl: carDataResult.image_url ? carDataResult.image_url.split(',')[0] : undefined, // Primary image
+      imageUrls: carDataResult.image_url ? carDataResult.image_url.split(',').map((url: string) => url.trim()).filter(Boolean) : undefined, // All images
       features: carDataResult.features || undefined,
       depositRequired: carDataResult.deposit_required ? Number(carDataResult.deposit_required) : undefined,
       pickupLocations: Array.isArray(carDataResult.pickup_locations) ? carDataResult.pickup_locations : undefined,
@@ -1151,14 +1143,96 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       }
     }
 
-    // Handle image upload if provided
+    // Handle multiple image uploads
     let imageUrl: string | null | undefined = undefined // undefined means don't update, null means clear
     const oldImageUrl = existingCar.image_url
     
-    // Note: File objects can't be serialized through server actions, so we use base64
-    // The form sends base64, which we convert to File and upload to storage
-    if (carData.imageUrl && carData.imageUrl.startsWith('data:image')) {
-      // Legacy: base64 image - convert to File and upload
+    // Check if we have multiple images (new approach)
+    if (carData.imageUrls && Array.isArray(carData.imageUrls) && carData.imageUrls.length > 0) {
+      // Multiple base64 images - convert and upload all
+      try {
+        const files: File[] = []
+        const existingUrls: string[] = []
+        const conversionErrors: string[] = []
+        
+        // Separate base64 images from existing URLs
+        for (let i = 0; i < carData.imageUrls.length; i++) {
+          const imageUrl = carData.imageUrls[i]
+          try {
+            if (imageUrl.startsWith('data:image')) {
+              // New base64 image - convert to file
+              const response = await fetch(imageUrl)
+              if (!response.ok) {
+                conversionErrors.push(`Image ${i + 1}: Failed to fetch`)
+                continue
+              }
+              const blob = await response.blob()
+              const file = new File([blob], `car-image-${Date.now()}-${i}.jpg`, { type: 'image/jpeg' })
+              files.push(file)
+            } else if (imageUrl && !imageUrl.startsWith('data:image')) {
+              // Already a URL from storage, keep it
+              existingUrls.push(imageUrl)
+            }
+          } catch (error) {
+            console.error(`[updateCarAction] Error converting image ${i + 1}:`, error)
+            conversionErrors.push(`Image ${i + 1}: ${error instanceof Error ? error.message : 'Conversion failed'}`)
+          }
+        }
+        
+        // Upload new files
+        let uploadedUrls: string[] = []
+        if (files.length > 0) {
+          const uploadResult = await uploadCarImages(files, carId)
+          if (uploadResult.error && (!uploadResult.urls || uploadResult.urls.length === 0)) {
+            // All uploads failed
+            return { error: `Failed to upload images: ${uploadResult.error}` }
+          }
+          if (uploadResult.urls && uploadResult.urls.length > 0) {
+            uploadedUrls = uploadResult.urls
+          }
+        }
+        
+        // Combine existing URLs with newly uploaded URLs
+        const allUrls = [...existingUrls, ...uploadedUrls]
+        if (allUrls.length > 0) {
+          imageUrl = allUrls.join(',')
+        } else if (uploadedUrls.length === 0 && existingUrls.length === 0) {
+          // No images at all - clear them
+          imageUrl = null
+        }
+        
+        // Delete old images that are no longer in the list
+        if (oldImageUrl && !oldImageUrl.startsWith('data:image')) {
+          const oldUrls = oldImageUrl.split(',').map((url: string) => url.trim()).filter(Boolean)
+          const newUrls = allUrls.map((url: string) => url.trim())
+          
+          // Find URLs that were removed
+          const removedUrls = oldUrls.filter((url: string) => !newUrls.includes(url))
+          
+          // Delete removed images
+          for (const url of removedUrls) {
+            try {
+              await deleteCarImage(url)
+            } catch (error) {
+              console.warn(`[updateCarAction] Failed to delete old image ${url}:`, error)
+              // Don't fail the whole operation if deletion fails
+            }
+          }
+        }
+        
+        // Warn if some images failed but at least one succeeded
+        if (conversionErrors.length > 0 && imageUrl) {
+          console.warn('[updateCarAction] Some images failed to convert:', conversionErrors)
+          // Don't fail - at least some images were uploaded
+        }
+      } catch (error) {
+        console.error('[updateCarAction] Error processing multiple images:', error)
+        return { error: `Failed to process images: ${error instanceof Error ? error.message : 'Unknown error'}` }
+      }
+    }
+    // Legacy: single image support
+    else if (carData.imageUrl && carData.imageUrl.startsWith('data:image')) {
+      // Single base64 image - convert to File and upload
       try {
         const response = await fetch(carData.imageUrl)
         const blob = await response.blob()
@@ -1171,7 +1245,13 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
         
         // Delete old image if it exists and is from storage
         if (oldImageUrl && !oldImageUrl.startsWith('data:image')) {
-          await deleteCarImage(oldImageUrl)
+          // Old image might be comma-separated, delete all
+          const oldUrls = oldImageUrl.split(',').map((url: string) => url.trim())
+          for (const url of oldUrls) {
+            if (url) {
+              await deleteCarImage(url)
+            }
+          }
         }
       } catch (error) {
         console.error('[updateCarAction] Error converting base64 to file:', error)
@@ -1218,14 +1298,6 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
     }
 
     // Handle locations using junction table (car_locations)
-    // This provides referential integrity, company validation, and type checking
-    console.log('[updateCarAction] Processing locations via junction table:', {
-      hasPickupLocations: !!carData.pickupLocations,
-      pickupLocations: carData.pickupLocations,
-      hasDropoffLocations: !!carData.dropoffLocations,
-      dropoffLocations: carData.dropoffLocations,
-    })
-
     let validatedPickupIds: string[] = []
     let validatedDropoffIds: string[] = []
 
@@ -1238,7 +1310,6 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
           existingCar.company_id,
           'pickup'
         )
-        console.log('[updateCarAction] Validated pickup locations:', validatedPickupIds)
       } catch (error) {
         console.error('[updateCarAction] Error validating pickup locations:', error)
         return { error: error instanceof Error ? error.message : 'Failed to validate pickup locations' }
@@ -1253,15 +1324,11 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
           existingCar.company_id,
           'dropoff'
         )
-        console.log('[updateCarAction] Validated dropoff locations:', validatedDropoffIds)
       } catch (error) {
         console.error('[updateCarAction] Error validating dropoff locations:', error)
         return { error: error instanceof Error ? error.message : 'Failed to validate dropoff locations' }
       }
     }
-
-    // Update car basic fields (DO NOT include pickup_locations/dropoff_locations in carUpdateData)
-    console.log('[updateCarAction] Executing UPDATE query for car:', carId)
 
     const { error: updateError } = await withSupabaseTimeout(
       supabase
@@ -1298,15 +1365,12 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
         validatedPickupIds,
         validatedDropoffIds
       )
-      console.log('[updateCarAction] ✅ Junction table updated successfully')
     } catch (error) {
       console.error('[updateCarAction] Error updating junction table:', error)
       // Car was updated but locations failed - this is a partial failure
       return { error: error instanceof Error ? error.message : 'Car updated but failed to save locations. Please try again.' }
     }
 
-    // Fetch the updated car (without location arrays)
-    console.log('[updateCarAction] Fetching updated car with locations...')
     const { data, error: fetchError } = await withSupabaseTimeout(
       supabase
         .from('cars')
@@ -1347,13 +1411,6 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
     // Fetch locations from junction table
     const { pickup: fetchedPickupIds, dropoff: fetchedDropoffIds } = await fetchCarLocationIds(supabase, carId)
 
-    console.log('[updateCarAction] Fetched locations from junction table:', {
-      pickup: fetchedPickupIds,
-      dropoff: fetchedDropoffIds,
-      pickupMatch: JSON.stringify(fetchedPickupIds.sort()) === JSON.stringify(validatedPickupIds.sort()),
-      dropoffMatch: JSON.stringify(fetchedDropoffIds.sort()) === JSON.stringify(validatedDropoffIds.sort()),
-    })
-
     // Verify locations were saved correctly
     const pickupMatch = JSON.stringify(fetchedPickupIds.sort()) === JSON.stringify(validatedPickupIds.sort())
     const dropoffMatch = JSON.stringify(fetchedDropoffIds.sort()) === JSON.stringify(validatedDropoffIds.sort())
@@ -1374,8 +1431,6 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       return { error: 'Car was updated but locations were not saved correctly. Please try again.' }
     }
 
-    console.log('[updateCarAction] ✅ All locations verified - saved correctly!')
-
     // Transform the returned car data to match Car interface (camelCase)
     const transformedCar = {
       id: data.id,
@@ -1390,7 +1445,8 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       seats: data.seats,
       dailyRate: Number(data.daily_rate),
       status: data.status as 'active' | 'maintenance' | 'retired',
-      imageUrl: data.image_url || undefined,
+      imageUrl: data.image_url ? data.image_url.split(',')[0] : undefined, // Primary image
+      imageUrls: data.image_url ? data.image_url.split(',').map((url: string) => url.trim()).filter(Boolean) : undefined, // All images
       features: data.features || undefined,
       depositRequired: data.deposit_required ? Number(data.deposit_required) : undefined,
       pickupLocations: fetchedPickupIds.length > 0 ? fetchedPickupIds : undefined,
@@ -1399,34 +1455,12 @@ export async function updateCarAction(carId: string, carData: CarFormData): Prom
       updatedAt: new Date(data.updated_at),
     }
 
-    console.log('[updateCarAction] Transformed car before return:', {
-      hasPickupLocations: !!transformedCar.pickupLocations,
-      pickupLocations: transformedCar.pickupLocations,
-      hasDropoffLocations: !!transformedCar.dropoffLocations,
-      dropoffLocations: transformedCar.dropoffLocations,
-    })
-
     // Save car extras if provided
     if (carData.extras) {
-      console.log('[updateCarAction] Saving car extras:', { 
-        carId, 
-        extrasCount: carData.extras.length,
-        extras: carData.extras
-      })
       const extrasResult = await updateCarExtrasAction(carId, carData.extras)
       if (extrasResult.error) {
         console.error('[updateCarAction] Failed to save extras:', extrasResult.error)
-        // Don't fail the entire operation if extras fail, just log it
-        // The car has been updated successfully
-      } else {
-        console.log('[updateCarAction] ✅ Extras saved successfully')
       }
-    } else {
-      console.log('[updateCarAction] No extras provided in carData:', {
-        hasExtras: !!carData.extras,
-        extrasType: typeof carData.extras,
-        carDataKeys: Object.keys(carData)
-      })
     }
 
     revalidatePath('/cars')
@@ -1464,7 +1498,7 @@ export async function deleteCarAction(carId: string): Promise<CarActionResult> {
     const { data: existingCar } = await withSupabaseTimeout(
       supabase
         .from('cars')
-        .select('id, company_id')
+        .select('id, company_id, image_url')
         .eq('id', carId)
         .single(),
       TIMEOUTS.QUERY,
@@ -1478,6 +1512,18 @@ export async function deleteCarAction(carId: string): Promise<CarActionResult> {
     // Check access: car must belong to user's company
     if (existingCar.company_id !== userCompanyId) {
       return { error: 'You do not have permission to delete this car' }
+    }
+
+    // Delete car images from storage before deleting the car row
+    const imageUrlRaw = (existingCar as { image_url?: string | null }).image_url
+    if (imageUrlRaw && typeof imageUrlRaw === 'string' && !imageUrlRaw.startsWith('data:')) {
+      const urls = imageUrlRaw.split(',').map((u: string) => u.trim()).filter(Boolean)
+      for (const url of urls) {
+        const result = await deleteCarImage(url)
+        if (result.error) {
+          console.warn('[deleteCarAction] Failed to delete image from bucket:', url, result.error)
+        }
+      }
     }
 
     const { error } = await withSupabaseTimeout(

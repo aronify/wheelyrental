@@ -6,11 +6,12 @@ import { filterCarsByStatus, searchCars } from '@/types/car'
 import { useLanguage } from '@/lib/i18n/language-context'
 import CarFormModalRedesigned from './car-form-modal'
 import EditCarForm from './car-edit-form'
+import CarInfoPanel from './car-info-panel'
 import Breadcrumbs from '@/app/components/ui/navigation/breadcrumbs'
-import { addCarAction, updateCarAction, deleteCarAction } from '@/lib/server/data/cars-data-actions'
+import { addCarAction, updateCarAction } from '@/lib/server/data/cars'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Info } from 'lucide-react'
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 
 interface CarsPageProps {
@@ -29,18 +30,12 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCar, setSelectedCar] = useState<Car | null>(null)
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add')
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [carToDelete, setCarToDelete] = useState<Car | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [selectedCarForInfo, setSelectedCarForInfo] = useState<Car | null>(null)
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false)
 
-  // Sync local state with initialCars prop (e.g., after router.refresh())
   useEffect(() => {
-    console.log('[CarsList] initialCars updated:', {
-      count: initialCars.length,
-      carIds: initialCars.map(c => c.id),
-      currentCarsCount: cars.length
-    })
     setCars(initialCars)
   }, [initialCars])
 
@@ -75,29 +70,9 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
     setIsModalOpen(true)
   }
 
-  const handleDeleteCar = (car: Car) => {
-    setCarToDelete(car)
-    setShowDeleteConfirm(true)
-  }
-
-  const confirmDelete = async () => {
-    if (carToDelete) {
-      const result = await deleteCarAction(carToDelete.id)
-
-      if (result.success) {
-        // Optimistic update - remove from local state immediately
-        setCars((prev) => prev.filter((c) => c.id !== carToDelete.id))
-        showSuccess(t.carDeleted)
-        setShowDeleteConfirm(false)
-        setCarToDelete(null)
-        // Refresh to sync with server
-        router.refresh()
-      } else {
-        showError(result.error || t.carDeleted)
-        setShowDeleteConfirm(false)
-        setCarToDelete(null)
-      }
-    }
+  const handleViewCarInfo = (car: Car) => {
+    setSelectedCarForInfo(car)
+    setIsInfoPanelOpen(true)
   }
 
   const handleSubmitCar = async (formData: CarFormData) => {
@@ -118,21 +93,7 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
       } else {
         if (!selectedCar) return
 
-        console.log('[CarsList] Calling updateCarAction with:', {
-          carId: selectedCar.id,
-          pickupLocations: formData.pickupLocations,
-          dropoffLocations: formData.dropoffLocations,
-        })
-
         const result = await updateCarAction(selectedCar.id, formData)
-
-        console.log('[CarsList] updateCarAction result:', {
-          success: result.success,
-          error: result.error,
-          hasData: !!result.data,
-          returnedPickupLocations: (result.data as Car)?.pickupLocations,
-          returnedDropoffLocations: (result.data as Car)?.dropoffLocations,
-        })
 
         if (result.success && result.data) {
           const updatedCar = result.data as Car
@@ -170,8 +131,6 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
             return
           }
 
-          // Locations match - update was successful
-          console.log('[CarsList] ✅ Car and locations updated successfully!')
           setCars((prev) =>
             prev.map((car) =>
               car.id === selectedCar.id ? updatedCar : car
@@ -231,20 +190,20 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
     <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-6">
       {/* Toast Messages */}
       {successMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 bg-green-500 text-white px-4 py-3 sm:px-6 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in min-w-0">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          <span className="font-medium">{successMessage}</span>
+          <span className="font-medium text-sm sm:text-base truncate min-w-0">{successMessage}</span>
         </div>
       )}
 
       {errorMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 bg-red-500 text-white px-4 py-3 sm:px-6 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in min-w-0">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
-          <span className="font-medium">{errorMessage}</span>
+          <span className="font-medium text-sm sm:text-base truncate min-w-0">{errorMessage}</span>
         </div>
       )}
 
@@ -402,14 +361,14 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
           {filteredCars.map((car, index) => (
             <div
               key={car.id}
-              className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in"
+              className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in animate-slide-in min-w-0"
               style={{
                 animationDelay: `${Math.min(index * 75, 600)}ms`,
                 animationFillMode: 'both'
               }}
             >
               {/* Image */}
-              <div className="relative h-40 sm:h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+              <div className="relative h-40 sm:h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden rounded-t-xl">
                 {car.imageUrl ? (
                   <Image
                     src={car.imageUrl}
@@ -488,20 +447,30 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                   </div>
                 )}
 
-                {/* Price */}
+                {/* Price & Actions */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 pt-3 sm:pt-4 border-t border-gray-100">
                   <div>
                     <p className="text-xl sm:text-2xl font-bold text-blue-900">€{car.dailyRate}</p>
                     <p className="text-xs text-gray-500">{t.perDay || 'per day'}</p>
                   </div>
-                  <button
-                    onClick={() => handleEditCar(car)}
-                    className="w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-900 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-                  >
-                    <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">{t.edit || 'Edit Car'}</span>
-                    <span className="sm:hidden">Edit</span>
-                  </button>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => handleViewCarInfo(car)}
+                      className="p-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 rounded-lg transition-all"
+                      title="View car info, locations, and reviews"
+                      aria-label="View car information"
+                    >
+                      <Info className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEditCar(car)}
+                      className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-900 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    >
+                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">{t.edit || 'Edit'}</span>
+                      <span className="sm:hidden">Edit</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -594,19 +563,19 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
                       <button
+                        onClick={() => handleViewCarInfo(car)}
+                        className="p-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 rounded-lg transition-all"
+                        title="View car info, locations, and reviews"
+                        aria-label="View car information"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleEditCar(car)}
                         className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-900 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-blue-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                       >
                         <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         {t.edit || 'Edit'}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCar(car)}
-                        className="px-4 sm:px-5 py-2 sm:py-2.5 bg-red-50 text-red-600 text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg border-2 border-red-200"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline">{t.delete || 'Delete'}</span>
-                        <span className="sm:hidden">Del</span>
                       </button>
                     </div>
                   </div>
@@ -638,63 +607,18 @@ export default function CarsPageRedesigned({ initialCars }: CarsPageProps) {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && carToDelete && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" onClick={() => setShowDeleteConfirm(false)} />
-            
-            <div className="inline-block align-bottom bg-white rounded-xl sm:rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full mx-4 sm:mx-0">
-              <div className="bg-white px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-full bg-red-100 sm:mx-0">
-                    <svg className="h-7 w-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      {t.confirmDelete || 'Delete Car'}
-                    </h3>
-                    <div className="mt-3">
-                      <p className="text-gray-600 mb-3">
-                        {t.confirmDeleteMessage || 'Are you sure you want to delete this car? This action cannot be undone.'}
-                      </p>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {carToDelete.make} {carToDelete.model}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {carToDelete.year} • {carToDelete.licensePlate}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:flex-row-reverse gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={confirmDelete}
-                  className="w-full inline-flex justify-center items-center gap-2 rounded-lg sm:rounded-xl border border-transparent shadow-sm px-4 sm:px-6 py-2.5 sm:py-3 bg-red-600 text-sm sm:text-base font-semibold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto transition-colors"
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {t.delete}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="w-full inline-flex justify-center rounded-lg sm:rounded-xl border border-gray-300 shadow-sm px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto transition-colors"
-                >
-                  {t.cancel}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Car Info Panel (side panel with tabs) */}
+      {selectedCarForInfo && (
+        <CarInfoPanel
+          car={selectedCarForInfo}
+          isOpen={isInfoPanelOpen}
+          onClose={() => {
+            setIsInfoPanelOpen(false)
+            setSelectedCarForInfo(null)
+          }}
+        />
       )}
+
     </div>
   )
 }

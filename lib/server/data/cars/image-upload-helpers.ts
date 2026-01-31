@@ -4,6 +4,61 @@ import { createServerActionClient } from '@/lib/supabase/client'
 import { withTimeout, TIMEOUTS } from '@/lib/utils/timeout'
 
 /**
+ * Upload multiple car images to Supabase Storage
+ * @param imageFiles - Array of File objects to upload
+ * @param carId - Optional car ID for organizing images
+ * @returns Array of public URLs or error
+ */
+export async function uploadCarImages(
+  imageFiles: File[],
+  carId?: string
+): Promise<{ urls?: string[]; error?: string }> {
+  const uploadedUrls: string[] = []
+  const errors: string[] = []
+
+  // Upload images one by one with a small delay to prevent rate limiting
+  for (let i = 0; i < imageFiles.length; i++) {
+    const imageFile = imageFiles[i]
+    try {
+      const result = await uploadCarImage(imageFile, carId)
+      if (result.error) {
+        errors.push(`Image ${i + 1}: ${result.error}`)
+        console.warn(`[uploadCarImages] Image ${i + 1} failed:`, result.error)
+      } else if (result.url) {
+        uploadedUrls.push(result.url)
+      }
+      
+      // Small delay between uploads to prevent rate limiting (except for last image)
+      if (i < imageFiles.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100)) // 100ms delay
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      errors.push(`Image ${i + 1}: ${errorMsg}`)
+      console.error(`[uploadCarImages] Error uploading image ${i + 1}:`, error)
+      // Continue with next image
+    }
+  }
+
+  if (errors.length > 0 && uploadedUrls.length === 0) {
+    // All uploads failed
+    return { error: `Failed to upload all images: ${errors[0]}` }
+  }
+
+  if (errors.length > 0 && uploadedUrls.length > 0) {
+    // Some succeeded, some failed - return success but log warnings
+    console.warn('[uploadCarImages] Some images failed to upload:', errors)
+    // Don't return error - partial success is acceptable
+  }
+
+  if (uploadedUrls.length === 0) {
+    return { error: 'No images were uploaded successfully' }
+  }
+
+  return { urls: uploadedUrls }
+}
+
+/**
  * Upload car image to Supabase Storage
  * @param imageFile - File object to upload
  * @param carId - Optional car ID for organizing images

@@ -3,7 +3,7 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import ProfilePageRedesigned from '@/app/components/domain/profile/profile-form'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
-import { getUserCompanyId, getUserCompany, ensureUserCompany } from '@/lib/server/data/company-helpers'
+import { getUserCompanyId, getUserCompany, ensureUserCompany } from '@/lib/server/data/company'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'

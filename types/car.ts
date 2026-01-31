@@ -46,7 +46,8 @@ export interface Car {
   fuelType: FuelType
   seats: number
   dailyRate: number
-  imageUrl?: string
+  imageUrl?: string // Primary image (first image, for backward compatibility)
+  imageUrls?: string[] // Array of all image URLs
   status: CarStatus // 'active', 'maintenance', 'retired'
   features?: string[]
   depositRequired?: number
@@ -58,6 +59,9 @@ export interface Car {
   // Location arrays (for form compatibility)
   pickupLocations?: string[]
   dropoffLocations?: string[]
+  // Full location details (for info panel display)
+  pickupLocationDetails?: Array<{ id: string; name: string; address: string; city: string }>
+  dropoffLocationDetails?: Array<{ id: string; name: string; address: string; city: string }>
   // Extras
   extras?: CarExtra[]
 }
@@ -72,8 +76,10 @@ export interface CarFormData {
   fuelType: FuelType
   seats: number
   dailyRate: number
-  imageUrl?: string // URL from storage or base64 (legacy)
-  imageFile?: File // File object for upload (preferred)
+  imageUrl?: string // URL from storage or base64 (legacy) - single image
+  imageUrls?: string[] // Array of image URLs (for multiple images)
+  imageFile?: File // File object for upload (preferred) - single image
+  imageFiles?: File[] // Array of File objects (for multiple images)
   status: CarStatus // 'active', 'maintenance', 'retired'
   features?: string[]
   depositRequired?: number

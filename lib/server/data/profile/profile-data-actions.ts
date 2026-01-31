@@ -101,17 +101,9 @@ export async function updateProfileAction(
       
       // If no company found via owner_id, use helper function as fallback
       if (!companyId) {
-        const { getUserCompanyId } = await import('@/lib/server/data/company-helpers')
+        const { getUserCompanyId } = await import('@/lib/server/data/company')
         companyId = await getUserCompanyId(user.id)
       }
-      
-      
-      console.log('Company lookup:', {
-        userId: user.id,
-        companyId,
-        company: company,
-        error: companyQueryError,
-      })
 
       // If no company exists, create one
       if (!companyId) {

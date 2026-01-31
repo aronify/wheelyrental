@@ -7,8 +7,7 @@ import { X, Save, Image as ImageIcon, Info, Settings, DollarSign, CheckCircle, M
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 import MultiSelectDropdown from '@/app/components/ui/dropdowns/multi-select-dropdown'
 import CityDropdown from '@/app/components/ui/dropdowns/city-dropdown'
-import { getLocationsAction, createLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
-import { getExtrasAction, createExtraAction } from '@/lib/server/data/extras-data-actions'
+import { getLocationsAction, createLocationAction, type Location, getExtrasAction, createExtraAction } from '@/lib/server/data/cars'
 
 interface EditCarFormProps {
   isOpen: boolean
@@ -21,7 +20,11 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
   const { t } = useLanguage()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState<'image' | 'details' | 'specs' | 'pricing' | 'locations' | 'extras'>('image')
-  const [imagePreviews, setImagePreviews] = useState<string[]>(car.imageUrl ? [car.imageUrl] : [])
+  // Load all images if available, otherwise just the primary image
+  const initialImages = car.imageUrls && car.imageUrls.length > 0 
+    ? car.imageUrls 
+    : (car.imageUrl ? [car.imageUrl] : [])
+  const [imagePreviews, setImagePreviews] = useState<string[]>(initialImages)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -440,31 +443,18 @@ export default function EditCarForm({ isOpen, onClose, onSubmit, car }: EditCarF
       }))
 
       // Preserve original car status - status cannot be modified through the edit form
+      // Send all images - convert base64 to array for server processing
+      const imageUrlsArray = imagePreviews.filter(url => url && url.startsWith('data:image'))
+      
       const submitData = { 
         ...formData, 
-        imageFile: imageFiles[0] || undefined, // Send File object (preferred)
-        imageUrl: imagePreviews[0] || undefined, // Fallback to base64 for legacy support
+        imageFiles: imageFiles.length > 0 ? imageFiles : undefined, // Send all File objects
+        imageUrls: imageUrlsArray.length > 0 ? imageUrlsArray : undefined, // Send all base64 images
+        imageFile: imageFiles[0] || undefined, // Legacy: first file for backward compatibility
+        imageUrl: imagePreviews[0] || undefined, // Legacy: first image for backward compatibility
         status: car.status, // Always use original status, never allow modification
-        extras: extrasArray // FIXED: Changed from carExtras to extras to match server action
+        extras: extrasArray
       }
-      console.log('[EditCarForm] Submitting form data:', {
-        pickupLocations: submitData.pickupLocations,
-        dropoffLocations: submitData.dropoffLocations,
-        hasPickupLocations: !!submitData.pickupLocations,
-        hasDropoffLocations: !!submitData.dropoffLocations,
-        pickupLocationsLength: submitData.pickupLocations?.length,
-        dropoffLocationsLength: submitData.dropoffLocations?.length,
-        pickupLocationsType: typeof submitData.pickupLocations,
-        dropoffLocationsType: typeof submitData.dropoffLocations,
-        pickupIsArray: Array.isArray(submitData.pickupLocations),
-        dropoffIsArray: Array.isArray(submitData.dropoffLocations),
-        pickupFirstId: submitData.pickupLocations?.[0],
-        dropoffFirstId: submitData.dropoffLocations?.[0],
-        pickupFirstIdType: typeof submitData.pickupLocations?.[0],
-        extrasCount: extrasArray.length,
-        extras: extrasArray,
-        dropoffFirstIdType: typeof submitData.dropoffLocations?.[0],
-      })
       await onSubmit(submitData)
     } finally {
       setIsSubmitting(false)

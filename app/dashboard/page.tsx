@@ -7,8 +7,9 @@ import QuickStartGuide from '@/app/components/ui/onboarding/quick-start-guide'
 import NoCompanyAlert from '@/app/components/ui/alerts/no-company-alert'
 import RoleAssignmentHandler from '@/app/components/ui/auth/role-assignment-handler'
 import { Booking } from '@/types/booking'
-import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
-import { getOnboardingStatus } from '@/lib/server/data/quick-start-helpers'
+import { getUserCompanyId, getCompanyById } from '@/lib/server/data/company'
+import { getOnboardingStatus } from '@/lib/server/data/onboarding'
+import { getBalanceAction } from '@/lib/server/data/payouts'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -47,104 +48,75 @@ export default async function DashboardPage() {
   // If role is NULL, allow access but role assignment will happen via client-side call
   // This keeps server components read-only and prevents streaming errors
 
-  // Fetch company data for header (profiles table doesn't exist - use companies table)
-  let profileData: { agency_name?: string; logo?: string } | null = null
-  try {
-    const companyId = await getUserCompanyId(user.id)
-    if (companyId) {
-      const company = await getUserCompany(user.id)
-      if (company) {
-        profileData = {
-          agency_name: company.name || undefined,
-          logo: company.logo || undefined,
-        }
-      }
-    }
-  } catch (err: unknown) {
-    // Silently continue without profile data - it's optional
+  // Get user's company ID once (used for parallel fetches)
+  const companyId = await getUserCompanyId(user.id)
+
+  const defaultOnboarding = {
+    isComplete: false,
+    completedSteps: [] as string[],
+    totalSteps: 3,
+    progress: 0,
+    steps: { profileComplete: false, hasLocations: false, hasCars: false },
   }
 
-  // Get user's company ID (read-only, no side effects)
-  const companyId = await getUserCompanyId(user.id)
-  
-  // Check onboarding status for Quick Start Guide
-  const onboardingStatus = companyId 
-    ? await getOnboardingStatus(companyId)
-    : {
-        isComplete: false,
-        progress: 0,
-        steps: {
-          profileComplete: false,
-          hasLocations: false,
-          hasCars: false,
+  // Run independent fetches in parallel to reduce time to first byte
+  const [balanceResult, onboardingStatus, companyForProfile, dbBookings] = await Promise.all([
+    getBalanceAction(),
+    companyId ? getOnboardingStatus(companyId) : Promise.resolve(defaultOnboarding),
+    companyId ? getCompanyById(companyId) : Promise.resolve(null),
+    (async (): Promise<any[] | null> => {
+      try {
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100)
+
+        if (bookingsError) {
+          console.error('Error fetching bookings:', bookingsError.message)
+          return []
         }
+        if (!bookingsData?.length) return []
+
+        const carIds = [...new Set(bookingsData.map((b: any) => b.car_id).filter(Boolean))]
+        const customerIds = [...new Set(bookingsData.map((b: any) => b.customer_id).filter(Boolean))]
+
+        const [carsResult, customersResult] = await Promise.all([
+          carIds.length > 0
+            ? supabase
+                .from('cars')
+                .select(`*, company:companies(id, name, is_verified, email, phone, website)`)
+                .in('id', carIds)
+            : Promise.resolve({ data: [], error: null }),
+          customerIds.length > 0
+            ? supabase.from('customers').select('*').in('id', customerIds)
+            : Promise.resolve({ data: [], error: null }),
+        ])
+
+        const carsMap = new Map((carsResult.data || []).map((car: any) => [car.id, car]))
+        const customersMap = new Map((customersResult.data || []).map((customer: any) => [customer.id, customer]))
+
+        return bookingsData.map((booking: any) => ({
+          ...booking,
+          cars: carsMap.get(booking.car_id) || null,
+          customers: customersMap.get(booking.customer_id) || null,
+        }))
+      } catch (err: unknown) {
+        console.error('Unexpected error fetching bookings:', err)
+        return []
       }
-  
-  // Fetch bookings with car and customer details from Supabase
-  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
-  // No manual filtering needed - RLS handles all access control
-  let dbBookings = null
-  try {
-    // First, fetch bookings - RLS will automatically filter to user's company
-    const { data: bookingsData, error: bookingsError } = await supabase
-      .from('bookings')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    if (bookingsError) {
-      console.error('Error fetching bookings:', {
-        message: bookingsError.message,
-        code: bookingsError.code,
-        details: bookingsError.details,
-        hint: bookingsError.hint,
-      })
-      dbBookings = []
-    } else if (bookingsData && bookingsData.length > 0) {
-      // Fetch related cars and customers - RLS will automatically filter these too
-      const carIds = [...new Set(bookingsData.map((b: any) => b.car_id).filter(Boolean))]
-      const customerIds = [...new Set(bookingsData.map((b: any) => b.customer_id).filter(Boolean))]
-      
-      const [carsResult, customersResult] = await Promise.all([
-        carIds.length > 0 
-          ? supabase
-              .from('cars')
-              .select(`
-                *,
-                company:companies(
-                  id,
-                  name,
-                  is_verified,
-                  email,
-                  phone,
-                  website
-                )
-              `)
-              .in('id', carIds)
-          : Promise.resolve({ data: [], error: null }),
-        customerIds.length > 0
-          ? supabase.from('customers').select('*').in('id', customerIds)
-          : Promise.resolve({ data: [], error: null }),
-      ])
-      
-      // Combine the data
-      const carsMap = new Map((carsResult.data || []).map((car: any) => [car.id, car]))
-      const customersMap = new Map((customersResult.data || []).map((customer: any) => [customer.id, customer]))
-      
-      dbBookings = bookingsData.map((booking: any) => ({
-        ...booking,
-        cars: carsMap.get(booking.car_id) || null,
-        customers: customersMap.get(booking.customer_id) || null,
-      }))
-    } else {
-      dbBookings = []
-    }
-  } catch (err: any) {
-    console.error('Unexpected error fetching bookings:', {
-      message: err?.message || 'Unknown error',
-      stack: err?.stack || 'No stack trace',
-      name: err?.name || 'Unknown error type',
-    })
-    dbBookings = []
+    })(),
+  ])
+
+  const profileData: { agency_name?: string; logo?: string } | null = companyForProfile
+    ? { agency_name: companyForProfile.name || undefined, logo: companyForProfile.logo || undefined }
+    : null
+
+  let availableBalance = 0
+  let pendingPayoutAmount = 0
+  if (balanceResult && 'availableBalance' in balanceResult) {
+    availableBalance = balanceResult.availableBalance
+    pendingPayoutAmount = balanceResult.pendingPayoutAmount ?? 0
   }
 
   // Convert snake_case to camelCase for client components with error handling
@@ -195,24 +167,66 @@ export default async function DashboardPage() {
         createdAt: parseDate((booking.cars || booking.car).created_at || (booking.cars || booking.car).createdAt) || new Date(),
         updatedAt: parseDate((booking.cars || booking.car).updated_at || (booking.cars || booking.car).updatedAt) || new Date(),
       } : undefined,
-      customer: booking.customers ? {
-        id: booking.customers.id,
-        firstName: booking.customers.first_name || '',
-        lastName: booking.customers.last_name || '',
-        email: booking.customers.email || '',
-        phone: booking.customers.phone || '',
-        address: booking.customers.address || '',
-        city: booking.customers.city || '',
-        country: booking.customers.country || '',
-        postalCode: booking.customers.postal_code || '',
-        createdAt: parseDate(booking.customers.created_at) || new Date(),
-        updatedAt: parseDate(booking.customers.updated_at),
-      } : undefined,
+      customer: booking.customers ? (() => {
+        const c = booking.customers
+        const fullName = c.full_name || c.name || ''
+        const nameParts = fullName.trim().split(/\s+/).filter(Boolean)
+        const firstName = c.first_name || nameParts[0] || ''
+        const lastName = c.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '')
+        return {
+          id: c.id,
+          firstName,
+          lastName,
+          name: fullName || undefined,
+          email: c.email || '',
+          phone: c.phone || '',
+          address: c.address || '',
+          city: c.city || '',
+          country: c.country || '',
+          postalCode: c.postal_code || '',
+          createdAt: parseDate(c.created_at) || new Date(),
+          updatedAt: parseDate(c.updated_at),
+        }
+      })() : undefined,
     }
   }).filter((booking) => {
     // Filter out invalid bookings
     return booking.id && booking.createdAt
   }) as Booking[]
+
+  // Dashboard metrics (operational, analytical only – never mixed with balance)
+  const now = new Date()
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0))
+  const todayEnd = new Date(todayStart.getTime() + 86400000 - 1)
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0))
+  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999))
+
+  const validStatuses = ['confirmed', 'returned', 'picked_up'] as const
+  const todayReservations = bookings.filter((b) => {
+    if (b.status === 'cancelled') return false
+    if (!validStatuses.includes(b.status as typeof validStatuses[number])) return false
+    const start = b.startTs ? new Date(b.startTs) : null
+    const created = b.createdAt ? new Date(b.createdAt) : null
+    const inRange = (d: Date) => d >= todayStart && d <= todayEnd
+    return (start && inRange(start)) || (created && inRange(created))
+  }).length
+
+  const monthlyReservations = bookings.filter((b) => {
+    if (b.status === 'cancelled') return false
+    if (!validStatuses.includes(b.status as typeof validStatuses[number])) return false
+    const start = b.startTs ? new Date(b.startTs) : null
+    const created = b.createdAt ? new Date(b.createdAt) : null
+    const inMonth = (d: Date) => d >= monthStart && d <= monthEnd
+    return (start && inMonth(start)) || (created && inMonth(created))
+  }).length
+
+  const monthlyEarnings = bookings
+    .filter((b) => {
+      if (b.status !== 'returned') return false
+      const completedAt = b.updatedAt ? new Date(b.updatedAt) : (b.endTs ? new Date(b.endTs) : null)
+      return completedAt && completedAt >= monthStart && completedAt <= monthEnd
+    })
+    .reduce((sum, b) => sum + (b.totalPrice || 0), 0)
 
   return (
     <>
@@ -224,7 +238,7 @@ export default async function DashboardPage() {
         agencyLogo={profileData?.logo}
       />
       <QuickAccessMenu />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 lg:pb-8 min-w-0 w-full">
         {/* Show alert if no company - non-blocking */}
         {!companyId && <NoCompanyAlert />}
         
@@ -243,6 +257,11 @@ export default async function DashboardPage() {
           userEmail={user.email || ''}
           agencyName={profileData?.agency_name}
           bookings={bookings}
+          availableBalance={availableBalance}
+          pendingPayoutAmount={pendingPayoutAmount}
+          todayReservations={todayReservations}
+          monthlyReservations={monthlyReservations}
+          monthlyEarnings={monthlyEarnings}
         />
       </main>
     </>

@@ -28,7 +28,7 @@ export default async function LoginPage() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row font-urbanist">
       {/* Left Panel - Dark Blue Background */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 relative overflow-hidden">
         <div className="relative z-10 flex flex-col h-full p-12">

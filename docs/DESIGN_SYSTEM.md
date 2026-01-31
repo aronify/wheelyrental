@@ -65,17 +65,17 @@
 ## Typography
 
 ### Font Families
-- **Primary Font**: `Urbanist` (Google Fonts) - Applied to:
+- **Primary Font**: `Figtree` (Google Fonts) - Applied to:
   - Body text
   - Headings (h1-h6)
   - Buttons
   - Labels
-  
-- **System Fonts** (for inputs): 
+  - Fallback: Apple/system UI font stack
+
+- **System Fonts** (fallback and for inputs): 
   ```
-  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 
-  'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 
-  'Helvetica Neue', sans-serif
+  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+  'Helvetica Neue', Arial, sans-serif
   ```
   
 - **Monospace Fonts** (for code):

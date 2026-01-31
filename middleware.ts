@@ -85,9 +85,18 @@ export async function middleware(request: NextRequest) {
 
     // If not authenticated and trying to access protected route, redirect to login
     if (getUserError || !user) {
-      if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+      if (pathname.startsWith('/admin') || PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
         const loginUrl = new URL('/login', request.url)
         return NextResponse.redirect(loginUrl)
+      }
+      return response
+    }
+
+    // Admin routes: only app_metadata.role === 'admin' may access
+    if (pathname.startsWith('/admin')) {
+      const role = (user.app_metadata?.role as string) || null
+      if (role !== 'admin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
       }
       return response
     }

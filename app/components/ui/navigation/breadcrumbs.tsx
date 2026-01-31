@@ -50,37 +50,33 @@ export default function Breadcrumbs() {
   fullBreadcrumbs[0].isLast = false
 
   return (
-    <nav className="flex items-center space-x-2 text-sm mb-4" aria-label="Breadcrumb">
+    <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm mb-4 min-w-0" aria-label="Breadcrumb">
       {fullBreadcrumbs.map((crumb, index) => (
-        <div key={crumb.path} className="flex items-center">
+        <div key={crumb.path} className="flex items-center min-w-0 flex-shrink-0">
           {index > 0 && (
             <svg
-              className="w-4 h-4 text-gray-400 mx-2"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 mx-1 flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           )}
           {crumb.isLast ? (
-            <span className="text-gray-900 font-medium">{crumb.label}</span>
+            <span className="text-gray-900 font-medium truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">{crumb.label}</span>
           ) : (
             <Link
               href={crumb.path}
-              className="text-blue-600 hover:text-blue-800 transition-colors font-medium flex items-center gap-1"
+              className="text-blue-600 hover:text-blue-800 transition-colors font-medium flex items-center gap-1 min-h-[44px] min-w-0 touch-manipulation py-1"
             >
               {index === 0 && (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
               )}
-              {crumb.label}
+              <span className="truncate max-w-[100px] xs:max-w-[160px] sm:max-w-none">{crumb.label}</span>
             </Link>
           )}
         </div>

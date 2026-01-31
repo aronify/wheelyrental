@@ -94,7 +94,7 @@ export default function QuickStartGuide({
   const completedCount = steps.filter(s => s.completed).length
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden mb-6 transition-all duration-300">
+    <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden mb-6 transition-all duration-300 font-urbanist">
       {/* Header */}
       <div 
         className="bg-gradient-to-r from-blue-900 to-blue-800 px-4 sm:px-6 py-4 cursor-pointer"

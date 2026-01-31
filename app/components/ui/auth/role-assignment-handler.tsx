@@ -52,7 +52,6 @@ export default function RoleAssignmentHandler({ userRole }: { userRole: string |
 
         const data = await response.json()
         if (data.success && data.action === 'assigned') {
-          console.log('[RoleAssignmentHandler] ✅ Partner role assigned successfully')
           setAssignmentStatus('assigned')
           // Refresh the page to reflect the new role
           window.location.reload()

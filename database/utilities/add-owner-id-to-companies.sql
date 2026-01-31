@@ -42,14 +42,8 @@ BEGIN
   END IF;
 END $$;
 
--- Verify the changes
-SELECT 
-  'Companies table structure' as status,
-  column_name,
-  data_type,
-  is_nullable
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name = 'companies'
-  AND column_name = 'owner_id';
+-- Optional: run this manually to verify owner_id exists:
+-- SELECT column_name, data_type, is_nullable
+-- FROM information_schema.columns
+-- WHERE table_schema = 'public' AND table_name = 'companies' AND column_name = 'owner_id';
 

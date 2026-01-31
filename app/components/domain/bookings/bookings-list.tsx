@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Booking, BookingStatus } from '@/types/booking'
 import { useLanguage } from '@/lib/i18n/language-context'
 import Breadcrumbs from '@/app/components/ui/navigation/breadcrumbs'
-import { updateBookingStatusAction } from '@/lib/server/data/bookings-data-actions'
+import { updateBookingStatusAction } from '@/lib/server/data/bookings'
 import { Calendar, Clock, User, Car as CarIcon, MapPin, CheckCircle, XCircle, AlertCircle, Search, Filter, FileText, AlertTriangle, Phone, Mail, X, Send, MessageSquare, Receipt } from 'lucide-react'
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 
@@ -19,6 +19,22 @@ const getLocationName = (location: string | { id: string; name: string } | undef
   if (!location) return '';
   if (typeof location === 'string') return location;
   return location.name || '';
+}
+
+// Start of day (00:00) in local time - for "button only at 00:00 of booking date"
+const startOfDay = (d: Date): Date => {
+  const out = new Date(d)
+  out.setHours(0, 0, 0, 0)
+  return out
+}
+
+// Booking status order for timeline
+const STATUS_ORDER: BookingStatus[] = ['pending', 'confirmed', 'picked_up', 'returned']
+const isStatusReached = (current: BookingStatus, step: BookingStatus): boolean => {
+  const curIdx = STATUS_ORDER.indexOf(current)
+  const stepIdx = STATUS_ORDER.indexOf(step)
+  if (current === 'cancelled') return false
+  return curIdx >= stepIdx
 }
 
 export default function BookingsPageRedesigned({ initialBookings }: BookingsPageRedesignedProps) {
@@ -63,6 +79,8 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
       result = result.filter((booking) =>
         booking.customer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.customer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (booking.customer as any)?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (booking as any).customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.car?.make?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.car?.model?.toLowerCase().includes(searchTerm.toLowerCase())
       )
@@ -83,17 +101,24 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
       result = result.filter((booking) => booking.status === 'pending')
     } else if (viewFilter === 'today') {
       result = result.filter((booking) => {
-        const startDate = new Date((booking as any).pickup_date || (booking as any).startDate || (booking as any).startDateTime)
+        const startDate = new Date((booking as any).startTs || (booking as any).pickup_date || (booking as any).startDate || (booking as any).startDateTime)
         return startDate >= today && startDate < tomorrow
       })
     } else if (viewFilter === 'upcoming') {
       result = result.filter((booking) => {
-        const startDate = new Date((booking as any).pickup_date || (booking as any).startDate || (booking as any).startDateTime)
+        const startDate = new Date((booking as any).startTs || (booking as any).pickup_date || (booking as any).startDate || (booking as any).startDateTime)
         return startDate > now
       })
     }
 
-    return result
+    // Sort: ended (returned, cancelled) to the bottom; then by start date descending
+    const startTs = (b: any) => new Date(b.startTs || b.start_date_time || b.pickup_date || b.startDate || b.createdAt || 0).getTime()
+    return [...result].sort((a, b) => {
+      const aEnded = a.status === 'returned' || a.status === 'cancelled'
+      const bEnded = b.status === 'returned' || b.status === 'cancelled'
+      if (aEnded !== bEnded) return aEnded ? 1 : -1
+      return startTs(b) - startTs(a)
+    })
   }, [bookings, searchTerm, statusFilter, viewFilter])
 
   // Calculate stats
@@ -107,20 +132,19 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
       total: bookings.length,
       pending: bookings.filter((b) => b.status === 'pending').length,
       today: bookings.filter((b: any) => {
-        const startDate = new Date(b.pickup_date || b.pickupDate || b.startDate || b.startDateTime)
+        const startDate = new Date(b.startTs || b.pickup_date || b.pickupDate || b.startDate || b.startDateTime)
         return startDate >= today && startDate < tomorrow
       }).length,
       upcoming: bookings.filter((b: any) => {
-        const startDate = new Date(b.pickup_date || b.pickupDate || b.startDate || b.startDateTime)
+        const startDate = new Date(b.startTs || b.pickup_date || b.pickupDate || b.startDate || b.startDateTime)
         return startDate > now
       }).length,
-      revenue: bookings.reduce((sum, b) => sum + b.totalPrice, 0),
+      revenue: bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0),
     }
   }, [bookings])
 
   const handleStatusUpdate = async (bookingId: string, newStatus: BookingStatus) => {
     const result = await updateBookingStatusAction(bookingId, newStatus)
-
     if (result.success) {
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
@@ -129,6 +153,8 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
       if (selectedBooking?.id === bookingId) {
         setSelectedBooking({ ...selectedBooking, status: newStatus })
       }
+    } else {
+      showError(result.error || 'Failed to update booking')
     }
   }
 
@@ -194,7 +220,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-6">
+    <div className="space-y-3 sm:space-y-4 pb-20 lg:pb-6">
       {/* Success Toast */}
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-slide-in">
@@ -223,22 +249,22 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
           }} />
         </div>
 
-        <div className="relative px-4 xs:px-5 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+        <div className="relative px-4 xs:px-5 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
             {/* Title Section */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
+              <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5 sm:mb-2">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">{t.bookings || 'Bookings'}</h1>
-                  <p className="text-blue-200 text-xs sm:text-sm">{t.bookingsSubtitle || 'Manage all your rental bookings'}</p>
+                  <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{t.bookings || 'Bookings'}</h1>
+                  <p className="text-blue-200 text-xs">{t.bookingsSubtitle || 'Manage all your rental bookings'}</p>
                 </div>
               </div>
 
               {/* Stats Pills - Minimalist */}
-              <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4">
+              <div className="flex flex-wrap gap-2 mt-2 sm:mt-3">
                 <div className="flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
                   <span className="text-2xl sm:text-3xl font-bold text-white">{stats.total}</span>
                   <span className="text-white/90 text-xs sm:text-sm font-medium">{t.totalBookings || 'Total'}</span>
@@ -259,16 +285,16 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             </div>
 
             {/* Revenue Card */}
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex-shrink-0">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 sm:p-4 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-white/70 text-xs sm:text-sm font-medium">{t.totalRevenue || 'Total Revenue'}</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-white">€{stats.revenue.toFixed(0)}</p>
+                  <p className="text-white/70 text-xs font-medium">{t.totalRevenue || 'Total Revenue'}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-white">€{stats.revenue.toFixed(0)}</p>
                 </div>
               </div>
             </div>
@@ -277,13 +303,13 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
-        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2.5 sm:p-3">
+        <div className="flex flex-col lg:flex-row gap-2.5 sm:gap-3">
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setViewFilter('all')}
-              className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
+              className={`min-h-[38px] px-3 py-2 rounded-lg font-medium transition-all text-sm touch-manipulation ${
                 viewFilter === 'all'
                   ? 'bg-slate-600 text-white shadow-md active:bg-slate-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
@@ -293,7 +319,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             </button>
             <button
               onClick={() => setViewFilter('pending')}
-              className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
+              className={`min-h-[38px] px-3 py-2 rounded-lg font-medium transition-all text-sm touch-manipulation ${
                 viewFilter === 'pending'
                   ? 'bg-amber-600 text-white shadow-md active:bg-amber-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
@@ -307,7 +333,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             </button>
             <button
               onClick={() => setViewFilter('today')}
-              className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
+              className={`min-h-[38px] px-3 py-2 rounded-lg font-medium transition-all text-sm touch-manipulation ${
                 viewFilter === 'today'
                   ? 'bg-emerald-600 text-white shadow-md active:bg-emerald-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
@@ -320,7 +346,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
             </button>
             <button
               onClick={() => setViewFilter('upcoming')}
-              className={`min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-sm touch-manipulation ${
+              className={`min-h-[38px] px-3 py-2 rounded-lg font-medium transition-all text-sm touch-manipulation ${
                 viewFilter === 'upcoming'
                   ? 'bg-violet-600 text-white shadow-md active:bg-violet-700'
                   : 'bg-gray-100 text-gray-700 active:bg-gray-200 hover:bg-gray-200'
@@ -342,7 +368,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                 placeholder={t.searchByCustomerOrCar || 'Search by customer or car...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base sm:text-sm min-h-[44px] touch-manipulation"
+                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm min-h-[38px] touch-manipulation"
               />
             </div>
           </div>
@@ -369,168 +395,166 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
 
       {/* Bookings List */}
       {filteredBookings.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-10 h-10 text-gray-400" />
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+          <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Calendar className="w-7 h-7 text-gray-400" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.noResults || 'No bookings found'}</h3>
-          <p className="text-gray-500">{t.noResults || 'Try adjusting your filters'}</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">{t.noResults || 'No bookings found'}</h3>
+          <p className="text-sm text-gray-500">{t.noResults || 'Try adjusting your filters'}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 gap-2 sm:gap-3">
           {filteredBookings.map((booking, index) => (
             <div
               key={booking.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 active:shadow-md transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:-translate-y-1 relative touch-manipulation animate-fade-in animate-slide-in"
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 active:shadow-md transition-all duration-200 hover:border-blue-200 hover:shadow-md relative touch-manipulation animate-fade-in animate-slide-in"
               style={{
-                animationDelay: `${Math.min(index * 50, 500)}ms`,
+                animationDelay: `${Math.min(index * 40, 400)}ms`,
                 animationFillMode: 'both'
               }}
             >
 
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
                 {/* Left: Customer & Car Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex items-start gap-2.5 sm:gap-3">
                     {/* Car Image */}
                     {booking.car?.imageUrl && (
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg sm:rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 transition-transform duration-300 hover:scale-105">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                         <img
                           src={booking.car.imageUrl}
                           alt={`${booking.car.make} ${booking.car.model}`}
-                          className="w-full h-full object-cover transition-transform duration-300"
+                          className="w-full h-full object-cover"
                         />
                       </div>
                     )}
 
                     <div className="flex-1 min-w-0">
                       {/* Customer */}
-                      <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                        <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-                        <span className="font-semibold text-sm sm:text-base text-gray-900 truncate">
-                          {booking.customer?.firstName} {booking.customer?.lastName}
+                      <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+                        <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 flex-shrink-0" />
+                        <span className="font-semibold text-sm text-gray-900 truncate">
+                          {[booking.customer?.firstName, booking.customer?.lastName].filter(Boolean).join(' ') || (booking as any).customerName || booking.customer?.name || '—'}
                         </span>
                       </div>
 
                       {/* Car */}
-                      <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                        <CarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-xs sm:text-sm text-gray-700 truncate">
-                          {booking.car?.make} {booking.car?.model} {booking.car?.year}
+                      <div className="flex items-center gap-1.5 mb-1 sm:mb-1.5">
+                        <CarIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 flex-shrink-0" />
+                        <span className="text-xs text-gray-700 truncate">
+                          {booking.car?.make && (booking.car?.model || booking.car?.year) ? `${booking.car.make} ${booking.car.model || ''} ${booking.car.year || ''}`.trim() : booking.car?.make || booking.car?.model || '—'}
                         </span>
                       </div>
 
                       {/* Dates */}
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-gray-600">
                         {(() => {
-                          const startDate = (booking as any).pickup_date || (booking as any).pickupDate || booking.startDate || booking.startDateTime
-                          const endDate = (booking as any).dropoff_date || (booking as any).dropoffDate || booking.endDate || booking.endDateTime
+                          const startDate = (booking as any).startTs || (booking as any).pickup_date || (booking as any).pickupDate || booking.startDate || booking.startDateTime
+                          const endDate = (booking as any).endTs || (booking as any).dropoff_date || (booking as any).dropoffDate || booking.endDate || booking.endDateTime
                           return (
                             <>
                               {startDate && (
-                                <div className="flex items-center gap-1.5 sm:gap-2">
-                                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
-                                  <span>{new Date(startDate).toLocaleDateString()}</span>
-                                </div>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                  {new Date(startDate).toLocaleDateString()}
+                                </span>
                               )}
-                              {startDate && endDate && (
-                                <span className="hidden sm:inline">→</span>
-                              )}
+                              {startDate && endDate && <span className="text-gray-400">→</span>}
                               {endDate && (
-                                <div className="flex items-center gap-1.5 sm:gap-2">
-                                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
-                                  <span>{new Date(endDate).toLocaleDateString()}</span>
-                                </div>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                  {new Date(endDate).toLocaleDateString()}
+                                </span>
                               )}
                             </>
                           )
                         })()}
                         {booking.pickupLocation && (
-                          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
-                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
-                            <span className="text-xs truncate">
-                              {getLocationName(booking.pickupLocation)}
-                            </span>
-                          </div>
+                          <span className="flex items-center gap-1 text-gray-500">
+                            <MapPin className="w-3 h-3 text-green-500 flex-shrink-0" />
+                            <span className="truncate max-w-[140px] sm:max-w-none">{getLocationName(booking.pickupLocation)}</span>
+                          </span>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Status & Actions */}
-                <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 sm:gap-3 lg:flex-col lg:items-end">
+                {/* Right: Status, Price & Action Buttons */}
+                <div className="flex flex-row flex-wrap sm:flex-nowrap items-center sm:items-end gap-2 sm:gap-2.5 lg:flex-col lg:items-end lg:flex-nowrap">
                   {/* Status Badge */}
-                  <div className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border ${getStatusColor(booking.status)}`}>
+                  <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(booking.status)}`}>
                     {getStatusIcon(booking.status)}
-                    <span className="hidden sm:inline">{getStatusText(booking.status)}</span>
-                    <span className="sm:hidden">{getStatusText(booking.status).charAt(0)}</span>
+                    <span>{getStatusText(booking.status)}</span>
                   </div>
 
                   {/* Price */}
-                  <div className="text-left sm:text-right ml-auto sm:ml-0">
-                    <p className="text-xl sm:text-2xl font-bold text-blue-900">€{booking.totalPrice.toFixed(0)}</p>
-                    <p className="text-xs text-gray-500">{t.totalPrice || 'Total'}</p>
+                  <div className="text-left sm:text-right">
+                    <p className="text-lg font-bold text-blue-900">€{Number(booking.totalPrice || 0).toFixed(0)}</p>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col gap-2.5 w-full sm:w-auto lg:w-auto">
+                  {/* View Details + Status action buttons */}
+                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto lg:w-full lg:justify-end">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedBooking(booking)
                         setIsDetailOpen(true)
                       }}
-                      className="min-h-[44px] px-4 sm:px-4 py-2.5 sm:py-2.5 bg-slate-600 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-slate-700 hover:bg-slate-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:shadow-md active:scale-95 touch-manipulation"
+                      className="min-h-[36px] px-3 py-1.5 bg-slate-600 text-white text-xs font-medium rounded-lg hover:bg-slate-700 active:scale-[0.98] flex items-center gap-1.5"
                     >
-                      <FileText className="w-4 h-4 sm:w-4 sm:h-4" />
-                      <span>{t.viewDetails || 'View Details'}</span>
+                      <FileText className="w-3.5 h-3.5" />
+                      {t.viewDetails || 'Details'}
                     </button>
+                    {booking.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStatusUpdate(booking.id, 'confirmed') }}
+                          className="min-h-[36px] px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 active:scale-[0.98] flex items-center gap-1.5"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          {t.markAsConfirmed || 'Confirm'}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStatusUpdate(booking.id, 'cancelled') }}
+                          className="min-h-[36px] px-3 py-1.5 bg-rose-600 text-white text-xs font-medium rounded-lg hover:bg-rose-700 active:scale-[0.98] flex items-center gap-1.5"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          {t.cancel || 'Cancel'}
+                        </button>
+                      </>
+                    )}
+                    {booking.status === 'confirmed' && (() => {
+                      const startAt = new Date((booking as any).startTs || (booking as any).start_date_time || (booking as any).pickup_date || (booking as any).startDate || 0)
+                      const pickupDayStart = startOfDay(startAt)
+                      const canPickUp = !isNaN(startAt.getTime()) && new Date() >= pickupDayStart
+                      if (!canPickUp) return null
+                      return (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStatusUpdate(booking.id, 'picked_up') }}
+                          className="min-h-[36px] px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] flex items-center gap-1.5"
+                        >
+                          <CarIcon className="w-3.5 h-3.5" />
+                          {t.markAsPickedUp || 'Picked Up'}
+                        </button>
+                      )
+                    })()}
+                    {booking.status === 'picked_up' && (() => {
+                      const endAt = new Date((booking as any).endTs || (booking as any).end_date_time || (booking as any).dropoff_date || (booking as any).endDate || 0)
+                      const returnDayStart = startOfDay(endAt)
+                      const canReturn = !isNaN(endAt.getTime()) && new Date() >= returnDayStart
+                      if (!canReturn) return null
+                      return (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStatusUpdate(booking.id, 'returned') }}
+                          className="min-h-[36px] px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-600 text-white hover:bg-slate-700 active:scale-[0.98] flex items-center gap-1.5"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          {t.markAsReturned || 'Returned'}
+                        </button>
+                      )
+                    })()}
                   </div>
-
-                  {/* Quick Actions */}
-                  {booking.status === 'pending' && (
-                    <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto lg:w-auto">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleStatusUpdate(booking.id, 'confirmed')
-                        }}
-                        className="min-h-[44px] px-4 sm:px-4 py-2.5 bg-emerald-600 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-emerald-700 hover:bg-emerald-700 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
-                      >
-                        <CheckCircle className="w-4 h-4 sm:w-4 sm:h-4" />
-                        {t.markAsConfirmed || 'Confirm'}
-                      </button>
-                      <button
-                        onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
-                        className="min-h-[44px] px-4 sm:px-4 py-2.5 bg-rose-600 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-rose-700 hover:bg-rose-700 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
-                      >
-                        <XCircle className="w-4 h-4 sm:w-4 sm:h-4" />
-                        {t.cancel || 'Cancel'}
-                      </button>
-                    </div>
-                  )}
-
-                  {booking.status === 'confirmed' && (
-                    <button
-                      onClick={() => handleStatusUpdate(booking.id, 'picked_up')}
-                      className="min-h-[44px] w-full sm:w-auto px-4 sm:px-4 py-2.5 bg-slate-500 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-slate-600 hover:bg-slate-600 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
-                    >
-                      <CarIcon className="w-4 h-4 sm:w-4 sm:h-4" />
-                      <span className="hidden sm:inline">{t.markAsPickedUp || 'Mark Picked Up'}</span>
-                      <span className="sm:hidden">Picked Up</span>
-                    </button>
-                  )}
-
-                  {booking.status === 'picked_up' && (
-                    <button
-                      onClick={() => handleStatusUpdate(booking.id, 'returned')}
-                      className="min-h-[44px] w-full sm:w-auto px-4 sm:px-4 py-2.5 bg-slate-500 text-white text-sm sm:text-sm font-medium rounded-lg active:bg-slate-600 hover:bg-slate-600 transition-all duration-200 flex items-center gap-2 justify-center shadow-sm hover:shadow-md active:scale-95 touch-manipulation"
-                    >
-                      <CheckCircle className="w-4 h-4 sm:w-4 sm:h-4" />
-                      <span>{t.markAsReturned || 'Mark Returned'}</span>
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -591,239 +615,236 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                   </div>
                 </div>
 
-                {/* Content - Redesigned Layout */}
+                {/* Content - Redesigned: timeline first, then overview, customer, car, locations */}
                 <div className="flex-1 overflow-y-auto bg-gray-50">
-                  <div className="px-4 sm:px-6 py-5 sm:py-6 space-y-5 sm:space-y-6">
-                    {/* Quick Info Cards Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {/* Total Price Card */}
-                      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg">
-                        <p className="text-sm font-medium text-blue-100 mb-2">{t.totalPrice || 'Total Price'}</p>
-                        <p className="text-3xl sm:text-4xl font-bold">€{selectedBooking.totalPrice.toFixed(2)}</p>
+                  <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
+                    {/* 1. Status timeline - reflects booking status */}
+                    <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/80">
+                        <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          {t.bookingTimeline || 'Booking status'}
+                        </h4>
                       </div>
-                      
-                      {/* Dates Summary */}
+                      <div className="p-4">
+                        {selectedBooking.status === 'cancelled' ? (
+                          <div className="flex items-center gap-3 py-2">
+                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                              <XCircle className="w-5 h-5 text-rose-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{getStatusText('cancelled')}</p>
+                              <p className="text-xs text-gray-500">This booking was cancelled</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-2 sm:gap-4">
+                            {(['pending', 'confirmed', 'picked_up', 'returned'] as const).map((step, i) => {
+                              const reached = isStatusReached(selectedBooking.status, step)
+                              const isCurrent = selectedBooking.status === step
+                              const isLast = i === 3
+                              return (
+                                <div key={step} className="flex flex-1 flex-col items-center min-w-0">
+                                  <div className="flex items-center w-full">
+                                    {i > 0 && (
+                                      <div className={`flex-1 h-0.5 min-w-[8px] ${isStatusReached(selectedBooking.status, (['pending', 'confirmed', 'picked_up', 'returned'] as const)[i - 1]) ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                                    )}
+                                    <div
+                                      className={`flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center border-2 ${
+                                        isCurrent
+                                          ? 'bg-blue-600 border-blue-600 text-white ring-2 ring-blue-200'
+                                          : reached
+                                            ? 'bg-blue-500 border-blue-500 text-white'
+                                            : 'bg-white border-gray-200 text-gray-400'
+                                      }`}
+                                    >
+                                      {reached ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : <span className="text-xs font-semibold">{i + 1}</span>}
+                                    </div>
+                                    {!isLast && (
+                                      <div className={`flex-1 h-0.5 min-w-[8px] ${reached ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                                    )}
+                                  </div>
+                                  <p className={`mt-2 text-xs font-medium text-center truncate w-full ${isCurrent ? 'text-blue-600' : reached ? 'text-gray-700' : 'text-gray-400'}`}>
+                                    {step === 'pending' && (t.statusPending || 'Pending')}
+                                    {step === 'confirmed' && (t.statusConfirmed || 'Confirmed')}
+                                    {step === 'picked_up' && (t.statusPickedUp || 'Picked Up')}
+                                    {step === 'returned' && (t.statusReturned || 'Returned')}
+                                  </p>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    {/* 2. Overview row: price + dates */}
+                    <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{t.totalPrice || 'Total'}</p>
+                        <p className="text-2xl font-bold text-gray-900">€{Number(selectedBooking.totalPrice || 0).toFixed(2)}</p>
+                      </div>
                       {(() => {
-                        const startDate = (selectedBooking as any).pickup_date || (selectedBooking as any).pickupDate || selectedBooking.startDate || selectedBooking.startDateTime
-                        const endDate = (selectedBooking as any).dropoff_date || (selectedBooking as any).dropoffDate || selectedBooking.endDate || selectedBooking.endDateTime
+                        const startDate = (selectedBooking as any).startTs || (selectedBooking as any).pickup_date || (selectedBooking as any).startDate
+                        const endDate = (selectedBooking as any).endTs || (selectedBooking as any).dropoff_date || (selectedBooking as any).endDate
                         return (
                           <>
                             {startDate && (
-                              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                                    <Calendar className="w-5 h-5 text-green-600" />
-                                  </div>
-                                  <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase">{t.pickupDate || 'Pickup'}</p>
-                                    <p className="text-lg font-bold text-gray-900">{new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                                  </div>
-                                </div>
+                              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{t.pickupDate || 'Pickup'}</p>
+                                <p className="text-base font-semibold text-gray-900">{new Date(startDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
                               </div>
                             )}
                             {endDate && (
-                              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                                    <Calendar className="w-5 h-5 text-red-600" />
-                                  </div>
-                                  <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase">{t.returnDate || 'Return'}</p>
-                                    <p className="text-lg font-bold text-gray-900">{new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                                  </div>
-                                </div>
+                              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{t.returnDate || 'Return'}</p>
+                                <p className="text-base font-semibold text-gray-900">{new Date(endDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
                               </div>
                             )}
                           </>
                         )
                       })()}
-                    </div>
+                    </section>
 
-                    {/* Main Content Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-                      {/* Left Column - Customer & Car */}
-                      <div className="lg:col-span-2 space-y-5 sm:space-y-6">
-                        {/* Customer Card */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-4 border-b border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                              <User className="w-5 h-5 text-blue-600" />
-                              {t.customerInformation || 'Customer Information'}
-                            </h4>
-                          </div>
-                          <div className="p-5">
-                            <div className="flex items-start gap-4 mb-4">
-                              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-                                {(selectedBooking.customer?.firstName || selectedBooking.customer?.email || 'C').charAt(0).toUpperCase()}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h5 className="text-xl font-bold text-gray-900 mb-1">
-                                  {selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName}
-                                </h5>
-                                {selectedBooking.customer?.email && (
-                                  <a 
-                                    href={`mailto:${selectedBooking.customer.email}`}
-                                    className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-2 mb-1"
-                                  >
-                                    <Mail className="w-4 h-4" />
-                                    {selectedBooking.customer.email}
-                                  </a>
-                                )}
-                                {selectedBooking.customer?.phone && (
-                                  <a 
-                                    href={`tel:${selectedBooking.customer.phone}`}
-                                    className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-2"
-                                  >
-                                    <Phone className="w-4 h-4" />
-                                    {selectedBooking.customer.phone}
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                    {/* 3. Customer & Car side by side */}
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50/80">
+                          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <User className="w-4 h-4 text-gray-500" />
+                            {t.customerInformation || 'Customer'}
+                          </h4>
                         </div>
-
-                        {/* Car Card */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-5 py-4 border-b border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                              <CarIcon className="w-5 h-5 text-green-600" />
-                              {t.carInformation || 'Car Information'}
-                            </h4>
-                          </div>
-                          <div className="p-5">
-                            <div className="flex flex-col sm:flex-row gap-5">
-                              {selectedBooking.car?.imageUrl && (
-                                <div className="w-full sm:w-40 h-40 rounded-2xl overflow-hidden flex-shrink-0 bg-gray-100 shadow-md">
-                                  <img
-                                    src={selectedBooking.car.imageUrl}
-                                    alt={`${selectedBooking.car.make} ${selectedBooking.car.model}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
+                        <div className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg flex-shrink-0">
+                              {([selectedBooking.customer?.firstName, selectedBooking.customer?.lastName].filter(Boolean).join(' ') || (selectedBooking.customer as any)?.name || (selectedBooking as any).customerName || '—').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-gray-900 truncate">
+                                {[selectedBooking.customer?.firstName, selectedBooking.customer?.lastName].filter(Boolean).join(' ') || (selectedBooking.customer as any)?.name || (selectedBooking as any).customerName || '—'}
+                              </p>
+                              {selectedBooking.customer?.email && (
+                                <a href={`mailto:${selectedBooking.customer.email}`} className="text-sm text-blue-600 hover:underline flex items-center gap-1 truncate">
+                                  <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                                  <span className="truncate">{selectedBooking.customer.email}</span>
+                                </a>
                               )}
-                              <div className="flex-1 grid grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{t.make || 'Make'}</p>
-                                  <p className="text-lg font-bold text-gray-900">{selectedBooking.car?.make}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{t.model || 'Model'}</p>
-                                  <p className="text-lg font-bold text-gray-900">{selectedBooking.car?.model}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{t.year || 'Year'}</p>
-                                  <p className="text-base font-semibold text-gray-700">{selectedBooking.car?.year}</p>
-                                </div>
-                                {selectedBooking.car?.licensePlate && (
-                                  <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{t.licensePlate || 'License Plate'}</p>
-                                    <p className="text-base font-semibold text-gray-700 font-mono">{selectedBooking.car.licensePlate}</p>
-                                  </div>
-                                )}
-                              </div>
+                              {selectedBooking.customer?.phone && (
+                                <a href={`tel:${selectedBooking.customer.phone}`} className="text-sm text-gray-600 hover:underline flex items-center gap-1">
+                                  <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                                  {selectedBooking.customer.phone}
+                                </a>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
-
-                      {/* Right Column - Booking Timeline & Actions */}
-                      <div className="space-y-5 sm:space-y-6">
-                        {/* Booking Timeline */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-5 py-4 border-b border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                              <Clock className="w-5 h-5 text-purple-600" />
-                              {t.bookingTimeline || 'Timeline'}
-                            </h4>
-                          </div>
-                          <div className="p-5">
-                            <div className="space-y-4">
-                              {/* Timeline Items */}
-                              <div className="flex gap-3">
-                                <div className="flex flex-col items-center">
-                                  <div className={`w-3 h-3 rounded-full ${selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed' || selectedBooking.status === 'picked_up' || selectedBooking.status === 'returned' ? 'bg-blue-600' : 'bg-gray-300'}`} />
-                                  <div className={`w-0.5 h-8 ${selectedBooking.status === 'confirmed' || selectedBooking.status === 'picked_up' || selectedBooking.status === 'returned' ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                                </div>
-                                <div className="flex-1 pb-4">
-                                  <p className="text-sm font-semibold text-gray-900">Booking Created</p>
-                                  <p className="text-xs text-gray-500">Pending confirmation</p>
-                                </div>
-                              </div>
-                              <div className="flex gap-3">
-                                <div className="flex flex-col items-center">
-                                  <div className={`w-3 h-3 rounded-full ${selectedBooking.status === 'confirmed' || selectedBooking.status === 'picked_up' || selectedBooking.status === 'returned' ? 'bg-green-600' : 'bg-gray-300'}`} />
-                                  <div className={`w-0.5 h-8 ${selectedBooking.status === 'picked_up' || selectedBooking.status === 'returned' ? 'bg-green-600' : 'bg-gray-200'}`} />
-                                </div>
-                                <div className="flex-1 pb-4">
-                                  <p className="text-sm font-semibold text-gray-900">Confirmed</p>
-                                  <p className="text-xs text-gray-500">Ready for pickup</p>
-                                </div>
-                              </div>
-                              <div className="flex gap-3">
-                                <div className="flex flex-col items-center">
-                                  <div className={`w-3 h-3 rounded-full ${selectedBooking.status === 'picked_up' || selectedBooking.status === 'returned' ? 'bg-blue-600' : 'bg-gray-300'}`} />
-                                  <div className={`w-0.5 h-8 ${selectedBooking.status === 'returned' ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                                </div>
-                                <div className="flex-1 pb-4">
-                                  <p className="text-sm font-semibold text-gray-900">Picked Up</p>
-                                  <p className="text-xs text-gray-500">Vehicle in use</p>
-                                </div>
-                              </div>
-                              <div className="flex gap-3">
-                                <div className="flex flex-col items-center">
-                                  <div className={`w-3 h-3 rounded-full ${selectedBooking.status === 'returned' ? 'bg-green-600' : 'bg-gray-300'}`} />
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-sm font-semibold text-gray-900">Returned</p>
-                                  <p className="text-xs text-gray-500">Booking completed</p>
-                                </div>
-                              </div>
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50/80">
+                          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <CarIcon className="w-4 h-4 text-gray-500" />
+                            {t.carInformation || 'Vehicle'}
+                          </h4>
+                        </div>
+                        <div className="p-4 flex gap-4">
+                          {selectedBooking.car?.imageUrl && (
+                            <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                              <img src={selectedBooking.car.imageUrl} alt="" className="w-full h-full object-cover" />
                             </div>
+                          )}
+                          <div className="min-w-0 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                            <span className="text-gray-500">{t.make || 'Make'}</span>
+                            <span className="font-medium text-gray-900">{selectedBooking.car?.make ?? '—'}</span>
+                            <span className="text-gray-500">{t.model || 'Model'}</span>
+                            <span className="font-medium text-gray-900">{selectedBooking.car?.model ?? '—'}</span>
+                            <span className="text-gray-500">{t.year || 'Year'}</span>
+                            <span className="font-medium text-gray-900">{selectedBooking.car?.year ?? '—'}</span>
+                            {selectedBooking.car?.licensePlate && (
+                              <>
+                                <span className="text-gray-500">{t.licensePlate || 'Plate'}</span>
+                                <span className="font-mono font-medium text-gray-900">{selectedBooking.car.licensePlate}</span>
+                              </>
+                            )}
                           </div>
                         </div>
-
-                        {/* Locations Card */}
-                        {(selectedBooking.pickupLocation || selectedBooking.dropoffLocation) && (
-                          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-5 py-4 border-b border-gray-200">
-                              <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-orange-600" />
-                                {t.locations || 'Locations'}
-                              </h4>
-                            </div>
-                            <div className="p-5 space-y-4">
-                              {selectedBooking.pickupLocation && (
-                                <div className="flex items-start gap-3">
-                                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                                    <MapPin className="w-5 h-5 text-green-600" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.pickupLocation || 'Pickup'}</p>
-                                    <p className="text-sm font-medium text-gray-900">
-                                      {getLocationName(selectedBooking.pickupLocation)}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                              {selectedBooking.dropoffLocation && (
-                                <div className="flex items-start gap-3">
-                                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                                    <MapPin className="w-5 h-5 text-red-600" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t.dropoffLocation || 'Dropoff'}</p>
-                                    <p className="text-sm font-medium text-gray-900">
-                                      {getLocationName(selectedBooking.dropoffLocation)}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    </div>
+                    </section>
+
+                    {/* 4. Locations (if any) */}
+                    {(selectedBooking.pickupLocation || selectedBooking.dropoffLocation) && (
+                      <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50/80">
+                          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            {t.locations || 'Locations'}
+                          </h4>
+                        </div>
+                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {selectedBooking.pickupLocation && (
+                            <div className="flex gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                                <MapPin className="w-4 h-4 text-green-600" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-gray-500">{t.pickupLocation || 'Pickup'}</p>
+                                <p className="text-sm font-medium text-gray-900 truncate">{getLocationName(selectedBooking.pickupLocation)}</p>
+                              </div>
+                            </div>
+                          )}
+                          {selectedBooking.dropoffLocation && (
+                            <div className="flex gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                <MapPin className="w-4 h-4 text-amber-600" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-gray-500">{t.dropoffLocation || 'Dropoff'}</p>
+                                <p className="text-sm font-medium text-gray-900 truncate">{getLocationName(selectedBooking.dropoffLocation)}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </section>
+                    )}
+
+                    {/* 5. Status actions - only show at 00:00 of booking date */}
+                    {selectedBooking.status !== 'cancelled' && selectedBooking.status !== 'returned' && (
+                      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Update status</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedBooking.status === 'pending' && (
+                            <>
+                              <button onClick={() => handleStatusUpdate(selectedBooking.id, 'confirmed')} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700">
+                                {t.markAsConfirmed || 'Confirm'}
+                              </button>
+                              <button onClick={() => handleStatusUpdate(selectedBooking.id, 'cancelled')} className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300">
+                                {t.cancel || 'Cancel'}
+                              </button>
+                            </>
+                          )}
+                          {selectedBooking.status === 'confirmed' && (() => {
+                            const startAt = new Date((selectedBooking as any).startTs || (selectedBooking as any).pickup_date || (selectedBooking as any).startDate || 0)
+                            const canPickUp = !isNaN(startAt.getTime()) && new Date() >= startOfDay(startAt)
+                            if (!canPickUp) return <p className="text-sm text-gray-500">Mark as Picked Up available from {startAt.toLocaleDateString()} (00:00)</p>
+                            return (
+                              <button onClick={() => handleStatusUpdate(selectedBooking.id, 'picked_up')} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+                                {t.markAsPickedUp || 'Mark Picked Up'}
+                              </button>
+                            )
+                          })()}
+                          {selectedBooking.status === 'picked_up' && (() => {
+                            const endAt = new Date((selectedBooking as any).endTs || (selectedBooking as any).dropoff_date || (selectedBooking as any).endDate || 0)
+                            const canReturn = !isNaN(endAt.getTime()) && new Date() >= startOfDay(endAt)
+                            if (!canReturn) return <p className="text-sm text-gray-500">Mark as Returned available from {endAt.toLocaleDateString()} (00:00)</p>
+                            return (
+                              <button onClick={() => handleStatusUpdate(selectedBooking.id, 'returned')} className="px-4 py-2 rounded-lg bg-slate-600 text-white text-sm font-medium hover:bg-slate-700">
+                                {t.markAsReturned || 'Mark Returned'}
+                              </button>
+                            )
+                          })()}
+                        </div>
+                      </section>
+                    )}
                   </div>
                 </div>
 
@@ -902,7 +923,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                     </div>
                     <div className="min-w-0">
                       <h3 className="text-lg sm:text-xl font-bold text-white truncate">{t.fileDamageClaim || 'File Damage Claim'}</h3>
-                      <p className="text-red-100 text-xs sm:text-sm truncate">{selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName} - {selectedBooking.car?.make} {selectedBooking.car?.model}</p>
+                      <p className="text-red-100 text-xs sm:text-sm truncate">{[selectedBooking.customer?.firstName, selectedBooking.customer?.lastName].filter(Boolean).join(' ') || (selectedBooking.customer as any)?.name || (selectedBooking as any).customerName || '—'} - {selectedBooking.car?.make} {selectedBooking.car?.model}</p>
                     </div>
                   </div>
                   <button
@@ -1081,7 +1102,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                     </div>
                     <div className="min-w-0">
                       <h3 className="text-lg sm:text-xl font-bold text-white truncate">{t.reportFine || 'Report Fine'}</h3>
-                      <p className="text-orange-100 text-xs sm:text-sm truncate">{selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName} - {selectedBooking.car?.make} {selectedBooking.car?.model}</p>
+                      <p className="text-orange-100 text-xs sm:text-sm truncate">{[selectedBooking.customer?.firstName, selectedBooking.customer?.lastName].filter(Boolean).join(' ') || (selectedBooking.customer as any)?.name || (selectedBooking as any).customerName || '—'} - {selectedBooking.car?.make} {selectedBooking.car?.model}</p>
                     </div>
                   </div>
                   <button
@@ -1270,7 +1291,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                         {t.contactPerson || 'Contact Person'}
                       </h3>
                       <p className="text-blue-100 text-xs sm:text-sm truncate">
-                        {selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName}
+                        {[selectedBooking.customer?.firstName, selectedBooking.customer?.lastName].filter(Boolean).join(' ') || (selectedBooking.customer as any)?.name || (selectedBooking as any).customerName || '—'}
                       </p>
                     </div>
                   </div>
@@ -1295,7 +1316,7 @@ export default function BookingsPageRedesigned({ initialBookings }: BookingsPage
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {selectedBooking.customer?.firstName} {selectedBooking.customer?.lastName}
+                          {[selectedBooking.customer?.firstName, selectedBooking.customer?.lastName].filter(Boolean).join(' ') || (selectedBooking.customer as any)?.name || (selectedBooking as any).customerName || '—'}
                         </p>
                         {selectedBooking.customer?.email && (
                           <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">

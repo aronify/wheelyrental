@@ -7,8 +7,7 @@ import { X, Image as ImageIcon, Info, Settings, MapPin, DollarSign } from 'lucid
 import CustomDropdown from '@/app/components/ui/dropdowns/custom-dropdown'
 import MultiSelectDropdown from '@/app/components/ui/dropdowns/multi-select-dropdown'
 import CityDropdown from '@/app/components/ui/dropdowns/city-dropdown'
-import { getLocationsAction, createLocationAction, type Location } from '@/lib/server/data/cars-data-actions'
-import { getExtrasAction, createExtraAction } from '@/lib/server/data/extras-data-actions'
+import { getLocationsAction, createLocationAction, type Location, getExtrasAction, createExtraAction } from '@/lib/server/data/cars'
 
 interface CarFormModalProps {
   isOpen: boolean
@@ -230,13 +229,6 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
       const isPickup = showCustomLocationForm === 'pickup'
       const isDropoff = showCustomLocationForm === 'dropoff'
       
-      console.log('[CarForm] Creating location:', {
-        name: customLocationData.name,
-        isPickup,
-        isDropoff,
-        formType: showCustomLocationForm
-      })
-      
       const result = await createLocationAction({
         name: customLocationData.name,
         addressLine1: customLocationData.address || undefined,
@@ -387,6 +379,8 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
     extras: [],
   })
   const [dailyRateFocused, setDailyRateFocused] = useState(false)
+  const [depositFocused, setDepositFocused] = useState(false)
+  const [seatsFocused, setSeatsFocused] = useState(false)
 
   const [newFeature, setNewFeature] = useState('')
 
@@ -413,7 +407,11 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
           dropoffLocations: car.dropoffLocations || [],
           extras: car.extras || [],
         })
-        setImagePreviews(car.imageUrl ? [car.imageUrl] : [])
+        // Load all images if available, otherwise just the primary image
+        const allImages = car.imageUrls && car.imageUrls.length > 0 
+          ? car.imageUrls 
+          : (car.imageUrl ? [car.imageUrl] : [])
+        setImagePreviews(allImages)
         // Load car extras into selectedExtras map
         if (car.extras) {
           const extrasMap = new Map()
@@ -642,16 +640,35 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
         isIncluded,
       }))
 
-      // Send File object if available, otherwise send base64 for backward compatibility
+      // Send all images - convert base64 to array for server processing
+      const imageUrlsArray = imagePreviews.filter(url => url && url.startsWith('data:image'))
+      
       await onSubmit({ 
         ...formData, 
-        imageFile: imageFiles[0] || undefined, // Send File object (preferred)
-        imageUrl: imagePreviews[0] || undefined, // Fallback to base64 for legacy support
+        imageFiles: imageFiles.length > 0 ? imageFiles : undefined, // Send all File objects
+        imageUrls: imageUrlsArray.length > 0 ? imageUrlsArray : undefined, // Send all base64 images
+        imageFile: imageFiles[0] || undefined, // Legacy: first file for backward compatibility
+        imageUrl: imagePreviews[0] || undefined, // Legacy: first image for backward compatibility
         extras: extrasArray,
       })
       // Success - parent component will close modal
     } catch (error: unknown) {
-      setImageError(error instanceof Error ? error.message : 'Failed to save car. Try using a smaller image.')
+      console.error('[handleSaveClick] Error saving car:', error)
+      let errorMessage = 'Failed to save car. '
+      
+      if (error instanceof Error) {
+        if (error.message.includes('image') || error.message.includes('upload')) {
+          errorMessage += error.message
+        } else if (error.message.includes('Failed to upload')) {
+          errorMessage += 'Some images failed to upload. Please try again with smaller images.'
+        } else {
+          errorMessage += error.message
+        }
+      } else {
+        errorMessage += 'Please try again. If the issue persists, try uploading fewer images or smaller file sizes.'
+      }
+      
+      setImageError(errorMessage)
       setActiveTab('image') // Go back to image tab to show error
       setIsSubmitting(false)
     }
@@ -659,73 +676,100 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
 
   const handleImageFile = (file: File) => {
     setImageError(null)
-    if (!file.type.startsWith('image/')) {
-      setImageError(t.required || 'Please upload an image file')
-      return
-    }
-
-    // Check original file size
-    if (file.size > 10 * 1024 * 1024) {
-      setImageError('Image is too large. Please use an image smaller than 10MB.')
-      return
-    }
-
-    // Compress and resize the image
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      const img = new Image()
-      img.onload = () => {
-        // Create canvas to resize image
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        
-        // Set max dimensions (maintain aspect ratio)
-        const MAX_WIDTH = 1200
-        const MAX_HEIGHT = 800
-        let width = img.width
-        let height = img.height
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = height * (MAX_WIDTH / width)
-            width = MAX_WIDTH
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = width * (MAX_HEIGHT / height)
-            height = MAX_HEIGHT
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-
-        // Draw resized image
-        ctx?.drawImage(img, 0, 0, width, height)
-
-        // Convert to base64 with compression (0.7 quality for JPEGs)
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
-        
-        // Check if compressed size is still too large
-        const sizeInBytes = (compressedBase64.length * 3) / 4
-        if (sizeInBytes > 800 * 1024) { // 800KB limit for base64
-          setImageError('Image is still too large after compression. Please use a smaller image.')
-          return
-        }
-
-        // Add to existing images instead of replacing
-        setImagePreviews(prev => [...prev, compressedBase64])
-        setImageFiles(prev => [...prev, file])
+    
+    try {
+      if (!file.type.startsWith('image/')) {
+        setImageError('Please upload an image file (JPG, PNG, etc.)')
+        return
       }
-      img.onerror = () => {
-        setImageError('Failed to load image. Please try another file.')
+
+      // Check original file size
+      if (file.size > 10 * 1024 * 1024) {
+        setImageError('Image is too large. Please use an image smaller than 10MB.')
+        return
       }
-      img.src = reader.result as string
+
+      // Limit total number of images (prevent too many)
+      if (imagePreviews.length >= 10) {
+        setImageError('Maximum 10 images allowed per car.')
+        return
+      }
+
+      // Compress and resize the image
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        try {
+          const img = new Image()
+          img.onload = () => {
+            try {
+              // Create canvas to resize image
+              const canvas = document.createElement('canvas')
+              const ctx = canvas.getContext('2d')
+              
+              if (!ctx) {
+                setImageError('Failed to process image. Please try again.')
+                return
+              }
+              
+              // Set max dimensions (maintain aspect ratio)
+              const MAX_WIDTH = 1200
+              const MAX_HEIGHT = 800
+              let width = img.width
+              let height = img.height
+
+              if (width > height) {
+                if (width > MAX_WIDTH) {
+                  height = height * (MAX_WIDTH / width)
+                  width = MAX_WIDTH
+                }
+              } else {
+                if (height > MAX_HEIGHT) {
+                  width = width * (MAX_HEIGHT / height)
+                  height = MAX_HEIGHT
+                }
+              }
+
+              canvas.width = width
+              canvas.height = height
+
+              // Draw resized image
+              ctx.drawImage(img, 0, 0, width, height)
+
+              // Convert to base64 with compression (0.7 quality for JPEGs)
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+              
+              // Check if compressed size is still too large
+              const sizeInBytes = (compressedBase64.length * 3) / 4
+              if (sizeInBytes > 800 * 1024) { // 800KB limit for base64
+                setImageError('Image is still too large after compression. Please use a smaller image.')
+                return
+              }
+
+              // Add to existing images instead of replacing
+              setImagePreviews(prev => [...prev, compressedBase64])
+              setImageFiles(prev => [...prev, file])
+            } catch (error) {
+              console.error('[handleImageFile] Error processing image:', error)
+              setImageError('Failed to process image. Please try a different image.')
+            }
+          }
+          img.onerror = () => {
+            setImageError('Failed to load image. Please try another file.')
+          }
+          img.src = reader.result as string
+        } catch (error) {
+          console.error('[handleImageFile] Error creating image:', error)
+          setImageError('Failed to process image. Please try again.')
+        }
+      }
+      reader.onerror = () => {
+        setImageError('Failed to read image file. Please try again.')
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('[handleImageFile] Unexpected error:', error)
+      setImageError('An unexpected error occurred. Please try again.')
     }
-    reader.onerror = () => {
-      setImageError('Failed to read image file. Please try again.')
-    }
-    reader.readAsDataURL(file)
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -813,9 +857,9 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
 
   return (
     <>
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
-      <div className="flex min-h-screen items-start sm:items-center justify-center p-2 sm:p-4">
-        <div className="relative bg-gradient-to-br from-white to-gray-50 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-full sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl max-h-[100vh] sm:max-h-[90vh] overflow-hidden border-2 border-blue-200 flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden bg-black/50 backdrop-blur-sm p-0 xs:p-2 sm:p-4">
+      <div className="flex min-h-full min-h-[100dvh] items-start sm:items-center justify-center p-0 xs:p-2 sm:p-4">
+        <div className="relative bg-gradient-to-br from-white to-gray-50 rounded-none xs:rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-full sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl min-h-[100dvh] xs:min-h-0 max-h-[100vh] sm:max-h-[90vh] overflow-hidden border-0 xs:border-2 border-blue-200 flex flex-col min-w-0">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
             <div className="flex items-start sm:items-center justify-between gap-3">
@@ -1187,10 +1231,23 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         type="number"
                         min="0"
                         step="0.01"
-                        value={formData.depositRequired || ''}
+                        value={formData.depositRequired === 0 && depositFocused ? '' : (formData.depositRequired || '')}
+                        onFocus={() => {
+                          setDepositFocused(true)
+                        }}
                         onChange={(e) => {
-                          const value = e.target.value === '' ? undefined : parseFloat(e.target.value) || 0
-                          setFormData({ ...formData, depositRequired: value })
+                          const value = e.target.value
+                          if (value === '') {
+                            setFormData({ ...formData, depositRequired: 0 })
+                          } else {
+                            const numValue = parseFloat(value)
+                            if (!isNaN(numValue)) {
+                              setFormData({ ...formData, depositRequired: numValue })
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          setDepositFocused(false)
                         }}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900"
                         placeholder="0.00"
@@ -1271,11 +1328,29 @@ export default function CarFormModalRedesigned({ isOpen, onClose, onSubmit, car,
                         required
                         min="1"
                         max="20"
-                        value={formData.seats}
+                        value={formData.seats === 0 && seatsFocused ? '' : formData.seats}
+                        onFocus={() => {
+                          setSeatsFocused(true)
+                        }}
                         onChange={(e) => {
-                          setFormData({ ...formData, seats: parseInt(e.target.value) || 0 })
+                          const value = e.target.value
+                          if (value === '') {
+                            setFormData({ ...formData, seats: 0 })
+                          } else {
+                            const numValue = parseInt(value)
+                            if (!isNaN(numValue)) {
+                              setFormData({ ...formData, seats: numValue })
+                            }
+                          }
                           if (validationErrors.seats) {
                             setValidationErrors({ ...validationErrors, seats: '' })
+                          }
+                        }}
+                        onBlur={() => {
+                          setSeatsFocused(false)
+                          // Ensure minimum value of 1
+                          if (formData.seats < 1) {
+                            setFormData({ ...formData, seats: 5 })
                           }
                         }}
                         className={`w-full px-4 sm:px-4 py-3.5 sm:py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-900 focus:border-blue-900 transition-all text-gray-900 min-h-[48px] sm:min-h-[44px] text-base touch-manipulation ${

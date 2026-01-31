@@ -158,9 +158,10 @@ className="bg-blue-600 hover:bg-blue-700"
 
 ### Font Families
 
-#### Primary Font: Urbanist
+#### Primary Font: Figtree
 - **Source**: Google Fonts
-- **Variable**: `--font-urbanist`
+- **Variable**: `--font-figtree`
+- **Fallback**: Apple / system UI font stack (`--font-system`)
 - **Applied to**:
   - Body text
   - Headings (h1-h6)
@@ -169,18 +170,20 @@ className="bg-blue-600 hover:bg-blue-700"
 
 **Usage:**
 ```tsx
-className="font-urbanist"
+className="font-sans"
+// or explicitly
+className="font-figtree"
 // or via CSS variable
-fontFamily: 'var(--font-urbanist), sans-serif'
+fontFamily: 'var(--font-figtree), var(--font-system)'
 ```
 
-#### System Fonts (Inputs)
-For better readability in form inputs:
+#### System Fonts (fallback and inputs)
+Apple/system UI font stack (`--font-system`):
 ```
--apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 
-'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 
-'Helvetica Neue', sans-serif
+-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+'Helvetica Neue', Arial, sans-serif
 ```
+Used as fallback after Figtree and for form inputs.
 
 **Applied to:**
 - `input[type="text"]`
@@ -1028,10 +1031,11 @@ Defined in `app/globals.css`:
 }
 ```
 
-### Font Variable
+### Font Variables
 
 ```css
---font-urbanist: 'Urbanist', sans-serif;
+--font-figtree:  /* set by next/font (Figtree) */;
+--font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 ```
 
 ### Usage in Tailwind

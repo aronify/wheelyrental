@@ -368,12 +368,6 @@ export async function updateCarExtrasAction(
       return { error: 'Not authenticated' }
     }
 
-    console.log('[updateCarExtrasAction] Updating car extras:', { 
-      carId, 
-      extrasCount: extras.length,
-      extras: extras.map(e => ({ extraId: e.extraId, price: e.price, isIncluded: e.isIncluded }))
-    })
-
     // Delete existing car extras
     // First, count existing extras for logging
     const { count: existingCount } = await supabase
@@ -391,7 +385,6 @@ export async function updateCarExtrasAction(
       console.error('[updateCarExtrasAction] Error deleting existing extras:', deleteError)
       return { error: `Failed to clear existing extras: ${deleteError.message}` }
     }
-    console.log('[updateCarExtrasAction] Deleted existing extras:', existingCount || 0)
 
     // Insert new car extras if any
     if (extras.length > 0) {
@@ -401,8 +394,6 @@ export async function updateCarExtrasAction(
         price: extra.price,
         is_included: extra.isIncluded,
       }))
-
-      console.log('[updateCarExtrasAction] Inserting extras:', insertData)
 
       const { data: insertedData, error: insertError } = await supabase
         .from('car_extras')
@@ -420,16 +411,8 @@ export async function updateCarExtrasAction(
         })
         return { error: `Failed to save extras: ${insertError.message}` }
       }
-
-      console.log('[updateCarExtrasAction] ✅ Successfully inserted extras:', {
-        count: insertedData?.length || 0,
-        inserted: insertedData
-      })
-    } else {
-      console.log('[updateCarExtrasAction] No extras to insert (extras array is empty)')
     }
 
-    console.log('[updateCarExtrasAction] ✅ Car extras updated successfully')
     revalidatePath('/cars')
     return { success: true }
   } catch (error) {

@@ -3,7 +3,7 @@ import { createServerComponentClient } from '@/lib/supabase/client'
 import CalendarPageRedesigned from '@/app/components/domain/calendar/calendar-view'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
-import { ensureUserCompany, getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
+import { ensureUserCompany, getUserCompanyId, getUserCompany } from '@/lib/server/data/company'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -108,10 +108,6 @@ export default async function CalendarRoute() {
       hint: bookingsError.hint
     })
   }
-  
-  console.log('[CalendarPage] Fetched bookings:', {
-    count: bookings?.length || 0
-  })
 
   return (
     <div className="min-h-screen bg-gray-50">

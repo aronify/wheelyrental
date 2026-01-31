@@ -4,8 +4,8 @@ import LocationsPageRedesigned from '@/app/components/domain/locations/locations
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import NoCompanyAlert from '@/app/components/ui/alerts/no-company-alert'
-import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
-import { getLocationsAction } from '@/lib/server/data/cars-data-actions'
+import { getUserCompanyId, getCompanyById } from '@/lib/server/data/company'
+import { getLocationsAction } from '@/lib/server/data/cars'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -30,32 +30,20 @@ export default async function LocationsRoute() {
     redirect('/login')
   }
 
-  // Fetch company data for header (profiles table doesn't exist - use companies table)
-  let profileData: { agency_name?: string; logo?: string } | null = null
-  try {
-    const companyId = await getUserCompanyId(user.id)
-    if (companyId) {
-      const company = await getUserCompany(user.id)
-      if (company) {
-        profileData = {
-          agency_name: company.name || undefined,
-          logo: company.logo || undefined,
-        }
-      }
-    }
-  } catch (err) {
-    // Silently continue without profile data
-  }
-
-  // Get user's company ID - DO NOT create automatically
   const companyId = await getUserCompanyId(user.id)
 
-  // Fetch locations for the user's company (only if company exists)
+  const [companyForProfile, locationsResult] = await Promise.all([
+    companyId ? getCompanyById(companyId) : Promise.resolve(null),
+    companyId ? getLocationsAction() : Promise.resolve({ locations: [], error: undefined }),
+  ])
+
+  const profileData: { agency_name?: string; logo?: string } | null = companyForProfile
+    ? { agency_name: companyForProfile.name || undefined, logo: companyForProfile.logo || undefined }
+    : null
+
   let initialLocations: any[] = []
-  if (companyId) {
-    const locationsResult = await getLocationsAction()
-    if (locationsResult.locations) {
-      initialLocations = locationsResult.locations.map(loc => ({
+  if (companyId && locationsResult.locations) {
+    initialLocations = locationsResult.locations.map(loc => ({
         id: loc.id,
         name: loc.name,
         city: loc.city,
@@ -64,7 +52,6 @@ export default async function LocationsRoute() {
         isDropoffLocation: loc.isDropoffLocation,
         isHq: false, // Will be determined from data if needed,
       }))
-    }
   }
 
   return (
@@ -75,7 +62,7 @@ export default async function LocationsRoute() {
         agencyLogo={profileData?.logo}
       />
       <QuickAccessMenu />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 lg:pb-8 min-w-0 w-full">
         {/* Show alert if no company - non-blocking */}
         {!companyId && <NoCompanyAlert />}
         

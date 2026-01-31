@@ -3,22 +3,20 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/i18n/language-context'
 import { Profile, ProfileFormData } from '@/types/profile'
-import { updateProfileAction } from '@/lib/server/data/profile-data-actions'
+import { updateProfileAction } from '@/lib/server/data/profile'
 import Breadcrumbs from '@/app/components/ui/navigation/breadcrumbs'
-import { 
-  Building2, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  FileText, 
-  Edit, 
-  Save, 
-  X, 
-  Upload, 
-  CheckCircle, 
+import { ToastSave } from '@/app/components/ui/toast-save'
+import {
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+  FileText,
+  Edit,
+  CheckCircle,
   AlertCircle,
   Camera,
-  Calendar
+  Calendar,
 } from 'lucide-react'
 
 interface ProfilePageProps {
@@ -29,6 +27,7 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
   const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [toastState, setToastState] = useState<'initial' | 'loading' | 'success'>('initial')
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [logoPreview, setLogoPreview] = useState<string>(initialProfile.logo || '')
@@ -71,6 +70,7 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
   }
 
   const handleSave = async () => {
+    setToastState('loading')
     setIsSaving(true)
     setErrorMessage('')
     setSuccessMessage('')
@@ -78,14 +78,16 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
     const result = await updateProfileAction({ ...formData, logoUrl: logoPreview })
 
     if (result.success) {
+      setToastState('success')
       setSuccessMessage(t.profileUpdated || 'Profile updated successfully!')
-      setIsEditing(false)
-      // Refresh the page to get updated data from DB
       setTimeout(() => {
+        setToastState('initial')
         setSuccessMessage('')
+        setIsEditing(false)
         window.location.reload()
-      }, 1500)
+      }, 2000)
     } else {
+      setToastState('initial')
       setErrorMessage(result.error || t.profileUpdateFailed || 'Failed to update profile')
     }
 
@@ -108,6 +110,7 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
     })
     setLogoPreview(initialProfile.logo || '')
     setIsEditing(false)
+    setToastState('initial')
     setErrorMessage('')
   }
 
@@ -143,6 +146,22 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-6">
+      {/* Notification: ToastSave when editing (fixed position) */}
+      {isEditing && (
+        <div className="fixed bottom-6 right-6 z-50 sm:bottom-8 sm:right-8">
+          <ToastSave
+            state={toastState}
+            onReset={handleCancel}
+            onSave={handleSave}
+            loadingText={t.saving || 'Saving'}
+            successText={t.profileUpdated || 'Changes saved'}
+            initialText={t.unsavedChanges || 'Unsaved changes'}
+            resetText={t.cancelEdit || 'Reset'}
+            saveText={t.saveProfile || 'Save'}
+          />
+        </div>
+      )}
+
       {/* Breadcrumbs */}
       <Breadcrumbs />
 
@@ -192,10 +211,11 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 w-full sm:w-auto">
+          {/* Action: Edit button when not editing; "Editing" label when editing (Save/Reset in notification) */}
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             {!isEditing ? (
               <button
+                type="button"
                 onClick={() => setIsEditing(true)}
                 className="w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-sm sm:text-base"
               >
@@ -203,35 +223,9 @@ export default function ProfilePageRedesigned({ initialProfile }: ProfilePagePro
                 {t.editProfile || 'Edit Profile'}
               </button>
             ) : (
-              <>
-                <button
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                  className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 sm:py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
-                >
-                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {t.cancelEdit || 'Cancel'}
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex-1 sm:flex-initial px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 text-sm sm:text-base"
-                >
-                  {isSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span className="hidden sm:inline">Saving...</span>
-                      <span className="sm:hidden">Save...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden sm:inline">{t.saveProfile || 'Save Changes'}</span>
-                      <span className="sm:hidden">Save</span>
-                    </>
-                  )}
-                </button>
-              </>
+              <span className="text-sm font-medium text-gray-500">
+                {t.editingProfile || 'Editing profile'}
+              </span>
             )}
           </div>
         </div>

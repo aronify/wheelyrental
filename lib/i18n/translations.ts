@@ -61,6 +61,7 @@ export interface LanguageDictionary {
   signOutAccount: string;
   account: string;
   profile: string;
+  payouts: string;
   settings: string;
   viewOverview: string;
   editProfileSettings: string;
@@ -259,7 +260,9 @@ export interface LanguageDictionary {
   ownerPortal: string;
   profileSettings: string;
   editProfile: string;
+  editingProfile: string;
   saveProfile: string;
+  unsavedChanges: string;
   cancelEdit: string;
   agencyName: string;
   agencyDescription: string;
@@ -510,6 +513,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     signOutAccount: "Sign out of your account",
     account: "Account",
     profile: "Profile",
+    payouts: "Payouts",
     settings: "Settings",
     viewOverview: "View overview",
     editProfileSettings: "Edit profile & settings",
@@ -708,7 +712,9 @@ export const translations: Record<Language, LanguageDictionary> = {
     ownerPortal: "Owner Portal",
     profileSettings: "Profile Settings",
     editProfile: "Edit Profile",
+    editingProfile: "Editing profile",
     saveProfile: "Save Profile",
+    unsavedChanges: "Unsaved changes",
     cancelEdit: "Cancel",
     agencyName: "Agency Name",
     agencyDescription: "Description",
@@ -965,6 +971,7 @@ export const translations: Record<Language, LanguageDictionary> = {
     signOutAccount: "Dil nga llogaria",
     account: "Llogaria",
     profile: "Profili",
+    payouts: "Pagesat",
     settings: "Cilësimet",
     viewOverview: "Shiko përmbledhjen",
     editProfileSettings: "Ndrysho profilin dhe cilësimet",
@@ -1162,7 +1169,9 @@ export const translations: Record<Language, LanguageDictionary> = {
     ownerPortal: "Portali i Pronarit",
     profileSettings: "Cilësimet e profilit",
     editProfile: "Ndrysho profilin",
+    editingProfile: "Duke redaktuar profilin",
     saveProfile: "Ruaj profilin",
+    unsavedChanges: "Ndryshime të paruajtura",
     cancelEdit: "Anulo",
     agencyName: "Emri i agjencisë",
     agencyDescription: "Përshkrimi",

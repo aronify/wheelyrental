@@ -5,8 +5,8 @@ import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import QuickStartGuide from '@/app/components/ui/onboarding/quick-start-guide'
 import NoCompanyAlert from '@/app/components/ui/alerts/no-company-alert'
-import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
-import { getOnboardingStatus } from '@/lib/server/data/quick-start-helpers'
+import { getUserCompanyId, getCompanyById } from '@/lib/server/data/company'
+import { getOnboardingStatus } from '@/lib/server/data/onboarding'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -31,126 +31,100 @@ export default async function CarsRoute() {
     redirect('/login')
   }
 
-  // Fetch company data for header (profiles table doesn't exist - use companies table)
-  let profileData: { agency_name?: string; logo?: string } | null = null
-  try {
-    const companyId = await getUserCompanyId(user.id)
-    if (companyId) {
-      const company = await getUserCompany(user.id)
-      if (company) {
-        profileData = {
-          agency_name: company.name || undefined,
-          logo: company.logo || undefined,
-        }
-      }
-    }
-  } catch (err) {
-    // Silently continue without profile data
-  }
-
-  // Get user's company ID - DO NOT create automatically
   const companyId = await getUserCompanyId(user.id)
-  
-  // Check onboarding status for Quick Start Guide (only if company exists)
-  const onboardingStatus = companyId 
-    ? await getOnboardingStatus(companyId)
-    : {
-        isComplete: false,
-        progress: 0,
-        steps: {
-          profileComplete: false,
-          hasLocations: false,
-          hasCars: false,
-        }
-      }
-  
-  // Fetch cars from Supabase with company information
-  // RLS automatically filters by company_id based on auth.uid() and companies.owner_id
-  // No manual filtering needed - RLS handles all access control
-  const { data: dbCars, error: carsError } = await supabase
-    .from('cars')
-    .select(`
-      *,
-      company:companies(
-        id,
-        name,
-        email,
-        phone,
-        website
-      )
-    `)
-    .order('created_at', { ascending: false })
-  
-  // Log any errors for debugging
+
+  const defaultOnboarding = {
+    isComplete: false,
+    completedSteps: [] as string[],
+    totalSteps: 3,
+    progress: 0,
+    steps: { profileComplete: false, hasLocations: false, hasCars: false },
+  }
+
+  // Run company profile, onboarding, and cars fetch in parallel
+  const [companyForProfile, onboardingStatus, carsResult] = await Promise.all([
+    companyId ? getCompanyById(companyId) : Promise.resolve(null),
+    companyId ? getOnboardingStatus(companyId) : Promise.resolve(defaultOnboarding),
+    supabase
+      .from('cars')
+      .select(`*, company:companies(id, name, email, phone, website)`)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const profileData: { agency_name?: string; logo?: string } | null = companyForProfile
+    ? { agency_name: companyForProfile.name || undefined, logo: companyForProfile.logo || undefined }
+    : null
+
+  const { data: dbCars, error: carsError } = carsResult
   if (carsError) {
-    console.error('[CarsPage] Error fetching cars:', {
-      message: carsError.message,
-      code: carsError.code,
-      details: carsError.details,
-      hint: carsError.hint,
-      rlsIssue: carsError.code === '42501' ? 'RLS blocked query - check RLS policies' : 'Other error'
-    })
-  }
-  
-  // Debug: Log what we got
-  console.log('[CarsPage] Fetched cars:', {
-    count: dbCars?.length || 0,
-    sampleCar: dbCars?.[0] ? { id: dbCars[0].id, company_id: dbCars[0].company_id } : null
-  })
-
-  // Fetch locations from junction table for all cars
-  let carLocationsMap: Record<string, { pickup: string[]; dropoff: string[] }> = {}
-  if (dbCars && dbCars.length > 0) {
-    const carIds = dbCars.map((car: any) => car.id)
-    const { data: carLocations } = await supabase
-      .from('car_locations')
-      .select('car_id, location_id, location_type')
-      .in('car_id', carIds)
-
-    // Group locations by car_id and type
-    for (const car of dbCars) {
-      const pickup: string[] = []
-      const dropoff: string[] = []
-      
-      for (const cl of carLocations || []) {
-        if (cl.car_id === car.id) {
-          if (cl.location_type === 'pickup') {
-            pickup.push(cl.location_id)
-          } else if (cl.location_type === 'dropoff') {
-            dropoff.push(cl.location_id)
-          }
-        }
-      }
-      
-      carLocationsMap[car.id] = { pickup, dropoff }
-    }
+    console.error('[CarsPage] Error fetching cars:', carsError.message)
   }
 
-  // Fetch extras from junction table for all cars
+  let carLocationsMap: Record<string, {
+    pickup: Array<{ id: string; name: string; address: string; city: string }>
+    dropoff: Array<{ id: string; name: string; address: string; city: string }>
+  }> = {}
   let carExtrasMap: Record<string, Array<{ carId: string; extraId: string; price: number; isIncluded: boolean }>> = {}
+
   if (dbCars && dbCars.length > 0) {
     const carIds = dbCars.map((car: any) => car.id)
-    const { data: carExtras } = await supabase
-      .from('car_extras')
-      .select('car_id, extra_id, price, is_included')
-      .in('car_id', carIds)
 
-    // Group extras by car_id
-    for (const car of dbCars) {
-      const extras: Array<{ carId: string; extraId: string; price: number; isIncluded: boolean }> = []
-      
-      for (const ce of carExtras || []) {
-        if (ce.car_id === car.id) {
-          extras.push({
-            carId: car.id, // Required by CarExtra interface
-            extraId: ce.extra_id,
-            price: parseFloat(ce.price) || 0,
-            isIncluded: ce.is_included || false,
-          })
+    const [carLocationsRes, carExtrasRes] = await Promise.all([
+      supabase.from('car_locations').select('car_id, location_id, location_type').in('car_id', carIds),
+      supabase.from('car_extras').select('car_id, extra_id, price, is_included').in('car_id', carIds),
+    ])
+
+    const carLocations = carLocationsRes.data
+    const carExtras = carExtrasRes.data
+
+    if (carExtras?.length) {
+      for (const ce of carExtras) {
+        if (!carExtrasMap[ce.car_id]) carExtrasMap[ce.car_id] = []
+        carExtrasMap[ce.car_id].push({
+          carId: ce.car_id,
+          extraId: ce.extra_id,
+          price: parseFloat(ce.price) || 0,
+          isIncluded: !!ce.is_included,
+        })
+      }
+    }
+
+    if (carLocations?.length && companyId) {
+      const locationIds = [...new Set(carLocations.map((cl: any) => cl.location_id))]
+      const { data: locations } = await supabase
+        .from('locations')
+        .select('id, name, address, city, company_id, is_active')
+        .in('id', locationIds)
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+
+      const locationsMap: Record<string, { id: string; name: string; address: string; city: string }> = {}
+      for (const loc of locations || []) {
+        locationsMap[loc.id] = {
+          id: loc.id,
+          name: loc.name || '',
+          address: loc.address || '',
+          city: loc.city || '',
         }
       }
-      
-      carExtrasMap[car.id] = extras
+
+      for (const cl of carLocations) {
+        const location = locationsMap[cl.location_id]
+        if (!location) continue
+        if (!carLocationsMap[cl.car_id]) {
+          carLocationsMap[cl.car_id] = { pickup: [], dropoff: [] }
+        }
+        if (cl.location_type === 'pickup') {
+          carLocationsMap[cl.car_id].pickup.push(location)
+        } else if (cl.location_type === 'dropoff') {
+          carLocationsMap[cl.car_id].dropoff.push(location)
+        }
+      }
+    }
+
+    for (const car of dbCars) {
+      if (!carLocationsMap[car.id]) carLocationsMap[car.id] = { pickup: [], dropoff: [] }
+      if (!carExtrasMap[car.id]) carExtrasMap[car.id] = []
     }
   }
 
@@ -179,16 +153,20 @@ export default async function CarsRoute() {
     seats: car.seats,
     dailyRate: Number(car.daily_rate),
     status: car.status, // 'active', 'maintenance', 'retired'
-    imageUrl: car.image_url || '',
+    imageUrl: car.image_url ? car.image_url.split(',')[0] : '', // First image is primary
+    imageUrls: car.image_url ? car.image_url.split(',').map((url: string) => url.trim()).filter(Boolean) : undefined, // All images
     features: car.features || [],
     pickupLocation: undefined, // Deprecated - use pickupLocations array instead
     dropoffLocation: undefined, // Deprecated - use dropoffLocations array instead
     pickupLocations: carLocationsMap[car.id]?.pickup.length > 0 
-      ? carLocationsMap[car.id].pickup 
-      : undefined, // Array of location IDs from car_locations junction table
+      ? carLocationsMap[car.id].pickup.map(loc => loc.id)
+      : undefined, // Array of location IDs (for backward compatibility)
     dropoffLocations: carLocationsMap[car.id]?.dropoff.length > 0
-      ? carLocationsMap[car.id].dropoff
-      : undefined, // Array of location IDs from car_locations junction table
+      ? carLocationsMap[car.id].dropoff.map(loc => loc.id)
+      : undefined, // Array of location IDs (for backward compatibility)
+    // Full location details for the info panel
+    pickupLocationDetails: carLocationsMap[car.id]?.pickup || [],
+    dropoffLocationDetails: carLocationsMap[car.id]?.dropoff || [],
     depositRequired: car.deposit_required ? Number(car.deposit_required) : undefined,
     createdAt: new Date(car.created_at),
     updatedAt: new Date(car.updated_at),
@@ -208,7 +186,7 @@ export default async function CarsRoute() {
       />
       <QuickAccessMenu />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 lg:pb-8 min-w-0 w-full">
         {/* Show alert if no company - non-blocking */}
         {!companyId && <NoCompanyAlert />}
         

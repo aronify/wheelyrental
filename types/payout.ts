@@ -4,11 +4,12 @@
  * TypeScript definitions for payout request data structures.
  */
 
-export type PayoutRequestStatus = 'pending' | 'approved' | 'rejected' | 'processed' | 'confirmed'
+export type PayoutRequestStatus = 'pending' | 'approved' | 'rejected' | 'processed' | 'confirmed' | 'paid'
 
 export interface PayoutRequest {
   id: string
   userId: string
+  companyId?: string | null
   invoiceUrl: string
   amount?: number
   description?: string

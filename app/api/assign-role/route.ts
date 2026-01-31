@@ -114,7 +114,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[RoleAssignment API] Successfully assigned partner role to user:', user.id)
     return NextResponse.json({
       success: true,
       role: 'partner',

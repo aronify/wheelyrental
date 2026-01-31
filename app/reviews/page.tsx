@@ -4,7 +4,7 @@ import ReviewsList from '@/app/components/domain/reviews/reviews-list'
 import DashboardHeader from '@/app/components/domain/dashboard/dashboard-header'
 import QuickAccessMenu from '@/app/components/ui/navigation/quick-access-menu'
 import { Review } from '@/types/review'
-import { getUserCompanyId, getUserCompany } from '@/lib/server/data/company-helpers'
+import { getUserCompanyId, getCompanyById } from '@/lib/server/data/company'
 
 // Force dynamic rendering - this page uses Supabase auth (cookies)
 export const dynamic = 'force-dynamic'
@@ -30,26 +30,12 @@ export default async function ReviewsPage() {
     redirect('/login')
   }
 
-  // Fetch company data for header (profiles table doesn't exist - use companies table)
-  let profileData: { agency_name?: string; logo?: string } | null = null
-  try {
-    const companyId = await getUserCompanyId(user.id)
-    if (companyId) {
-      const company = await getUserCompany(user.id)
-      if (company) {
-        profileData = {
-          agency_name: company.name || undefined,
-          logo: company.logo || undefined,
-        }
-      }
-    }
-  } catch (err) {
-    // Silently continue without profile data
-  }
-
-  // Get user's company_id
   const companyId = await getUserCompanyId(user.id)
-  
+  const companyForProfile = companyId ? await getCompanyById(companyId) : null
+  const profileData: { agency_name?: string; logo?: string } | null = companyForProfile
+    ? { agency_name: companyForProfile.name || undefined, logo: companyForProfile.logo || undefined }
+    : null
+
   if (!companyId) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -171,7 +157,7 @@ export default async function ReviewsPage() {
       />
       <QuickAccessMenu />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
+      <main className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 lg:pb-8 min-w-0 w-full">
         <ReviewsList initialReviews={reviews} />
       </main>
     </div>

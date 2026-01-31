@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/i18n/language-context'
-import { logoutAction } from '@/lib/server/data/logout-action'
-import { useRouter, usePathname } from 'next/navigation'
+import { logoutAction } from '@/lib/server/auth/logout-action'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
 interface DashboardHeaderProps {
@@ -14,7 +14,6 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: DashboardHeaderProps) {
   const { language, setLanguage, t } = useLanguage()
-  const router = useRouter()
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -104,12 +103,12 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
 
   return (
     <header
-      className={`bg-white sticky top-0 z-50 transition-all duration-300 ${
+      className={`bg-white sticky top-0 z-[90] transition-all duration-300 ${
         scrolled ? 'shadow-lg border-b border-gray-200' : 'shadow-sm border-b border-gray-100'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+      <div className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 lg:px-8 min-w-0 w-full">
+        <div className="flex justify-between items-center h-14 sm:h-16 min-h-[56px]">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
             <div className="relative">
@@ -223,10 +222,12 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
               {isMenuOpen && (
                 <>
                   {/* Backdrop */}
-                  <div className="fixed inset-0 z-40 lg:z-10" onClick={() => setIsMenuOpen(false)} />
+                  <div className="fixed inset-0 z-[85] lg:z-10" onClick={() => setIsMenuOpen(false)} />
 
                   {/* Menu */}
-                  <div className="fixed lg:absolute right-0 lg:right-0 top-16 lg:top-auto lg:mt-2 w-full sm:w-80 lg:w-72 max-w-[calc(100vw-2rem)] lg:max-w-none bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl border-t-2 lg:border-t-0 lg:border-2 border-gray-200 overflow-hidden z-50 lg:z-20 animate-slide-in-top lg:animate-slide-in max-h-[calc(100vh-4rem)] lg:max-h-none overflow-y-auto safe-area-inset-bottom">
+                  <div className="fixed lg:absolute right-0 lg:right-0 top-16 lg:top-auto lg:mt-2 w-full sm:w-80 lg:w-72 max-w-[calc(100vw-2rem)] lg:max-w-none bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl border-t-2 lg:border-t-0 lg:border-2 border-gray-200 overflow-hidden z-[90] lg:z-20 animate-slide-in-top lg:animate-slide-in max-h-[calc(100vh-4rem)] lg:max-h-none overflow-y-auto"
+                    style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+                  >
                     {/* User Info Header */}
                     <div className="bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900 px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -338,11 +339,22 @@ export default function DashboardHeader({ userEmail, agencyName, agencyLogo }: D
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/20 z-40 lg:hidden" 
+            className="fixed inset-0 bg-black/20 z-[110] lg:hidden" 
             onClick={() => setIsMobileMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="lg:hidden border-t border-gray-100 bg-white animate-slide-down z-50 max-h-[calc(100vh-4rem)] overflow-y-auto safe-area-inset-bottom">
+          <div className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-2xl animate-slide-down z-[110] max-h-screen overflow-y-auto w-full min-w-0" style={{ paddingTop: '56px', paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
+            {/* Close Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-3 right-3 p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors touch-manipulation z-10"
+              aria-label="Close menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
             <nav id="mobile-navigation-menu" className="px-4 py-4 space-y-1" role="navigation" aria-label="Main navigation">
               {navItems.map((item) => {
                 const isActive = pathname === item.href

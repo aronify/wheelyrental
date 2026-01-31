@@ -1,13 +1,19 @@
 import type { Metadata, Viewport } from 'next'
-import { Urbanist } from 'next/font/google'
+import { Figtree, Urbanist } from 'next/font/google'
 import './globals.css'
 import { LanguageProvider } from '@/lib/i18n/language-context'
+
+const figtree = Figtree({
+  subsets: ['latin'],
+  variable: '--font-figtree',
+  display: 'swap',
+  adjustFontFallback: true,
+})
 
 const urbanist = Urbanist({
   subsets: ['latin'],
   variable: '--font-urbanist',
   display: 'swap',
-  preload: false, // Disable preload to fix warning
   adjustFontFallback: true,
 })
 
@@ -19,8 +25,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  minimumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
   viewportFit: 'cover',
 }
 
@@ -30,8 +37,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sq" className={urbanist.variable}>
-      <body className="font-urbanist">
+    <html lang="sq" className={`${figtree.variable} ${urbanist.variable}`} data-scroll-behavior="smooth">
+      <body className="font-sans">
         <LanguageProvider>
           {children}
         </LanguageProvider>
